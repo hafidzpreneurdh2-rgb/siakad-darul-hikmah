@@ -1,0 +1,890 @@
+import React, { useState, useEffect, useRef } from "react";
+import { supabase } from "./supabaseClient.js";
+
+const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const MATA_PELAJARAN = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"];
+const KELAS_LIST = ["Marhalah I","Marhalah II","Marhalah III"];
+const JENIS_IBADAH = ["Sholat 5 Waktu Berjamaah","Puasa Sunnah","Tilawah Harian","Dzikir Pagi-Petang","Qiyamullail"];
+const ROLE_LABEL = { admin: "Administrator", musyrif: "Musyrif", musyrifah: "Musyrifah", keuangan: "Bendahara", akademik: "Staf Akademik", pimpinan: "Pimpinan Pondok", santri: "Santri / Wali" };
+const AVATAR_COLORS = ["#0B4D30","#AD7F2C","#8A4A3A","#3F6C8A","#5C4A8A","#2F6B5E"];
+const nowYear = new Date().getFullYear();
+
+function formatRupiah(n) { return n == null ? "-" : "Rp " + Number(n).toLocaleString("id-ID"); }
+function nilaiHuruf(a) { if (a == null) return "-"; if (a >= 85) return "A"; if (a >= 75) return "B"; if (a >= 65) return "C"; if (a >= 50) return "D"; return "E"; }
+function bobot(h) { return { A: 4, B: 3, C: 2, D: 1, E: 0 }[h] ?? 0; }
+function initials(name = "") { return name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase(); }
+function avatarColor(name = "") { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) % AVATAR_COLORS.length; return AVATAR_COLORS[h]; }
+function todayLong() { return new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
+
+/* ---------------------------------------------------------------------- */
+/* Permission map — siapa boleh menulis data di area mana                  */
+/* ---------------------------------------------------------------------- */
+const CAN_EDIT = {
+  santri: ["admin"],
+  akademik: ["admin", "akademik"],
+  quran: ["admin", "musyrif", "musyrifah"],
+  ibadah: ["admin", "musyrif", "musyrifah"],
+  spp: ["admin", "keuangan"],
+};
+function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
+
+const MENUS = {
+  admin: [["dashboard","Dashboard"],["santri","Data Santri"],["akademik","Input Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["spp","Tagihan SPP"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
+  musyrif: [["dashboard","Dashboard"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["pengaturan","Pengaturan"]],
+  musyrifah: [["dashboard","Dashboard"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["pengaturan","Pengaturan"]],
+  keuangan: [["dashboard","Dashboard"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
+  akademik: [["dashboard","Dashboard"],["akademik","Input Akademik"],["pengaturan","Pengaturan"]],
+  pimpinan: [["dashboard","Dashboard"],["santri","Data Santri"],["akademik","Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
+  santri: [["dashboard","Dashboard"],["akademik","Akademik (KHS/KRS)"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
+};
+
+/* ---------------------------------------------------------------------- */
+/* UI primitives                                                            */
+/* ---------------------------------------------------------------------- */
+function Badge({ tone = "grey", children }) {
+  const map = { green: "bg-emerald-50 text-emerald-800", gold: "bg-amber-50 text-amber-800", red: "bg-red-50 text-red-700", grey: "bg-stone-100 text-stone-600" };
+  return <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${map[tone]}`}><span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />{children}</span>;
+}
+function Card({ children, className = "" }) {
+  return <div className={`bg-white border border-stone-200 rounded-2xl p-5 shadow-[0_1px_2px_rgba(20,30,22,.06)] ${className}`}>{children}</div>;
+}
+function Btn({ children, onClick, tone = "primary", type = "button", disabled }) {
+  const map = {
+    primary: "bg-emerald-800 text-white hover:bg-emerald-900 shadow-sm hover:shadow",
+    gold: "bg-amber-700 text-white hover:bg-amber-800 shadow-sm",
+    ghost: "bg-transparent text-stone-600 border border-stone-300 hover:bg-stone-50 hover:border-emerald-700 hover:text-emerald-800",
+    danger: "bg-transparent text-red-700 border border-red-200 hover:bg-red-50",
+  };
+  return (
+    <button type={type} disabled={disabled} onClick={onClick}
+      className={`inline-flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl transition-all disabled:opacity-40 ${map[tone]}`}>
+      {children}
+    </button>
+  );
+}
+function Field({ label, children }) {
+  return <div className="mb-3"><label className="block text-[11px] font-extrabold text-stone-500 uppercase tracking-wider mb-1.5">{label}</label>{children}</div>;
+}
+function Input(props) { return <input {...props} className={`w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-600 transition ${props.className || ""}`} />; }
+function Select(props) { return <select {...props} className={`w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-emerald-100 ${props.className || ""}`} />; }
+function Modal({ title, onClose, children }) {
+  return (
+    <div className="fixed inset-0 bg-emerald-950/50 backdrop-blur-[2px] flex items-center justify-center p-5 z-50" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-stone-200">
+          <h3 className="font-serif-dh text-lg text-emerald-900 font-semibold">{title}</h3>
+          <button onClick={onClose} className="text-stone-400 hover:text-stone-700 w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center">✕</button>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  );
+}
+function Avatar({ name, url, size = 34 }) {
+  if (url) return <img src={url} alt={name} style={{ width: size, height: size }} className="rounded-full object-cover flex-shrink-0 ring-2 ring-white" />;
+  return (
+    <div style={{ width: size, height: size, background: avatarColor(name), fontSize: size * 0.36 }}
+      className="rounded-full flex items-center justify-center font-extrabold text-white flex-shrink-0">
+      {initials(name) || "?"}
+    </div>
+  );
+}
+function JuzTracker({ juz = [] }) {
+  const set = new Set(juz);
+  return (
+    <div>
+      <div className="grid grid-cols-10 gap-1.5">
+        {Array.from({ length: 30 }, (_, i) => 30 - i).map((j) => (
+          <div key={j} title={`Juz ${j}`}
+            className={`aspect-square flex items-center justify-center text-[10px] font-bold rounded-md transition-transform hover:scale-110 ${set.has(j) ? "bg-gradient-to-br from-amber-500 to-amber-700 text-white shadow-sm" : "bg-stone-100 text-stone-400"}`}>
+            {j}
+          </div>
+        ))}
+      </div>
+      <div className="text-xs text-stone-500 mt-3 font-semibold flex items-center gap-2">
+        <span className="w-2.5 h-2.5 rounded bg-amber-600 inline-block" />
+        {juz.length} dari 30 juz dikuasai
+      </div>
+    </div>
+  );
+}
+function LogoMark({ size = 40 }) {
+  return (
+    <div style={{ width: size, height: size }} className="rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center flex-shrink-0 shadow-sm">
+      <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 24 24" fill="none">
+        <path d="M15 5a7 7 0 1 0 0 14 6.2 6.2 0 1 1 0-14Z" fill="white" fillOpacity=".95" />
+      </svg>
+    </div>
+  );
+}
+function PatternBG() {
+  return (
+    <svg className="absolute inset-0 w-full h-full opacity-[0.07] pointer-events-none">
+      <defs>
+        <pattern id="dh-star" width="46" height="46" patternUnits="userSpaceOnUse">
+          <path d="M23 3 L28 18 L43 23 L28 28 L23 43 L18 28 L3 23 L18 18 Z" fill="none" stroke="#fff" strokeWidth="1" />
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#dh-star)" />
+    </svg>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Login                                                                    */
+/* ---------------------------------------------------------------------- */
+function LoginScreen() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setErr(""); setLoading(true);
+    try {
+      const { data: email, error: rpcErr } = await supabase.rpc("get_login_email", { p_username: username.trim() });
+      if (rpcErr || !email) throw new Error("NIM/Username tidak ditemukan.");
+      const { error: authErr } = await supabase.auth.signInWithPassword({ email, password });
+      if (authErr) throw authErr;
+    } catch (e2) {
+      setErr(e2.message || "NIM/Username atau kata sandi salah.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F4F2EA] p-5">
+      <div className="w-full max-w-4xl grid md:grid-cols-2 rounded-[28px] overflow-hidden shadow-[0_30px_70px_-20px_rgba(10,30,20,.35)]">
+        <div className="relative bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 p-10 text-white flex flex-col justify-between overflow-hidden">
+          <PatternBG />
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-10">
+              <LogoMark size={44} />
+              <div className="text-xs font-bold tracking-widest text-white/60">DARUL HIKMAH</div>
+            </div>
+            <div className="text-xs font-bold tracking-[0.22em] text-amber-300 uppercase mb-2">Sistem Informasi Akademik</div>
+            <div className="font-serif-dh text-5xl font-bold leading-none mb-3">SIAKAD</div>
+            <div className="text-lg text-white/85 leading-snug">
+              Pondok Tahfidz Qur'an &amp; Entrepreneur<br/>Darul Hikmah
+            </div>
+            <p className="text-sm text-white/60 mt-5 leading-relaxed max-w-xs">
+              Satu pintu terpadu untuk akademik, capaian hafalan, ibadah harian, dan status SPP santri.
+            </p>
+          </div>
+          <div className="relative flex items-center gap-6 pt-5 mt-8 border-t border-white/15 text-xs text-white/70">
+            <span>📖 Capaian Qur'an</span><span>🎓 KHS/KRS</span><span>💳 SPP</span>
+          </div>
+        </div>
+
+        <div className="bg-white p-10 flex flex-col justify-center">
+          <h3 className="font-serif-dh text-2xl text-emerald-900 mb-1 font-semibold">Selamat Datang</h3>
+          <p className="text-sm text-stone-500 mb-7">Masuk dengan NIM (santri/wali) atau username (staf pondok).</p>
+          <form onSubmit={submit}>
+            <Field label="NIM / Username"><Input value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus /></Field>
+            <Field label="Kata Sandi"><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></Field>
+            {err && <div className="text-red-700 text-xs bg-red-50 rounded-xl px-3.5 py-2.5 mb-4 font-medium">{err}</div>}
+            <Btn type="submit" disabled={loading}>{loading ? "Memproses…" : "Masuk ke SIAKAD →"}</Btn>
+          </form>
+          <div className="text-center mt-8 text-[11px] text-stone-400">© {nowYear} Pondok Tahfidz Qur'an &amp; Entrepreneur Darul Hikmah</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Shell (sidebar + topbar)                                                 */
+/* ---------------------------------------------------------------------- */
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Santri", akademik: "Akademik", quran: "Laporan Capaian Al-Qur'an", ibadah: "Laporan Ibadah", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+
+function Shell({ profile, view, setView, children }) {
+  const menu = MENUS[profile.role] || [];
+  return (
+    <div className="min-h-screen bg-[#F4F2EA] flex">
+      <aside className="w-64 bg-gradient-to-b from-emerald-950 to-emerald-900 text-white p-4 flex flex-col">
+        <div className="flex items-center gap-3 pb-5 mb-5 border-b border-white/10">
+          <LogoMark size={36} />
+          <div>
+            <div className="text-[10px] font-bold text-white/45 tracking-[0.15em]">SIAKAD</div>
+            <div className="font-serif-dh text-[15px] font-semibold">Darul Hikmah</div>
+          </div>
+        </div>
+        <div className="text-[10px] font-extrabold text-white/35 tracking-[0.15em] px-3 mb-2">MENU UTAMA</div>
+        <nav className="flex-1 space-y-1">
+          {menu.map(([key, label]) => (
+            <div key={key} onClick={() => setView(key)}
+              className={`relative px-3.5 py-2.5 rounded-xl text-[13.5px] font-semibold cursor-pointer transition ${view === key ? "bg-white/10 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
+              {view === key && <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-5 bg-amber-500 rounded-r" />}
+              {label}
+            </div>
+          ))}
+        </nav>
+        <div className="border-t border-white/10 pt-4 mt-3 flex items-center gap-3">
+          <Avatar name={profile.nama} url={profile.avatar_url} />
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] font-bold truncate">{profile.nama}</div>
+            <div className="text-[11px] text-white/45">{ROLE_LABEL[profile.role]}</div>
+          </div>
+          <button onClick={() => supabase.auth.signOut()} title="Keluar" className="w-8 h-8 rounded-lg bg-white/8 hover:bg-white/15 flex items-center justify-center text-white/75">⏻</button>
+        </div>
+      </aside>
+      <div className="flex-1 flex flex-col">
+        <div className="flex items-center justify-between px-8 py-4 bg-white border-b border-stone-200 sticky top-0 z-10">
+          <div>
+            <div className="text-[11px] text-stone-400 font-semibold">Beranda / {PAGE_TITLES[view]}</div>
+            <div className="font-serif-dh text-[17px] font-semibold text-emerald-900">{PAGE_TITLES[view]}</div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-xs text-stone-500 font-medium hidden sm:block">{todayLong()}</div>
+            <div className="w-px h-6 bg-stone-200" />
+            <Avatar name={profile.nama} url={profile.avatar_url} size={30} />
+          </div>
+        </div>
+        <main className="flex-1 p-8 max-w-5xl">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+function PageHeader({ eyebrow, title, sub, actions }) {
+  return (
+    <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
+      <div>
+        {eyebrow && <div className="text-[11px] font-extrabold text-amber-700 uppercase tracking-[0.14em] mb-1">{eyebrow}</div>}
+        <h2 className="font-serif-dh text-2xl text-emerald-900 font-semibold">{title}</h2>
+        {sub && <p className="text-sm text-stone-500 mt-1">{sub}</p>}
+      </div>
+      {actions}
+    </div>
+  );
+}
+function Empty({ text }) { return <div className="text-center text-stone-400 text-sm py-10">{text}</div>; }
+function StatCard({ label, value, sub, icon }) {
+  return (
+    <Card>
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] font-extrabold text-stone-500 uppercase tracking-wider">{label}</div>
+        {icon && <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-800">{icon}</div>}
+      </div>
+      <div className="font-serif-dh text-3xl font-semibold mt-2 text-stone-800">{value}</div>
+      {sub && <div className="text-xs text-stone-400 mt-1">{sub}</div>}
+    </Card>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Data hook                                                                */
+/* ---------------------------------------------------------------------- */
+function useTable(table, deps = []) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  async function reload() {
+    setLoading(true);
+    const { data, error } = await supabase.from(table).select("*");
+    if (!error) setRows(data || []);
+    setLoading(false);
+  }
+  useEffect(() => { reload(); /* eslint-disable-next-line */ }, deps);
+  return { rows, loading, reload };
+}
+
+/* ---------------------------------------------------------------------- */
+/* Dashboard                                                                */
+/* ---------------------------------------------------------------------- */
+function Dashboard({ profile }) {
+  const santriT = useTable("santri");
+  const sppT = useTable("spp");
+
+  if (profile.role === "santri") {
+    const s = santriT.rows.find((x) => x.nim === profile.nim);
+    return (
+      <div>
+        <PageHeader eyebrow="Ruang Santri" title={`Assalamu'alaikum, ${profile.nama.split(" ")[0]}`} sub={profile.nim} />
+        <Card><h3 className="font-serif-dh text-base text-emerald-900 font-semibold mb-3">Peta Hafalan</h3><JuzTracker juz={s?.juz_dikuasai || []} /></Card>
+      </div>
+    );
+  }
+
+  const bulanIni = BULAN[new Date().getMonth()];
+  const belumLunas = sppT.rows.filter((r) => r.bulan === bulanIni && r.tahun === nowYear && r.status !== "Lunas").length;
+
+  return (
+    <div>
+      <PageHeader eyebrow="Ringkasan" title="Dashboard" sub={`Assalamu'alaikum, ${profile.nama}`} />
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <StatCard label="Total Santri" value={santriT.rows.length} icon="👥" />
+        <StatCard label="Tunggakan Bulan Ini" value={belumLunas} icon="💳" />
+        <StatCard label="Rata-rata Juz" value={santriT.rows.length ? (santriT.rows.reduce((a, s) => a + (s.juz_dikuasai?.length || 0), 0) / santriT.rows.length).toFixed(1) : 0} icon="📖" />
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Data Santri                                                              */
+/* ---------------------------------------------------------------------- */
+function DataSantriPage({ profile }) {
+  const editable = canEdit(profile.role, "santri");
+  const { rows, reload } = useTable("santri");
+  const [modal, setModal] = useState(null);
+
+  async function upsert(form) {
+    if (modal === "new") {
+      const { error } = await supabase.from("santri").insert(form);
+      if (error) { alert(error.message); return; }
+    } else {
+      const { error } = await supabase.from("santri").update(form).eq("nim", modal.nim);
+      if (error) { alert(error.message); return; }
+    }
+    setModal(null); reload();
+  }
+  async function remove(nim) {
+    if (!confirm(`Hapus santri ${nim}?`)) return;
+    const { error } = await supabase.from("santri").delete().eq("nim", nim);
+    if (error) alert(error.message); else reload();
+  }
+
+  return (
+    <div>
+      <PageHeader title="Data Santri" actions={editable && <Btn onClick={() => setModal("new")}>+ Tambah Santri</Btn>} />
+      <Card className="p-0 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Kelas</th><th className="p-3.5"></th></tr></thead>
+          <tbody>
+            {rows.map((s) => (
+              <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60">
+                <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
+                <td className="p-3.5">{s.kelas}</td>
+                <td className="p-3.5 text-right">
+                  {editable && <>
+                    <button onClick={() => setModal(s)} className="text-emerald-700 text-xs font-bold mr-3">Edit</button>
+                    <button onClick={() => remove(s.nim)} className="text-red-600 text-xs font-bold">Hapus</button>
+                  </>}
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && <tr><td colSpan={3}><Empty text="Belum ada santri." /></td></tr>}
+          </tbody>
+        </table>
+      </Card>
+      {modal && <SantriForm initial={modal === "new" ? null : modal} onCancel={() => setModal(null)} onSubmit={upsert} />}
+    </div>
+  );
+}
+function SantriForm({ initial, onCancel, onSubmit }) {
+  const [f, setF] = useState(initial || { nim: "", nama: "", jk: "Santri", kelas: KELAS_LIST[0], angkatan: String(nowYear), kamar: "", musyrif_username: "" });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title={initial ? "Edit Santri" : "Tambah Santri"} onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <Field label="NIM"><Input value={f.nim} onChange={set("nim")} disabled={!!initial} required /></Field>
+        <Field label="Nama"><Input value={f.nama} onChange={set("nama")} required /></Field>
+        <Field label="Kelas"><Select value={f.kelas} onChange={set("kelas")}>{KELAS_LIST.map((k) => <option key={k}>{k}</option>)}</Select></Field>
+        <Field label="Musyrif/ah (username)"><Input value={f.musyrif_username} onChange={set("musyrif_username")} placeholder="cth: musyrif1" /></Field>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Input Akademik (staff: admin & akademik role)                            */
+/* ---------------------------------------------------------------------- */
+function AkademikStaffPage({ profile }) {
+  const editable = canEdit(profile.role, "akademik");
+  const santriT = useTable("santri");
+  const [nim, setNim] = useState("");
+  const akT = useTable("akademik", []);
+  const [showForm, setShowForm] = useState(false);
+  const records = akT.rows.filter((a) => a.nim === nim);
+
+  async function add(f) {
+    const { error } = await supabase.from("akademik").insert({ ...f, nim, sks: Number(f.sks) });
+    if (error) alert(error.message); else { setShowForm(false); akT.reload(); }
+  }
+  async function updateNilai(id, v) {
+    const nilai = v === "" ? null : Number(v);
+    const { error } = await supabase.from("akademik").update({ nilai_angka: nilai, status: nilai == null ? "aktif" : "selesai" }).eq("id", id);
+    if (!error) akT.reload();
+  }
+
+  return (
+    <div>
+      <PageHeader title="Input Akademik" />
+      <div className="flex gap-3 mb-4 items-center">
+        <Select value={nim} onChange={(e) => setNim(e.target.value)} className="max-w-xs">
+          <option value="">— Pilih santri —</option>
+          {santriT.rows.map((s) => <option key={s.nim} value={s.nim}>{s.nim} · {s.nama}</option>)}
+        </Select>
+        {nim && editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Mapel</Btn>}
+      </div>
+      {nim && (
+        <Card className="p-0 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mapel</th><th className="p-3.5">SKS</th><th className="p-3.5">Status</th><th className="p-3.5">Nilai</th></tr></thead>
+            <tbody>
+              {records.map((r) => (
+                <tr key={r.id} className="border-t border-stone-100">
+                  <td className="p-3.5">{r.mata_pelajaran}</td><td className="p-3.5">{r.sks}</td>
+                  <td className="p-3.5"><Badge tone={r.status === "selesai" ? "green" : "gold"}>{r.status}</Badge></td>
+                  <td className="p-3.5 w-28">{editable ? <Input type="number" defaultValue={r.nilai_angka ?? ""} onBlur={(e) => updateNilai(r.id, e.target.value)} /> : (r.nilai_angka ?? "-")}</td>
+                </tr>
+              ))}
+              {records.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada data." /></td></tr>}
+            </tbody>
+          </table>
+        </Card>
+      )}
+      {showForm && <AkademikForm onCancel={() => setShowForm(false)} onSubmit={add} />}
+    </div>
+  );
+}
+function AkademikForm({ onCancel, onSubmit }) {
+  const [f, setF] = useState({ tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_pelajaran: MATA_PELAJARAN[0], sks: 2, status: "aktif" });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title="Tambah Mata Pelajaran" onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <Field label="Tahun Ajaran"><Input value={f.tahun_ajaran} onChange={set("tahun_ajaran")} /></Field>
+        <Field label="Semester"><Select value={f.semester} onChange={set("semester")}><option>Ganjil</option><option>Genap</option></Select></Field>
+        <Field label="Mata Pelajaran"><Select value={f.mata_pelajaran} onChange={set("mata_pelajaran")}>{MATA_PELAJARAN.map((m) => <option key={m}>{m}</option>)}</Select></Field>
+        <Field label="SKS"><Input type="number" value={f.sks} onChange={set("sks")} /></Field>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Akademik santri — gabungan KRS + KHS                                    */
+/* ---------------------------------------------------------------------- */
+function AkademikSantriPage() {
+  const akT = useTable("akademik");
+  const semesters = [...new Set(akT.rows.map((r) => `${r.tahun_ajaran}|${r.semester}`))].sort().reverse();
+  const [pilihan, setPilihan] = useState("SEMUA");
+
+  const rows = pilihan === "SEMUA" ? akT.rows : akT.rows.filter((r) => `${r.tahun_ajaran}|${r.semester}` === pilihan);
+  const aktif = rows.filter((r) => r.status === "aktif");
+  const selesai = rows.filter((r) => r.status === "selesai");
+  const totalSks = selesai.reduce((a, r) => a + r.sks, 0);
+  const ipk = totalSks ? (selesai.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * r.sks, 0) / totalSks).toFixed(2) : "-";
+
+  return (
+    <div>
+      <PageHeader title="Akademik — KHS & KRS" sub="Pilih semester untuk melihat atau mengunduh laporan." actions={<Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>} />
+      <div className="mb-5 max-w-xs">
+        <Select value={pilihan} onChange={(e) => setPilihan(e.target.value)}>
+          <option value="SEMUA">Semua Semester (Transkrip Lengkap)</option>
+          {semesters.map((s) => { const [ta, sem] = s.split("|"); return <option key={s} value={s}>{ta} · Semester {sem}</option>; })}
+        </Select>
+      </div>
+      {aktif.length > 0 && (
+        <Card className="p-0 overflow-hidden mb-5">
+          <div className="px-5 py-3 bg-stone-50 border-b border-stone-200 font-bold text-sm text-emerald-900">KRS — Mata Pelajaran Aktif</div>
+          <table className="w-full text-sm">
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Mapel</th><th className="p-3">SKS</th></tr></thead>
+            <tbody>{aktif.map((r) => <tr key={r.id} className="border-t border-stone-100"><td className="p-3">{r.mata_pelajaran}</td><td className="p-3">{r.sks}</td></tr>)}</tbody>
+          </table>
+        </Card>
+      )}
+      <div className="grid grid-cols-2 gap-4 mb-5">
+        <StatCard label="IPK" value={ipk} />
+        <StatCard label="Total SKS Selesai" value={totalSks} />
+      </div>
+      <Card className="p-0 overflow-hidden">
+        <div className="px-5 py-3 bg-stone-50 border-b border-stone-200 font-bold text-sm text-emerald-900">KHS — Nilai Selesai</div>
+        <table className="w-full text-sm">
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Mapel</th><th className="p-3">SKS</th><th className="p-3">Nilai</th><th className="p-3">Huruf</th></tr></thead>
+          <tbody>
+            {selesai.map((r) => <tr key={r.id} className="border-t border-stone-100"><td className="p-3">{r.mata_pelajaran}</td><td className="p-3">{r.sks}</td><td className="p-3">{r.nilai_angka}</td><td className="p-3"><Badge tone="green">{nilaiHuruf(r.nilai_angka)}</Badge></td></tr>)}
+            {selesai.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada nilai pada semester ini." /></td></tr>}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Laporan Capaian Al-Qur'an                                                */
+/* ---------------------------------------------------------------------- */
+function QuranPage({ profile }) {
+  const editable = canEdit(profile.role, "quran");
+  const santriT = useTable("santri");
+  const isViewer = profile.role !== "santri";
+  const [nim, setNim] = useState(isViewer ? "" : profile.nim);
+  const logT = useTable("quran_log", [nim]);
+  const [showForm, setShowForm] = useState(false);
+  const santri = santriT.rows.find((s) => s.nim === nim);
+  const logs = logT.rows.filter((l) => l.nim === nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+  const pickable = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || s.musyrif_username === profile.username);
+
+  async function addLog(f) {
+    const { error } = await supabase.from("quran_log").insert({ ...f, nim, musyrif: profile.nama, juz: Number(f.juz), halaman_dari: Number(f.halaman_dari), halaman_sampai: Number(f.halaman_sampai) });
+    if (error) { alert(error.message); return; }
+    if (f.tandai && santri && !santri.juz_dikuasai.includes(Number(f.juz))) {
+      await supabase.from("santri").update({ juz_dikuasai: [...santri.juz_dikuasai, Number(f.juz)] }).eq("nim", nim);
+      santriT.reload();
+    }
+    setShowForm(false); logT.reload();
+  }
+
+  return (
+    <div>
+      <PageHeader title="Laporan Capaian Al-Qur'an" actions={!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>} />
+      {isViewer && (
+        <div className="flex gap-3 mb-4 items-center">
+          <Select value={nim} onChange={(e) => setNim(e.target.value)} className="max-w-xs">
+            <option value="">— Pilih santri —</option>
+            {pickable.map((s) => <option key={s.nim} value={s.nim}>{s.nim} · {s.nama}</option>)}
+          </Select>
+          {nim && editable && <Btn onClick={() => setShowForm(true)}>+ Catat Setoran</Btn>}
+        </div>
+      )}
+      {nim && santri && (
+        <div className="grid grid-cols-2 gap-4 items-start">
+          <Card><h3 className="font-serif-dh text-base text-emerald-900 font-semibold mb-3">Peta Hafalan</h3><JuzTracker juz={santri.juz_dikuasai || []} /></Card>
+          <Card className="p-0 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Tgl</th><th className="p-3">Jenis</th><th className="p-3">Juz</th></tr></thead>
+              <tbody>{logs.map((l) => <tr key={l.id} className="border-t border-stone-100"><td className="p-3">{l.tanggal}</td><td className="p-3">{l.jenis}</td><td className="p-3">{l.juz}</td></tr>)}
+                {logs.length === 0 && <tr><td colSpan={3}><Empty text="Belum ada catatan." /></td></tr>}</tbody>
+            </table>
+          </Card>
+        </div>
+      )}
+      {showForm && <QuranForm onCancel={() => setShowForm(false)} onSubmit={addLog} />}
+    </div>
+  );
+}
+function QuranForm({ onCancel, onSubmit }) {
+  const [f, setF] = useState({ tanggal: new Date().toISOString().slice(0, 10), jenis: "Setoran Baru", juz: 1, halaman_dari: 1, halaman_sampai: 1, kelancaran: "Lancar", catatan: "", tandai: false });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title="Catat Setoran" onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <Field label="Tanggal"><Input type="date" value={f.tanggal} onChange={set("tanggal")} /></Field>
+        <Field label="Jenis"><Select value={f.jenis} onChange={set("jenis")}><option>Setoran Baru</option><option>Murojaah</option><option>Tasmi'</option></Select></Field>
+        <Field label="Juz"><Input type="number" min={1} max={30} value={f.juz} onChange={set("juz")} /></Field>
+        <label className="flex items-center gap-2 text-sm mb-2"><input type="checkbox" checked={f.tandai} onChange={(e) => setF({ ...f, tandai: e.target.checked })} /> Tandai juz ini selesai</label>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Laporan Ibadah                                                           */
+/* ---------------------------------------------------------------------- */
+function IbadahPage({ profile }) {
+  const editable = canEdit(profile.role, "ibadah");
+  const santriT = useTable("santri");
+  const isViewer = profile.role !== "santri";
+  const [nim, setNim] = useState(isViewer ? "" : profile.nim);
+  const logT = useTable("ibadah_log", [nim]);
+  const [showForm, setShowForm] = useState(false);
+  const logs = logT.rows.filter((l) => l.nim === nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+  const pickable = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || s.musyrif_username === profile.username);
+
+  async function addLog(f) {
+    const { error } = await supabase.from("ibadah_log").insert({ ...f, nim, musyrif: profile.nama });
+    if (error) alert(error.message); else { setShowForm(false); logT.reload(); }
+  }
+
+  return (
+    <div>
+      <PageHeader title="Laporan Ibadah" sub="Catatan pembinaan ibadah harian santri." actions={!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>} />
+      {isViewer && (
+        <div className="flex gap-3 mb-4 items-center">
+          <Select value={nim} onChange={(e) => setNim(e.target.value)} className="max-w-xs">
+            <option value="">— Pilih santri —</option>
+            {pickable.map((s) => <option key={s.nim} value={s.nim}>{s.nim} · {s.nama}</option>)}
+          </Select>
+          {nim && editable && <Btn onClick={() => setShowForm(true)}>+ Catat Ibadah</Btn>}
+        </div>
+      )}
+      {nim && (
+        <Card className="p-0 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Tanggal</th><th className="p-3">Jenis Ibadah</th><th className="p-3">Capaian</th><th className="p-3">Catatan</th></tr></thead>
+            <tbody>
+              {logs.map((l) => (
+                <tr key={l.id} className="border-t border-stone-100">
+                  <td className="p-3">{l.tanggal}</td><td className="p-3">{l.jenis}</td>
+                  <td className="p-3"><Badge tone={l.capaian === "Baik" ? "green" : l.capaian === "Cukup" ? "gold" : "red"}>{l.capaian}</Badge></td>
+                  <td className="p-3 text-stone-500">{l.catatan}</td>
+                </tr>
+              ))}
+              {logs.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada catatan ibadah." /></td></tr>}
+            </tbody>
+          </table>
+        </Card>
+      )}
+      {showForm && <IbadahForm onCancel={() => setShowForm(false)} onSubmit={addLog} />}
+    </div>
+  );
+}
+function IbadahForm({ onCancel, onSubmit }) {
+  const [f, setF] = useState({ tanggal: new Date().toISOString().slice(0, 10), jenis: JENIS_IBADAH[0], capaian: "Baik", catatan: "" });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title="Catat Ibadah" onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <Field label="Tanggal"><Input type="date" value={f.tanggal} onChange={set("tanggal")} /></Field>
+        <Field label="Jenis Ibadah"><Select value={f.jenis} onChange={set("jenis")}>{JENIS_IBADAH.map((j) => <option key={j}>{j}</option>)}</Select></Field>
+        <Field label="Capaian"><Select value={f.capaian} onChange={set("capaian")}><option>Baik</option><option>Cukup</option><option>Kurang</option></Select></Field>
+        <Field label="Catatan"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={3} value={f.catatan} onChange={set("catatan")} /></Field>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Tagihan SPP                                                              */
+/* ---------------------------------------------------------------------- */
+function SppPage({ profile }) {
+  const editable = canEdit(profile.role, "spp");
+  const isViewer = profile.role !== "santri";
+  const santriT = useTable("santri");
+  const [nim, setNim] = useState(isViewer ? "" : profile.nim);
+  const sppT = useTable("spp", [nim]);
+  const [showForm, setShowForm] = useState(false);
+  const rows = sppT.rows.filter((r) => r.nim === nim);
+
+  async function addRecord(f) {
+    const { error } = await supabase.from("spp").insert({ ...f, nim, nominal: Number(f.nominal), tahun: Number(f.tahun) });
+    if (error) alert(error.message); else { setShowForm(false); sppT.reload(); }
+  }
+  async function toggle(r) {
+    const { error } = await supabase.from("spp").update({ status: r.status === "Lunas" ? "Belum Lunas" : "Lunas", tanggal_bayar: r.status === "Lunas" ? null : new Date().toISOString().slice(0, 10) }).eq("id", r.id);
+    if (!error) sppT.reload();
+  }
+
+  return (
+    <div>
+      <PageHeader title="Tagihan SPP" actions={!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>} />
+      {isViewer && (
+        <div className="flex gap-3 mb-4 items-center">
+          <Select value={nim} onChange={(e) => setNim(e.target.value)} className="max-w-xs">
+            <option value="">— Pilih santri —</option>
+            {santriT.rows.map((s) => <option key={s.nim} value={s.nim}>{s.nim} · {s.nama}</option>)}
+          </Select>
+          {nim && editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Tagihan</Btn>}
+        </div>
+      )}
+      {nim && (
+        <Card className="p-0 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Bulan</th><th className="p-3">Tahun</th><th className="p-3">Nominal</th><th className="p-3">Status</th></tr></thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-t border-stone-100">
+                  <td className="p-3">{r.bulan}</td><td className="p-3">{r.tahun}</td><td className="p-3">{formatRupiah(r.nominal)}</td>
+                  <td className="p-3">{editable ? <button onClick={() => toggle(r)}><Badge tone={r.status === "Lunas" ? "green" : "red"}>{r.status}</Badge></button> : <Badge tone={r.status === "Lunas" ? "green" : "red"}>{r.status}</Badge>}</td>
+                </tr>
+              ))}
+              {rows.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada data." /></td></tr>}
+            </tbody>
+          </table>
+        </Card>
+      )}
+      {showForm && <SppForm onCancel={() => setShowForm(false)} onSubmit={addRecord} />}
+    </div>
+  );
+}
+function SppForm({ onCancel, onSubmit }) {
+  const [f, setF] = useState({ bulan: BULAN[new Date().getMonth()], tahun: nowYear, nominal: 500000, status: "Belum Lunas" });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title="Tambah Tagihan SPP" onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <Field label="Bulan"><Select value={f.bulan} onChange={set("bulan")}>{BULAN.map((b) => <option key={b}>{b}</option>)}</Select></Field>
+        <Field label="Tahun"><Input type="number" value={f.tahun} onChange={set("tahun")} /></Field>
+        <Field label="Nominal"><Input type="number" value={f.nominal} onChange={set("nominal")} /></Field>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Kelola Akun                                                              */
+/* ---------------------------------------------------------------------- */
+function KelolaAkunPage() {
+  const [showForm, setShowForm] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  async function createAccount(f) {
+    setMsg("");
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify(f),
+    });
+    const data = await res.json();
+    if (!res.ok) { setMsg("Gagal: " + data.error); return; }
+    setMsg("Akun berhasil dibuat.");
+    setShowForm(false);
+  }
+
+  return (
+    <div>
+      <PageHeader title="Kelola Akun" sub="Buat akun login baru untuk santri atau staf." actions={<Btn onClick={() => setShowForm(true)}>+ Tambah Akun</Btn>} />
+      {msg && <div className="text-sm mb-4 p-3.5 rounded-xl bg-emerald-50 text-emerald-800 font-medium">{msg}</div>}
+      <Card className="bg-amber-50/60 border-amber-200 text-sm text-amber-900">
+        💡 Contoh akun staf yang biasa dibutuhkan: <b>musyrifah1</b> (Musyrifah), <b>akademik1</b> (Staf Akademik),
+        <b> bendahara1</b> (Bendahara), <b>pimpinan1</b> (Pimpinan Pondok — akses lihat semua data, tanpa mengedit).
+      </Card>
+      {showForm && <AkunForm onCancel={() => setShowForm(false)} onSubmit={createAccount} />}
+    </div>
+  );
+}
+function AkunForm({ onCancel, onSubmit }) {
+  const [f, setF] = useState({ username: "", password: "", nama: "", role: "santri", nim: "" });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title="Tambah Akun" onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <Field label="Username / NIM"><Input value={f.username} onChange={set("username")} required /></Field>
+        <Field label="Nama"><Input value={f.nama} onChange={set("nama")} required /></Field>
+        <Field label="Kata Sandi (min. 6 karakter)"><Input type="password" value={f.password} onChange={set("password")} required /></Field>
+        <Field label="Peran">
+          <Select value={f.role} onChange={set("role")}>
+            <option value="santri">Santri</option>
+            <option value="admin">Administrator</option>
+            <option value="musyrif">Musyrif</option>
+            <option value="musyrifah">Musyrifah</option>
+            <option value="keuangan">Bendahara (Keuangan)</option>
+            <option value="akademik">Staf Akademik</option>
+            <option value="pimpinan">Pimpinan Pondok</option>
+          </Select>
+        </Field>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Buat Akun</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Pengaturan — profil, foto, ganti kata sandi                             */
+/* ---------------------------------------------------------------------- */
+function PengaturanPage({ profile, onProfileUpdated }) {
+  const [nama, setNama] = useState(profile.nama);
+  const [newPw, setNewPw] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [msg, setMsg] = useState("");
+  const fileRef = useRef(null);
+
+  async function saveNama(e) {
+    e.preventDefault(); setMsg("");
+    const { error } = await supabase.from("profiles").update({ nama }).eq("id", profile.id);
+    if (error) setMsg("Gagal: " + error.message); else { setMsg("Nama berhasil diperbarui."); onProfileUpdated(); }
+  }
+  async function savePassword(e) {
+    e.preventDefault(); setMsg("");
+    if (newPw.length < 6) { setMsg("Kata sandi baru minimal 6 karakter."); return; }
+    const { error } = await supabase.auth.updateUser({ password: newPw });
+    if (error) setMsg("Gagal: " + error.message); else { setMsg("Kata sandi berhasil diganti."); setNewPw(""); }
+  }
+  async function uploadPhoto(e) {
+    const file = e.target.files[0]; if (!file) return;
+    setUploading(true); setMsg("");
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${profile.id}/avatar.${ext}`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", profile.id);
+      if (dbErr) throw dbErr;
+      setMsg("Foto profil berhasil diperbarui.");
+      onProfileUpdated();
+    } catch (err) {
+      setMsg("Gagal unggah foto: " + err.message + " (pastikan bucket 'avatars' sudah dibuat — lihat migration_roles_avatar.sql)");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div>
+      <PageHeader title="Pengaturan" sub="Kelola profil dan kata sandi akun Anda." />
+      {msg && <div className="text-sm mb-4 p-3.5 rounded-xl bg-emerald-50 text-emerald-800 font-medium">{msg}</div>}
+
+      <Card className="mb-5">
+        <h3 className="font-serif-dh text-base text-emerald-900 font-semibold mb-4">Foto Profil</h3>
+        <div className="flex items-center gap-5">
+          <Avatar name={profile.nama} url={profile.avatar_url} size={72} />
+          <div>
+            <Btn tone="ghost" onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? "Mengunggah…" : "Ganti Foto"}</Btn>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={uploadPhoto} />
+            <p className="text-xs text-stone-400 mt-2">JPG/PNG, maksimal 2MB.</p>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="mb-5">
+        <h3 className="font-serif-dh text-base text-emerald-900 font-semibold mb-4">Nama Tampilan</h3>
+        <form onSubmit={saveNama} className="flex gap-3 items-end max-w-md">
+          <div className="flex-1"><Field label="Nama Lengkap"><Input value={nama} onChange={(e) => setNama(e.target.value)} /></Field></div>
+          <Btn type="submit">Simpan</Btn>
+        </form>
+      </Card>
+
+      <Card>
+        <h3 className="font-serif-dh text-base text-emerald-900 font-semibold mb-4">Ganti Kata Sandi</h3>
+        <form onSubmit={savePassword} className="flex gap-3 items-end max-w-md">
+          <div className="flex-1"><Field label="Kata Sandi Baru"><Input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="Minimal 6 karakter" /></Field></div>
+          <Btn type="submit" tone="gold">Ganti</Btn>
+        </form>
+      </Card>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Root                                                                     */
+/* ---------------------------------------------------------------------- */
+export default function App() {
+  const [session, setSession] = useState(undefined);
+  const [profile, setProfile] = useState(null);
+  const [view, setView] = useState("dashboard");
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  function loadProfile() {
+    if (session) {
+      supabase.from("profiles").select("*").eq("id", session.user.id).single()
+        .then(({ data }) => setProfile(data));
+    } else {
+      setProfile(null);
+    }
+  }
+  useEffect(loadProfile, [session]);
+
+  if (session === undefined) return <div className="min-h-screen flex items-center justify-center text-stone-500">Memuat…</div>;
+  if (!session) return <LoginScreen />;
+  if (!profile) return <div className="min-h-screen flex items-center justify-center text-stone-500">Memuat profil…</div>;
+
+  function renderView() {
+    if (view === "dashboard") return <Dashboard profile={profile} />;
+    if (view === "santri" && ["admin","pimpinan"].includes(profile.role)) return <DataSantriPage profile={profile} />;
+    if (view === "akademik") return profile.role === "santri" ? <AkademikSantriPage /> : <AkademikStaffPage profile={profile} />;
+    if (view === "quran") return <QuranPage profile={profile} />;
+    if (view === "ibadah") return <IbadahPage profile={profile} />;
+    if (view === "spp") return <SppPage profile={profile} />;
+    if (view === "akun" && profile.role === "admin") return <KelolaAkunPage />;
+    if (view === "pengaturan") return <PengaturanPage profile={profile} onProfileUpdated={loadProfile} />;
+    return null;
+  }
+
+  return <Shell profile={profile} view={view} setView={setView}>{renderView()}</Shell>;
+}
