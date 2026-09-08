@@ -8,6 +8,7 @@ const JENIS_IBADAH = ["Sholat 5 Waktu Berjamaah","Puasa Sunnah","Tilawah Harian"
 const ROLE_LABEL = { admin: "Administrator", musyrif: "Musyrif", musyrifah: "Musyrifah", keuangan: "Bendahara", akademik: "Staf Akademik", pimpinan: "Pimpinan Pondok", santri: "Santri / Wali" };
 const AVATAR_COLORS = ["#0B4D30","#AD7F2C","#8A4A3A","#3F6C8A","#5C4A8A","#2F6B5E"];
 const nowYear = new Date().getFullYear();
+const DEFAULT_TAGLINE = "Pondok Tahfidz Qur'an dan Entrepreneur Darul Hikmah";
 
 function formatRupiah(n) { return n == null ? "-" : "Rp " + Number(n).toLocaleString("id-ID"); }
 function nilaiHuruf(a) { if (a == null) return "-"; if (a >= 85) return "A"; if (a >= 75) return "B"; if (a >= 65) return "C"; if (a >= 50) return "D"; return "E"; }
@@ -17,13 +18,11 @@ function avatarColor(name = "") { let h = 0; for (const c of name) h = (h * 31 +
 function todayLong() { return new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
 
 /* ---------------------------------------------------------------------- */
-/* Permission map — siapa boleh menulis data di area mana                  */
+/* Permission map                                                           */
 /* ---------------------------------------------------------------------- */
 const CAN_EDIT = {
-  santri: ["admin"],
-  akademik: ["admin", "akademik"],
-  quran: ["admin", "musyrif", "musyrifah"],
-  ibadah: ["admin", "musyrif", "musyrifah"],
+  santri: ["admin"], akademik: ["admin", "akademik"],
+  quran: ["admin", "musyrif", "musyrifah"], ibadah: ["admin", "musyrif", "musyrifah"],
   spp: ["admin", "keuangan"],
 };
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
@@ -37,6 +36,22 @@ const MENUS = {
   pimpinan: [["dashboard","Dashboard"],["santri","Data Santri"],["akademik","Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
   santri: [["dashboard","Dashboard"],["akademik","Akademik (KHS/KRS)"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
 };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Santri", akademik: "Akademik", quran: "Laporan Capaian Al-Qur'an", ibadah: "Laporan Ibadah", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+
+/* ---------------------------------------------------------------------- */
+/* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
+/* ---------------------------------------------------------------------- */
+function useBrand() {
+  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null });
+  const [loaded, setLoaded] = useState(false);
+  async function reload() {
+    const { data } = await supabase.from("pengaturan_pondok").select("*").eq("id", 1).single();
+    if (data) setBrand(data);
+    setLoaded(true);
+  }
+  useEffect(() => { reload(); }, []);
+  return { brand, reloadBrand: reload, loaded };
+}
 
 /* ---------------------------------------------------------------------- */
 /* UI primitives                                                            */
@@ -108,7 +123,8 @@ function JuzTracker({ juz = [] }) {
     </div>
   );
 }
-function LogoMark({ size = 40 }) {
+function LogoMark({ size = 40, url }) {
+  if (url) return <img src={url} alt="Logo" style={{ width: size, height: size }} className="rounded-xl object-cover flex-shrink-0 shadow-sm" />;
   return (
     <div style={{ width: size, height: size }} className="rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center flex-shrink-0 shadow-sm">
       <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 24 24" fill="none">
@@ -133,11 +149,19 @@ function PatternBG() {
 /* ---------------------------------------------------------------------- */
 /* Login                                                                    */
 /* ---------------------------------------------------------------------- */
-function LoginScreen() {
+const MASUK_SEBAGAI_OPTIONS = [
+  { value: "mahasantri", label: "Mahasantri", fieldLabel: "NIM Santri", placeholder: "contoh: 2024001" },
+  { value: "orangtua", label: "Orang Tua / Wali", fieldLabel: "NIM Putra/Putri", placeholder: "contoh: 2024001" },
+  { value: "admin", label: "Admin / Staf Pondok", fieldLabel: "Username", placeholder: "contoh: admin" },
+];
+
+function LoginScreen({ brand }) {
+  const [masukSebagai, setMasukSebagai] = useState("mahasantri");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const opt = MASUK_SEBAGAI_OPTIONS.find((o) => o.value === masukSebagai);
 
   async function submit(e) {
     e.preventDefault();
@@ -160,34 +184,38 @@ function LoginScreen() {
         <div className="relative bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 p-10 text-white flex flex-col justify-between overflow-hidden">
           <PatternBG />
           <div className="relative">
-            <div className="flex items-center gap-3 mb-10">
-              <LogoMark size={44} />
-              <div className="text-xs font-bold tracking-widest text-white/60">DARUL HIKMAH</div>
+            <div className="mb-10">
+              <LogoMark size={76} url={brand.logo_url} />
             </div>
-            <div className="text-xs font-bold tracking-[0.22em] text-amber-300 uppercase mb-2">Sistem Informasi Akademik</div>
-            <div className="font-serif-dh text-5xl font-bold leading-none mb-3">SIAKAD</div>
-            <div className="text-lg text-white/85 leading-snug">
-              Pondok Tahfidz Qur'an &amp; Entrepreneur<br/>Darul Hikmah
+            <div className="text-xs font-bold tracking-[0.2em] text-amber-300 uppercase mb-3 leading-relaxed max-w-xs">
+              Sistem Informasi Terpadu dan Manajemen Pembelajaran {brand.nama_pondok}
             </div>
-            <p className="text-sm text-white/60 mt-5 leading-relaxed max-w-xs">
-              Satu pintu terpadu untuk akademik, capaian hafalan, ibadah harian, dan status SPP santri.
+            <div className="font-serif-dh text-7xl font-bold leading-none mb-4 drop-shadow-sm">SIAKAD</div>
+            <p className="text-base text-white/85 mt-2 leading-relaxed max-w-sm font-medium">
+              Mendampingi setiap langkah santri dalam belajar, menghafal, dan bertumbuh —
+              terhubung dalam satu ekosistem pembelajaran yang amanah dan menyeluruh.
             </p>
           </div>
-          <div className="relative flex items-center gap-6 pt-5 mt-8 border-t border-white/15 text-xs text-white/70">
-            <span>📖 Capaian Qur'an</span><span>🎓 KHS/KRS</span><span>💳 SPP</span>
+          <div className="relative pt-5 mt-8 border-t border-white/15">
+            <div className="font-serif-dh text-lg text-amber-300 italic">"Mencetak Pengusaha Muda Penghafal Quran"</div>
           </div>
         </div>
 
         <div className="bg-white p-10 flex flex-col justify-center">
           <h3 className="font-serif-dh text-2xl text-emerald-900 mb-1 font-semibold">Selamat Datang</h3>
-          <p className="text-sm text-stone-500 mb-7">Masuk dengan NIM (santri/wali) atau username (staf pondok).</p>
+          <p dir="rtl" lang="ar" className="font-serif-dh text-xl text-amber-700 mb-4">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
           <form onSubmit={submit}>
-            <Field label="NIM / Username"><Input value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus /></Field>
+            <Field label="Masuk Sebagai">
+              <Select value={masukSebagai} onChange={(e) => setMasukSebagai(e.target.value)}>
+                {MASUK_SEBAGAI_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </Select>
+            </Field>
+            <Field label={opt.fieldLabel}><Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={opt.placeholder} required autoFocus /></Field>
             <Field label="Kata Sandi"><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></Field>
             {err && <div className="text-red-700 text-xs bg-red-50 rounded-xl px-3.5 py-2.5 mb-4 font-medium">{err}</div>}
-            <Btn type="submit" disabled={loading}>{loading ? "Memproses…" : "Masuk ke SIAKAD →"}</Btn>
+            <Btn type="submit" disabled={loading}>{loading ? "Memproses…" : "Masuk"}</Btn>
           </form>
-          <div className="text-center mt-8 text-[11px] text-stone-400">© {nowYear} Pondok Tahfidz Qur'an &amp; Entrepreneur Darul Hikmah</div>
+          <div className="text-center mt-8 text-[11px] text-stone-400">© {nowYear} {brand.tagline || DEFAULT_TAGLINE}</div>
         </div>
       </div>
     </div>
@@ -197,18 +225,16 @@ function LoginScreen() {
 /* ---------------------------------------------------------------------- */
 /* Shell (sidebar + topbar)                                                 */
 /* ---------------------------------------------------------------------- */
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Santri", akademik: "Akademik", quran: "Laporan Capaian Al-Qur'an", ibadah: "Laporan Ibadah", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
-
-function Shell({ profile, view, setView, children }) {
+function Shell({ profile, view, setView, brand, children }) {
   const menu = MENUS[profile.role] || [];
   return (
     <div className="min-h-screen bg-[#F4F2EA] flex">
       <aside className="w-64 bg-gradient-to-b from-emerald-950 to-emerald-900 text-white p-4 flex flex-col">
         <div className="flex items-center gap-3 pb-5 mb-5 border-b border-white/10">
-          <LogoMark size={36} />
+          <LogoMark size={40} url={brand.logo_url} />
           <div>
             <div className="text-[10px] font-bold text-white/45 tracking-[0.15em]">SIAKAD</div>
-            <div className="font-serif-dh text-[15px] font-semibold">Darul Hikmah</div>
+            <div className="font-serif-dh text-[15px] font-semibold">{brand.nama_pondok}</div>
           </div>
         </div>
         <div className="text-[10px] font-extrabold text-white/35 tracking-[0.15em] px-3 mb-2">MENU UTAMA</div>
@@ -272,6 +298,9 @@ function StatCard({ label, value, sub, icon }) {
       {sub && <div className="text-xs text-stone-400 mt-1">{sub}</div>}
     </Card>
   );
+}
+function BackBar({ onBack, label = "← Kembali ke semua santri" }) {
+  return <button onClick={onBack} className="text-sm font-bold text-emerald-800 hover:text-emerald-950 mb-4">{label}</button>;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -351,12 +380,13 @@ function DataSantriPage({ profile }) {
       <PageHeader title="Data Santri" actions={editable && <Btn onClick={() => setModal("new")}>+ Tambah Santri</Btn>} />
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Kelas</th><th className="p-3.5"></th></tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Kelas</th><th className="p-3.5">Juz</th><th className="p-3.5"></th></tr></thead>
           <tbody>
             {rows.map((s) => (
               <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60">
                 <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
                 <td className="p-3.5">{s.kelas}</td>
+                <td className="p-3.5"><Badge tone="gold">{s.juz_dikuasai?.length || 0} juz</Badge></td>
                 <td className="p-3.5 text-right">
                   {editable && <>
                     <button onClick={() => setModal(s)} className="text-emerald-700 text-xs font-bold mr-3">Edit</button>
@@ -365,7 +395,7 @@ function DataSantriPage({ profile }) {
                 </td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={3}><Empty text="Belum ada santri." /></td></tr>}
+            {rows.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada santri." /></td></tr>}
           </tbody>
         </table>
       </Card>
@@ -390,15 +420,16 @@ function SantriForm({ initial, onCancel, onSubmit }) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Input Akademik (staff: admin & akademik role)                            */
+/* Input Akademik — overview semua santri + drill-down                     */
 /* ---------------------------------------------------------------------- */
 function AkademikStaffPage({ profile }) {
   const editable = canEdit(profile.role, "akademik");
   const santriT = useTable("santri");
+  const akT = useTable("akademik");
   const [nim, setNim] = useState("");
-  const akT = useTable("akademik", []);
   const [showForm, setShowForm] = useState(false);
   const records = akT.rows.filter((a) => a.nim === nim);
+  const santri = santriT.rows.find((s) => s.nim === nim);
 
   async function add(f) {
     const { error } = await supabase.from("akademik").insert({ ...f, nim, sks: Number(f.sks) });
@@ -410,33 +441,52 @@ function AkademikStaffPage({ profile }) {
     if (!error) akT.reload();
   }
 
-  return (
-    <div>
-      <PageHeader title="Input Akademik" />
-      <div className="flex gap-3 mb-4 items-center">
-        <Select value={nim} onChange={(e) => setNim(e.target.value)} className="max-w-xs">
-          <option value="">— Pilih santri —</option>
-          {santriT.rows.map((s) => <option key={s.nim} value={s.nim}>{s.nim} · {s.nama}</option>)}
-        </Select>
-        {nim && editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Mapel</Btn>}
-      </div>
-      {nim && (
+  if (!nim) {
+    return (
+      <div>
+        <PageHeader title="Input Akademik" sub="Semua santri — klik salah satu untuk kelola nilai." />
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mapel</th><th className="p-3.5">SKS</th><th className="p-3.5">Status</th><th className="p-3.5">Nilai</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Kelas</th><th className="p-3.5">IPK</th><th className="p-3.5">Mapel Selesai</th></tr></thead>
             <tbody>
-              {records.map((r) => (
-                <tr key={r.id} className="border-t border-stone-100">
-                  <td className="p-3.5">{r.mata_pelajaran}</td><td className="p-3.5">{r.sks}</td>
-                  <td className="p-3.5"><Badge tone={r.status === "selesai" ? "green" : "gold"}>{r.status}</Badge></td>
-                  <td className="p-3.5 w-28">{editable ? <Input type="number" defaultValue={r.nilai_angka ?? ""} onBlur={(e) => updateNilai(r.id, e.target.value)} /> : (r.nilai_angka ?? "-")}</td>
-                </tr>
-              ))}
-              {records.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada data." /></td></tr>}
+              {santriT.rows.map((s) => {
+                const sel = akT.rows.filter((a) => a.nim === s.nim && a.status === "selesai");
+                const tot = sel.reduce((a, r) => a + r.sks, 0);
+                const ipk = tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * r.sks, 0) / tot).toFixed(2) : "-";
+                return (
+                  <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
+                    <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
+                    <td className="p-3.5">{s.kelas}</td><td className="p-3.5">{ipk}</td><td className="p-3.5">{sel.length}</td>
+                  </tr>
+                );
+              })}
+              {santriT.rows.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada santri." /></td></tr>}
             </tbody>
           </table>
         </Card>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <BackBar onBack={() => setNim("")} />
+      <PageHeader title={santri?.nama || nim} sub={nim} actions={editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Mapel</Btn>} />
+      <Card className="p-0 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mapel</th><th className="p-3.5">SKS</th><th className="p-3.5">Status</th><th className="p-3.5">Nilai</th></tr></thead>
+          <tbody>
+            {records.map((r) => (
+              <tr key={r.id} className="border-t border-stone-100">
+                <td className="p-3.5">{r.mata_pelajaran}</td><td className="p-3.5">{r.sks}</td>
+                <td className="p-3.5"><Badge tone={r.status === "selesai" ? "green" : "gold"}>{r.status}</Badge></td>
+                <td className="p-3.5 w-28">{editable ? <Input type="number" defaultValue={r.nilai_angka ?? ""} onBlur={(e) => updateNilai(r.id, e.target.value)} /> : (r.nilai_angka ?? "-")}</td>
+              </tr>
+            ))}
+            {records.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada data." /></td></tr>}
+          </tbody>
+        </table>
+      </Card>
       {showForm && <AkademikForm onCancel={() => setShowForm(false)} onSubmit={add} />}
     </div>
   );
@@ -464,7 +514,6 @@ function AkademikSantriPage() {
   const akT = useTable("akademik");
   const semesters = [...new Set(akT.rows.map((r) => `${r.tahun_ajaran}|${r.semester}`))].sort().reverse();
   const [pilihan, setPilihan] = useState("SEMUA");
-
   const rows = pilihan === "SEMUA" ? akT.rows : akT.rows.filter((r) => `${r.tahun_ajaran}|${r.semester}` === pilihan);
   const aktif = rows.filter((r) => r.status === "aktif");
   const selesai = rows.filter((r) => r.status === "selesai");
@@ -508,14 +557,14 @@ function AkademikSantriPage() {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Laporan Capaian Al-Qur'an                                                */
+/* Laporan Capaian Al-Qur'an — overview semua santri + drill-down          */
 /* ---------------------------------------------------------------------- */
 function QuranPage({ profile }) {
   const editable = canEdit(profile.role, "quran");
   const santriT = useTable("santri");
+  const logT = useTable("quran_log");
   const isViewer = profile.role !== "santri";
   const [nim, setNim] = useState(isViewer ? "" : profile.nim);
-  const logT = useTable("quran_log", [nim]);
   const [showForm, setShowForm] = useState(false);
   const santri = santriT.rows.find((s) => s.nim === nim);
   const logs = logT.rows.filter((l) => l.nim === nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
@@ -531,19 +580,38 @@ function QuranPage({ profile }) {
     setShowForm(false); logT.reload();
   }
 
+  if (isViewer && !nim) {
+    return (
+      <div>
+        <PageHeader title="Laporan Capaian Al-Qur'an" sub="Semua santri — klik salah satu untuk lihat detail." />
+        <Card className="p-0 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Juz Dikuasai</th><th className="p-3.5">Setoran Terakhir</th></tr></thead>
+            <tbody>
+              {pickable.map((s) => {
+                const last = logT.rows.filter((l) => l.nim === s.nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal))[0];
+                return (
+                  <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
+                    <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
+                    <td className="p-3.5"><Badge tone="gold">{s.juz_dikuasai?.length || 0} juz</Badge></td>
+                    <td className="p-3.5 text-stone-500">{last ? `${last.tanggal} · ${last.jenis}` : "-"}</td>
+                  </tr>
+                );
+              })}
+              {pickable.length === 0 && <tr><td colSpan={3}><Empty text="Belum ada santri binaan." /></td></tr>}
+            </tbody>
+          </table>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <PageHeader title="Laporan Capaian Al-Qur'an" actions={!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>} />
-      {isViewer && (
-        <div className="flex gap-3 mb-4 items-center">
-          <Select value={nim} onChange={(e) => setNim(e.target.value)} className="max-w-xs">
-            <option value="">— Pilih santri —</option>
-            {pickable.map((s) => <option key={s.nim} value={s.nim}>{s.nim} · {s.nama}</option>)}
-          </Select>
-          {nim && editable && <Btn onClick={() => setShowForm(true)}>+ Catat Setoran</Btn>}
-        </div>
-      )}
-      {nim && santri && (
+      {isViewer && <BackBar onBack={() => setNim("")} />}
+      <PageHeader title={isViewer ? (santri?.nama || "Laporan Capaian Al-Qur'an") : "Laporan Capaian Al-Qur'an"}
+        actions={(!isViewer || editable) && <div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Catat Setoran</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
+      {santri && (
         <div className="grid grid-cols-2 gap-4 items-start">
           <Card><h3 className="font-serif-dh text-base text-emerald-900 font-semibold mb-3">Peta Hafalan</h3><JuzTracker juz={santri.juz_dikuasai || []} /></Card>
           <Card className="p-0 overflow-hidden">
@@ -576,15 +644,16 @@ function QuranForm({ onCancel, onSubmit }) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Laporan Ibadah                                                           */
+/* Laporan Ibadah — overview semua santri + drill-down                      */
 /* ---------------------------------------------------------------------- */
 function IbadahPage({ profile }) {
   const editable = canEdit(profile.role, "ibadah");
   const santriT = useTable("santri");
+  const logT = useTable("ibadah_log");
   const isViewer = profile.role !== "santri";
   const [nim, setNim] = useState(isViewer ? "" : profile.nim);
-  const logT = useTable("ibadah_log", [nim]);
   const [showForm, setShowForm] = useState(false);
+  const santri = santriT.rows.find((s) => s.nim === nim);
   const logs = logT.rows.filter((l) => l.nim === nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
   const pickable = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || s.musyrif_username === profile.username);
 
@@ -593,35 +662,51 @@ function IbadahPage({ profile }) {
     if (error) alert(error.message); else { setShowForm(false); logT.reload(); }
   }
 
-  return (
-    <div>
-      <PageHeader title="Laporan Ibadah" sub="Catatan pembinaan ibadah harian santri." actions={!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>} />
-      {isViewer && (
-        <div className="flex gap-3 mb-4 items-center">
-          <Select value={nim} onChange={(e) => setNim(e.target.value)} className="max-w-xs">
-            <option value="">— Pilih santri —</option>
-            {pickable.map((s) => <option key={s.nim} value={s.nim}>{s.nim} · {s.nama}</option>)}
-          </Select>
-          {nim && editable && <Btn onClick={() => setShowForm(true)}>+ Catat Ibadah</Btn>}
-        </div>
-      )}
-      {nim && (
+  if (isViewer && !nim) {
+    return (
+      <div>
+        <PageHeader title="Laporan Ibadah" sub="Semua santri — klik salah satu untuk lihat detail." />
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Tanggal</th><th className="p-3">Jenis Ibadah</th><th className="p-3">Capaian</th><th className="p-3">Catatan</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Catatan Terakhir</th></tr></thead>
             <tbody>
-              {logs.map((l) => (
-                <tr key={l.id} className="border-t border-stone-100">
-                  <td className="p-3">{l.tanggal}</td><td className="p-3">{l.jenis}</td>
-                  <td className="p-3"><Badge tone={l.capaian === "Baik" ? "green" : l.capaian === "Cukup" ? "gold" : "red"}>{l.capaian}</Badge></td>
-                  <td className="p-3 text-stone-500">{l.catatan}</td>
-                </tr>
-              ))}
-              {logs.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada catatan ibadah." /></td></tr>}
+              {pickable.map((s) => {
+                const last = logT.rows.filter((l) => l.nim === s.nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal))[0];
+                return (
+                  <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
+                    <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
+                    <td className="p-3.5 text-stone-500">{last ? <>{last.tanggal} · {last.jenis} · <Badge tone={last.capaian === "Baik" ? "green" : last.capaian === "Cukup" ? "gold" : "red"}>{last.capaian}</Badge></> : "-"}</td>
+                  </tr>
+                );
+              })}
+              {pickable.length === 0 && <tr><td colSpan={2}><Empty text="Belum ada santri binaan." /></td></tr>}
             </tbody>
           </table>
         </Card>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {isViewer && <BackBar onBack={() => setNim("")} />}
+      <PageHeader title={isViewer ? (santri?.nama || "Laporan Ibadah") : "Laporan Ibadah"} sub="Catatan pembinaan ibadah harian santri."
+        actions={<div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Catat Ibadah</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
+      <Card className="p-0 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Tanggal</th><th className="p-3">Jenis Ibadah</th><th className="p-3">Capaian</th><th className="p-3">Catatan</th></tr></thead>
+          <tbody>
+            {logs.map((l) => (
+              <tr key={l.id} className="border-t border-stone-100">
+                <td className="p-3">{l.tanggal}</td><td className="p-3">{l.jenis}</td>
+                <td className="p-3"><Badge tone={l.capaian === "Baik" ? "green" : l.capaian === "Cukup" ? "gold" : "red"}>{l.capaian}</Badge></td>
+                <td className="p-3 text-stone-500">{l.catatan}</td>
+              </tr>
+            ))}
+            {logs.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada catatan ibadah." /></td></tr>}
+          </tbody>
+        </table>
+      </Card>
       {showForm && <IbadahForm onCancel={() => setShowForm(false)} onSubmit={addLog} />}
     </div>
   );
@@ -643,16 +728,18 @@ function IbadahForm({ onCancel, onSubmit }) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Tagihan SPP                                                              */
+/* Tagihan SPP — overview semua santri + drill-down                        */
 /* ---------------------------------------------------------------------- */
 function SppPage({ profile }) {
   const editable = canEdit(profile.role, "spp");
   const isViewer = profile.role !== "santri";
   const santriT = useTable("santri");
+  const sppT = useTable("spp");
   const [nim, setNim] = useState(isViewer ? "" : profile.nim);
-  const sppT = useTable("spp", [nim]);
   const [showForm, setShowForm] = useState(false);
-  const rows = sppT.rows.filter((r) => r.nim === nim);
+  const santri = santriT.rows.find((s) => s.nim === nim);
+  const rows = sppT.rows.filter((r) => r.nim === nim).sort((a, b) => b.tahun - a.tahun || BULAN.indexOf(b.bulan) - BULAN.indexOf(a.bulan));
+  const bulanIni = BULAN[new Date().getMonth()];
 
   async function addRecord(f) {
     const { error } = await supabase.from("spp").insert({ ...f, nim, nominal: Number(f.nominal), tahun: Number(f.tahun) });
@@ -663,34 +750,50 @@ function SppPage({ profile }) {
     if (!error) sppT.reload();
   }
 
-  return (
-    <div>
-      <PageHeader title="Tagihan SPP" actions={!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>} />
-      {isViewer && (
-        <div className="flex gap-3 mb-4 items-center">
-          <Select value={nim} onChange={(e) => setNim(e.target.value)} className="max-w-xs">
-            <option value="">— Pilih santri —</option>
-            {santriT.rows.map((s) => <option key={s.nim} value={s.nim}>{s.nim} · {s.nama}</option>)}
-          </Select>
-          {nim && editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Tagihan</Btn>}
-        </div>
-      )}
-      {nim && (
+  if (isViewer && !nim) {
+    return (
+      <div>
+        <PageHeader title="Tagihan SPP" sub={`Status pembayaran bulan ${bulanIni} — klik santri untuk kelola.`} />
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Bulan</th><th className="p-3">Tahun</th><th className="p-3">Nominal</th><th className="p-3">Status</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Status Bulan Ini</th></tr></thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t border-stone-100">
-                  <td className="p-3">{r.bulan}</td><td className="p-3">{r.tahun}</td><td className="p-3">{formatRupiah(r.nominal)}</td>
-                  <td className="p-3">{editable ? <button onClick={() => toggle(r)}><Badge tone={r.status === "Lunas" ? "green" : "red"}>{r.status}</Badge></button> : <Badge tone={r.status === "Lunas" ? "green" : "red"}>{r.status}</Badge>}</td>
-                </tr>
-              ))}
-              {rows.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada data." /></td></tr>}
+              {santriT.rows.map((s) => {
+                const bulanIniRow = sppT.rows.find((r) => r.nim === s.nim && r.bulan === bulanIni && r.tahun === nowYear);
+                return (
+                  <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
+                    <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
+                    <td className="p-3.5">{bulanIniRow ? <Badge tone={bulanIniRow.status === "Lunas" ? "green" : "red"}>{bulanIniRow.status}</Badge> : <Badge tone="grey">Belum ada tagihan</Badge>}</td>
+                  </tr>
+                );
+              })}
+              {santriT.rows.length === 0 && <tr><td colSpan={2}><Empty text="Belum ada santri." /></td></tr>}
             </tbody>
           </table>
         </Card>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {isViewer && <BackBar onBack={() => setNim("")} />}
+      <PageHeader title={isViewer ? (santri?.nama || "Tagihan SPP") : "Tagihan SPP"}
+        actions={<div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Tambah Tagihan</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
+      <Card className="p-0 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Bulan</th><th className="p-3">Tahun</th><th className="p-3">Nominal</th><th className="p-3">Status</th></tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id} className="border-t border-stone-100">
+                <td className="p-3">{r.bulan}</td><td className="p-3">{r.tahun}</td><td className="p-3">{formatRupiah(r.nominal)}</td>
+                <td className="p-3">{editable ? <button onClick={() => toggle(r)}><Badge tone={r.status === "Lunas" ? "green" : "red"}>{r.status}</Badge></button> : <Badge tone={r.status === "Lunas" ? "green" : "red"}>{r.status}</Badge>}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada data." /></td></tr>}
+          </tbody>
+        </table>
+      </Card>
       {showForm && <SppForm onCancel={() => setShowForm(false)} onSubmit={addRecord} />}
     </div>
   );
@@ -770,14 +873,19 @@ function AkunForm({ onCancel, onSubmit }) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Pengaturan — profil, foto, ganti kata sandi                             */
+/* Pengaturan — profil, foto, ganti kata sandi, + branding (admin)          */
 /* ---------------------------------------------------------------------- */
-function PengaturanPage({ profile, onProfileUpdated }) {
+function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   const [nama, setNama] = useState(profile.nama);
   const [newPw, setNewPw] = useState("");
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
   const fileRef = useRef(null);
+
+  const [namaPondok, setNamaPondok] = useState(brand.nama_pondok);
+  const [tagline, setTagline] = useState(brand.tagline);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoRef = useRef(null);
 
   async function saveNama(e) {
     e.preventDefault(); setMsg("");
@@ -804,9 +912,33 @@ function PengaturanPage({ profile, onProfileUpdated }) {
       setMsg("Foto profil berhasil diperbarui.");
       onProfileUpdated();
     } catch (err) {
-      setMsg("Gagal unggah foto: " + err.message + " (pastikan bucket 'avatars' sudah dibuat — lihat migration_roles_avatar.sql)");
+      setMsg("Gagal unggah foto: " + err.message);
     } finally {
       setUploading(false);
+    }
+  }
+  async function saveBranding(e) {
+    e.preventDefault(); setMsg("");
+    const { error } = await supabase.from("pengaturan_pondok").update({ nama_pondok: namaPondok, tagline }).eq("id", 1);
+    if (error) setMsg("Gagal: " + error.message); else { setMsg("Identitas pondok berhasil diperbarui."); onBrandUpdated(); }
+  }
+  async function uploadLogo(e) {
+    const file = e.target.files[0]; if (!file) return;
+    setLogoUploading(true); setMsg("");
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `logo.${ext}`;
+      const { error: upErr } = await supabase.storage.from("branding").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("branding").getPublicUrl(path);
+      const { error: dbErr } = await supabase.from("pengaturan_pondok").update({ logo_url: `${data.publicUrl}?t=${Date.now()}` }).eq("id", 1);
+      if (dbErr) throw dbErr;
+      setMsg("Logo pondok berhasil diperbarui.");
+      onBrandUpdated();
+    } catch (err) {
+      setMsg("Gagal unggah logo: " + err.message);
+    } finally {
+      setLogoUploading(false);
     }
   }
 
@@ -835,13 +967,35 @@ function PengaturanPage({ profile, onProfileUpdated }) {
         </form>
       </Card>
 
-      <Card>
+      <Card className="mb-5">
         <h3 className="font-serif-dh text-base text-emerald-900 font-semibold mb-4">Ganti Kata Sandi</h3>
         <form onSubmit={savePassword} className="flex gap-3 items-end max-w-md">
           <div className="flex-1"><Field label="Kata Sandi Baru"><Input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="Minimal 6 karakter" /></Field></div>
           <Btn type="submit" tone="gold">Ganti</Btn>
         </form>
       </Card>
+
+      {profile.role === "admin" && (
+        <Card className="border-amber-200 bg-amber-50/40">
+          <h3 className="font-serif-dh text-base text-emerald-900 font-semibold mb-1">Identitas Pondok (Branding)</h3>
+          <p className="text-xs text-stone-500 mb-4">Tampil di halaman login dan sidebar seluruh pengguna.</p>
+
+          <div className="flex items-center gap-5 mb-5">
+            <LogoMark size={64} url={brand.logo_url} />
+            <div>
+              <Btn tone="ghost" onClick={() => logoRef.current?.click()} disabled={logoUploading}>{logoUploading ? "Mengunggah…" : "Ganti Logo"}</Btn>
+              <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={uploadLogo} />
+              <p className="text-xs text-stone-400 mt-2">Disarankan gambar persegi, JPG/PNG.</p>
+            </div>
+          </div>
+
+          <form onSubmit={saveBranding} className="max-w-md">
+            <Field label="Nama Pondok (ditampilkan di sidebar)"><Input value={namaPondok} onChange={(e) => setNamaPondok(e.target.value)} /></Field>
+            <Field label="Tagline (ditampilkan besar di halaman login)"><Input value={tagline} onChange={(e) => setTagline(e.target.value)} /></Field>
+            <Btn type="submit" tone="gold">Simpan Identitas Pondok</Btn>
+          </form>
+        </Card>
+      )}
     </div>
   );
 }
@@ -853,6 +1007,7 @@ export default function App() {
   const [session, setSession] = useState(undefined);
   const [profile, setProfile] = useState(null);
   const [view, setView] = useState("dashboard");
+  const { brand, reloadBrand } = useBrand();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -871,7 +1026,7 @@ export default function App() {
   useEffect(loadProfile, [session]);
 
   if (session === undefined) return <div className="min-h-screen flex items-center justify-center text-stone-500">Memuat…</div>;
-  if (!session) return <LoginScreen />;
+  if (!session) return <LoginScreen brand={brand} />;
   if (!profile) return <div className="min-h-screen flex items-center justify-center text-stone-500">Memuat profil…</div>;
 
   function renderView() {
@@ -882,9 +1037,9 @@ export default function App() {
     if (view === "ibadah") return <IbadahPage profile={profile} />;
     if (view === "spp") return <SppPage profile={profile} />;
     if (view === "akun" && profile.role === "admin") return <KelolaAkunPage />;
-    if (view === "pengaturan") return <PengaturanPage profile={profile} onProfileUpdated={loadProfile} />;
+    if (view === "pengaturan") return <PengaturanPage profile={profile} onProfileUpdated={loadProfile} brand={brand} onBrandUpdated={reloadBrand} />;
     return null;
   }
 
-  return <Shell profile={profile} view={view} setView={setView}>{renderView()}</Shell>;
+  return <Shell profile={profile} view={view} setView={setView} brand={brand}>{renderView()}</Shell>;
 }
