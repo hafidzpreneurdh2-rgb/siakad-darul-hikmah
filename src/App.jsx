@@ -44,7 +44,7 @@ const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Santri", akademik: "
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
 /* ---------------------------------------------------------------------- */
 function useBrand() {
-  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B4D30", warna_aksen: "#AD7F2C" });
+  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B4D30", warna_aksen: "#AD7F2C", ukuran_logo_sidebar: 52, judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang" });
   const [loaded, setLoaded] = useState(false);
   async function reload() {
     const { data } = await supabase.from("pengaturan_pondok").select("*").eq("id", 1).single();
@@ -192,18 +192,18 @@ function LoginScreen({ brand }) {
             <div className="mb-10">
               <LogoMark size={76} url={brand.logo_url} />
             </div>
-            <div className="font-serif-dh text-7xl font-bold leading-none mb-4 drop-shadow-sm">SIAKAD</div>
+            <div className="font-serif-dh text-7xl font-bold leading-none mb-4 drop-shadow-sm">{brand.judul_besar || "SIAKAD"}</div>
             <p className="text-lg text-white/90 mt-2 leading-snug max-w-sm font-semibold">
-              Sistem Informasi Terpadu dan Manajemen Pembelajaran {brand.nama_pondok}
+              {brand.subjudul || "Sistem Informasi Terpadu dan Manajemen Pembelajaran"} {brand.nama_pondok}
             </p>
           </div>
           <div className="relative pt-5 mt-8 border-t border-white/15">
-            <div className="font-serif-dh text-lg italic" style={{ color: brand.warna_aksen }}>"Mencetak Pengusaha Muda Penghafal Quran"</div>
+            <div className="font-serif-dh text-lg italic" style={{ color: brand.warna_aksen }}>"{brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran"}"</div>
           </div>
         </div>
 
         <div className="bg-white p-10 flex flex-col justify-center">
-          <h3 className="font-serif-dh text-2xl text-emerald-900 mb-1 font-semibold">Selamat Datang</h3>
+          <h3 className="font-serif-dh text-2xl mb-1 font-semibold" style={{ color: brand.warna_utama }}>{brand.sapaan || "Selamat Datang"}</h3>
           <p dir="rtl" lang="ar" className="font-serif-dh text-xl text-amber-700 mb-4 text-left">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
           <form onSubmit={submit}>
             <Field label="Masuk Sebagai">
@@ -232,7 +232,7 @@ function Shell({ profile, view, setView, brand, children }) {
     <div className="min-h-screen bg-[#F4F2EA] flex">
       <aside className="w-64 text-white p-4 flex flex-col" style={{ background: `linear-gradient(180deg, ${brand.warna_utama}, #04100a)` }}>
         <div className="flex items-center gap-3 pb-5 mb-5 border-b border-white/10">
-          <LogoMark size={40} url={brand.logo_url} />
+          <LogoMark size={brand.ukuran_logo_sidebar || 52} url={brand.logo_url} />
           <div>
             <div className="text-[10px] font-bold text-white/45 tracking-[0.15em]">SIAKAD</div>
             <div className="font-serif-dh text-[15px] font-semibold">{brand.nama_pondok}</div>
@@ -887,6 +887,11 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   const [tagline, setTagline] = useState(brand.tagline);
   const [warnaUtama, setWarnaUtama] = useState(brand.warna_utama || "#0B4D30");
   const [warnaAksen, setWarnaAksen] = useState(brand.warna_aksen || "#AD7F2C");
+  const [ukuranLogo, setUkuranLogo] = useState(brand.ukuran_logo_sidebar || 52);
+  const [judulBesar, setJudulBesar] = useState(brand.judul_besar || "SIAKAD");
+  const [subjudul, setSubjudul] = useState(brand.subjudul || "Sistem Informasi Terpadu dan Manajemen Pembelajaran");
+  const [slogan, setSlogan] = useState(brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran");
+  const [sapaan, setSapaan] = useState(brand.sapaan || "Selamat Datang");
   const [logoUploading, setLogoUploading] = useState(false);
   const logoRef = useRef(null);
 
@@ -922,7 +927,10 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   }
   async function saveBranding(e) {
     e.preventDefault(); setMsg("");
-    const { error } = await supabase.from("pengaturan_pondok").update({ nama_pondok: namaPondok, tagline, warna_utama: warnaUtama, warna_aksen: warnaAksen }).eq("id", 1);
+    const { error } = await supabase.from("pengaturan_pondok").update({
+      nama_pondok: namaPondok, tagline, warna_utama: warnaUtama, warna_aksen: warnaAksen,
+      ukuran_logo_sidebar: Number(ukuranLogo), judul_besar: judulBesar, subjudul, slogan, sapaan,
+    }).eq("id", 1);
     if (error) setMsg("Gagal: " + error.message); else { setMsg("Identitas pondok berhasil diperbarui."); onBrandUpdated(); }
   }
   async function uploadLogo(e) {
@@ -994,7 +1002,14 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
 
           <form onSubmit={saveBranding} className="max-w-md">
             <Field label="Nama Pondok (ditampilkan di sidebar)"><Input value={namaPondok} onChange={(e) => setNamaPondok(e.target.value)} /></Field>
-            <Field label="Tagline (ditampilkan besar di halaman login)"><Input value={tagline} onChange={(e) => setTagline(e.target.value)} /></Field>
+            <div className="border-t border-amber-200 my-4 pt-4">
+              <div className="text-xs font-extrabold text-stone-500 uppercase tracking-wide mb-3">Teks Halaman Login</div>
+              <Field label="Judul Besar"><Input value={judulBesar} onChange={(e) => setJudulBesar(e.target.value)} placeholder="SIAKAD" /></Field>
+              <Field label="Sub-judul (di bawah judul besar)"><Input value={subjudul} onChange={(e) => setSubjudul(e.target.value)} /></Field>
+              <Field label="Slogan / Kutipan (di bawah garis, panel kiri)"><Input value={slogan} onChange={(e) => setSlogan(e.target.value)} /></Field>
+              <Field label="Kata Sapaan (panel kanan, di atas form login)"><Input value={sapaan} onChange={(e) => setSapaan(e.target.value)} /></Field>
+            </div>
+            <Field label="Tagline (© footer)"><Input value={tagline} onChange={(e) => setTagline(e.target.value)} /></Field>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Warna Utama">
                 <div className="flex items-center gap-2">
@@ -1010,6 +1025,9 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
               </Field>
             </div>
             <p className="text-xs text-stone-400 mb-4">Warna Utama untuk latar sidebar & tombol utama. Warna Aksen untuk logo, sorotan menu, dan tagline.</p>
+            <Field label={`Ukuran Logo di Sidebar (${ukuranLogo}px)`}>
+              <input type="range" min="32" max="96" value={ukuranLogo} onChange={(e) => setUkuranLogo(e.target.value)} className="w-full" />
+            </Field>
             <Btn type="submit" tone="gold">Simpan Identitas Pondok</Btn>
           </form>
         </Card>
