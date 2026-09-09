@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext, createContext } from "react";
 import { supabase } from "./supabaseClient.js";
+
+const BrandContext = createContext({ warna_utama: "#0B4D30", warna_aksen: "#AD7F2C" });
 
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 const MATA_PELAJARAN = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"];
@@ -42,7 +44,7 @@ const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Santri", akademik: "
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
 /* ---------------------------------------------------------------------- */
 function useBrand() {
-  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null });
+  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B4D30", warna_aksen: "#AD7F2C" });
   const [loaded, setLoaded] = useState(false);
   async function reload() {
     const { data } = await supabase.from("pengaturan_pondok").select("*").eq("id", 1).single();
@@ -64,10 +66,12 @@ function Card({ children, className = "" }) {
   return <div className={`bg-white border border-stone-200 rounded-2xl p-5 shadow-[0_1px_2px_rgba(20,30,22,.06)] ${className}`}>{children}</div>;
 }
 function Btn({ children, onClick, tone = "primary", type = "button", disabled }) {
+  const brand = useContext(BrandContext);
+  const base = "inline-flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl transition-all disabled:opacity-40 shadow-sm hover:shadow hover:brightness-90";
+  if (tone === "primary") return <button type={type} disabled={disabled} onClick={onClick} style={{ backgroundColor: brand.warna_utama, color: "#fff" }} className={base}>{children}</button>;
+  if (tone === "gold") return <button type={type} disabled={disabled} onClick={onClick} style={{ backgroundColor: brand.warna_aksen, color: "#fff" }} className={base}>{children}</button>;
   const map = {
-    primary: "bg-emerald-800 text-white hover:bg-emerald-900 shadow-sm hover:shadow",
-    gold: "bg-amber-700 text-white hover:bg-amber-800 shadow-sm",
-    ghost: "bg-transparent text-stone-600 border border-stone-300 hover:bg-stone-50 hover:border-emerald-700 hover:text-emerald-800",
+    ghost: "bg-transparent text-stone-600 border border-stone-300 hover:bg-stone-50",
     danger: "bg-transparent text-red-700 border border-red-200 hover:bg-red-50",
   };
   return (
@@ -124,9 +128,10 @@ function JuzTracker({ juz = [] }) {
   );
 }
 function LogoMark({ size = 40, url }) {
+  const brand = useContext(BrandContext);
   if (url) return <img src={url} alt="Logo" style={{ width: size, height: size }} className="rounded-xl object-cover flex-shrink-0 shadow-sm" />;
   return (
-    <div style={{ width: size, height: size }} className="rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center flex-shrink-0 shadow-sm">
+    <div style={{ width: size, height: size, backgroundColor: brand.warna_aksen }} className="rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
       <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 24 24" fill="none">
         <path d="M15 5a7 7 0 1 0 0 14 6.2 6.2 0 1 1 0-14Z" fill="white" fillOpacity=".95" />
       </svg>
@@ -181,29 +186,25 @@ function LoginScreen({ brand }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F4F2EA] p-5">
       <div className="w-full max-w-4xl grid md:grid-cols-2 rounded-[28px] overflow-hidden shadow-[0_30px_70px_-20px_rgba(10,30,20,.35)]">
-        <div className="relative bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 p-10 text-white flex flex-col justify-between overflow-hidden">
+        <div className="relative p-10 text-white flex flex-col justify-between overflow-hidden" style={{ background: `linear-gradient(150deg, ${brand.warna_utama}, #050b08 130%)` }}>
           <PatternBG />
           <div className="relative">
             <div className="mb-10">
               <LogoMark size={76} url={brand.logo_url} />
             </div>
-            <div className="text-xs font-bold tracking-[0.2em] text-amber-300 uppercase mb-3 leading-relaxed max-w-xs">
-              Sistem Informasi Terpadu dan Manajemen Pembelajaran {brand.nama_pondok}
-            </div>
             <div className="font-serif-dh text-7xl font-bold leading-none mb-4 drop-shadow-sm">SIAKAD</div>
-            <p className="text-base text-white/85 mt-2 leading-relaxed max-w-sm font-medium">
-              Mendampingi setiap langkah santri dalam belajar, menghafal, dan bertumbuh —
-              terhubung dalam satu ekosistem pembelajaran yang amanah dan menyeluruh.
+            <p className="text-lg text-white/90 mt-2 leading-snug max-w-sm font-semibold">
+              Sistem Informasi Terpadu dan Manajemen Pembelajaran {brand.nama_pondok}
             </p>
           </div>
           <div className="relative pt-5 mt-8 border-t border-white/15">
-            <div className="font-serif-dh text-lg text-amber-300 italic">"Mencetak Pengusaha Muda Penghafal Quran"</div>
+            <div className="font-serif-dh text-lg italic" style={{ color: brand.warna_aksen }}>"Mencetak Pengusaha Muda Penghafal Quran"</div>
           </div>
         </div>
 
         <div className="bg-white p-10 flex flex-col justify-center">
           <h3 className="font-serif-dh text-2xl text-emerald-900 mb-1 font-semibold">Selamat Datang</h3>
-          <p dir="rtl" lang="ar" className="font-serif-dh text-xl text-amber-700 mb-4">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
+          <p dir="rtl" lang="ar" className="font-serif-dh text-xl text-amber-700 mb-4 text-left">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
           <form onSubmit={submit}>
             <Field label="Masuk Sebagai">
               <Select value={masukSebagai} onChange={(e) => setMasukSebagai(e.target.value)}>
@@ -229,7 +230,7 @@ function Shell({ profile, view, setView, brand, children }) {
   const menu = MENUS[profile.role] || [];
   return (
     <div className="min-h-screen bg-[#F4F2EA] flex">
-      <aside className="w-64 bg-gradient-to-b from-emerald-950 to-emerald-900 text-white p-4 flex flex-col">
+      <aside className="w-64 text-white p-4 flex flex-col" style={{ background: `linear-gradient(180deg, ${brand.warna_utama}, #04100a)` }}>
         <div className="flex items-center gap-3 pb-5 mb-5 border-b border-white/10">
           <LogoMark size={40} url={brand.logo_url} />
           <div>
@@ -242,7 +243,7 @@ function Shell({ profile, view, setView, brand, children }) {
           {menu.map(([key, label]) => (
             <div key={key} onClick={() => setView(key)}
               className={`relative px-3.5 py-2.5 rounded-xl text-[13.5px] font-semibold cursor-pointer transition ${view === key ? "bg-white/10 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
-              {view === key && <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-5 bg-amber-500 rounded-r" />}
+              {view === key && <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r" style={{ backgroundColor: brand.warna_aksen }} />}
               {label}
             </div>
           ))}
@@ -884,6 +885,8 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
 
   const [namaPondok, setNamaPondok] = useState(brand.nama_pondok);
   const [tagline, setTagline] = useState(brand.tagline);
+  const [warnaUtama, setWarnaUtama] = useState(brand.warna_utama || "#0B4D30");
+  const [warnaAksen, setWarnaAksen] = useState(brand.warna_aksen || "#AD7F2C");
   const [logoUploading, setLogoUploading] = useState(false);
   const logoRef = useRef(null);
 
@@ -919,7 +922,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   }
   async function saveBranding(e) {
     e.preventDefault(); setMsg("");
-    const { error } = await supabase.from("pengaturan_pondok").update({ nama_pondok: namaPondok, tagline }).eq("id", 1);
+    const { error } = await supabase.from("pengaturan_pondok").update({ nama_pondok: namaPondok, tagline, warna_utama: warnaUtama, warna_aksen: warnaAksen }).eq("id", 1);
     if (error) setMsg("Gagal: " + error.message); else { setMsg("Identitas pondok berhasil diperbarui."); onBrandUpdated(); }
   }
   async function uploadLogo(e) {
@@ -992,6 +995,21 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
           <form onSubmit={saveBranding} className="max-w-md">
             <Field label="Nama Pondok (ditampilkan di sidebar)"><Input value={namaPondok} onChange={(e) => setNamaPondok(e.target.value)} /></Field>
             <Field label="Tagline (ditampilkan besar di halaman login)"><Input value={tagline} onChange={(e) => setTagline(e.target.value)} /></Field>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Warna Utama">
+                <div className="flex items-center gap-2">
+                  <input type="color" value={warnaUtama} onChange={(e) => setWarnaUtama(e.target.value)} className="w-11 h-11 rounded-lg border border-stone-300 cursor-pointer" />
+                  <Input value={warnaUtama} onChange={(e) => setWarnaUtama(e.target.value)} />
+                </div>
+              </Field>
+              <Field label="Warna Aksen">
+                <div className="flex items-center gap-2">
+                  <input type="color" value={warnaAksen} onChange={(e) => setWarnaAksen(e.target.value)} className="w-11 h-11 rounded-lg border border-stone-300 cursor-pointer" />
+                  <Input value={warnaAksen} onChange={(e) => setWarnaAksen(e.target.value)} />
+                </div>
+              </Field>
+            </div>
+            <p className="text-xs text-stone-400 mb-4">Warna Utama untuk latar sidebar & tombol utama. Warna Aksen untuk logo, sorotan menu, dan tagline.</p>
             <Btn type="submit" tone="gold">Simpan Identitas Pondok</Btn>
           </form>
         </Card>
@@ -1026,7 +1044,7 @@ export default function App() {
   useEffect(loadProfile, [session]);
 
   if (session === undefined) return <div className="min-h-screen flex items-center justify-center text-stone-500">Memuat…</div>;
-  if (!session) return <LoginScreen brand={brand} />;
+  if (!session) return <BrandContext.Provider value={brand}><LoginScreen brand={brand} /></BrandContext.Provider>;
   if (!profile) return <div className="min-h-screen flex items-center justify-center text-stone-500">Memuat profil…</div>;
 
   function renderView() {
@@ -1041,5 +1059,9 @@ export default function App() {
     return null;
   }
 
-  return <Shell profile={profile} view={view} setView={setView} brand={brand}>{renderView()}</Shell>;
+  return (
+    <BrandContext.Provider value={brand}>
+      <Shell profile={profile} view={view} setView={setView} brand={brand}>{renderView()}</Shell>
+    </BrandContext.Provider>
+  );
 }
