@@ -51,7 +51,7 @@ const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Santri", akademik: "
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
 /* ---------------------------------------------------------------------- */
 function useBrand() {
-  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B4D30", warna_aksen: "#AD7F2C", ukuran_logo_sidebar: 52, judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang", ukuran_judul: 72, ukuran_subjudul: 18, font_style: "fraunces", align_subjudul: "center", align_slogan: "left" });
+  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B4D30", warna_aksen: "#AD7F2C", ukuran_logo_sidebar: 52, judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang", ukuran_judul: 72, ukuran_subjudul: 18, font_style: "fraunces", align_subjudul: "left", align_slogan: "left" });
   const [loaded, setLoaded] = useState(false);
   async function reload() {
     const { data } = await supabase.from("pengaturan_pondok").select("*").eq("id", 1).single();
@@ -993,7 +993,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   const [subjudul, setSubjudul] = useState(brand.subjudul || "Sistem Informasi Terpadu dan Manajemen Pembelajaran");
   const [ukuranSubjudul, setUkuranSubjudul] = useState(brand.ukuran_subjudul || 18);
   const [fontStyle, setFontStyle] = useState(brand.font_style || "fraunces");
-  const [alignSubjudul, setAlignSubjudul] = useState(brand.align_subjudul || "center");
+  const [alignSubjudul, setAlignSubjudul] = useState(brand.align_subjudul || "left");
   const [alignSlogan, setAlignSlogan] = useState(brand.align_slogan || "left");
   const [slogan, setSlogan] = useState(brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran");
   const [sapaan, setSapaan] = useState(brand.sapaan || "Selamat Datang");
