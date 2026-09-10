@@ -51,7 +51,7 @@ const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Santri", akademik: "
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
 /* ---------------------------------------------------------------------- */
 function useBrand() {
-  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B4D30", warna_aksen: "#AD7F2C", ukuran_logo_sidebar: 52, judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang", ukuran_judul: 72, ukuran_subjudul: 18, font_style: "fraunces" });
+  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B4D30", warna_aksen: "#AD7F2C", ukuran_logo_sidebar: 52, judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang", ukuran_judul: 72, ukuran_subjudul: 18, font_style: "fraunces", align_subjudul: "center", align_slogan: "left" });
   const [loaded, setLoaded] = useState(false);
   async function reload() {
     const { data } = await supabase.from("pengaturan_pondok").select("*").eq("id", 1).single();
@@ -208,12 +208,12 @@ function LoginScreen({ brand }) {
               <LogoMark size={76} url={brand.logo_url} />
             </div>
             <div className="font-serif-dh font-bold leading-none mb-4 drop-shadow-sm" style={{ fontSize: `${brand.ukuran_judul || 72}px` }}>{brand.judul_besar || "SIAKAD"}</div>
-            <p className="text-white/90 mt-2 leading-snug max-w-sm font-semibold whitespace-pre-line text-center mx-auto" style={{ fontSize: `${brand.ukuran_subjudul || 18}px` }}>
+            <p className="text-white/90 mt-2 leading-snug max-w-sm font-semibold whitespace-pre-line" style={{ fontSize: `${brand.ukuran_subjudul || 18}px`, textAlign: brand.align_subjudul || "center", marginLeft: brand.align_subjudul === "center" ? "auto" : 0, marginRight: brand.align_subjudul === "center" ? "auto" : 0 }}>
               {brand.subjudul || "Sistem Informasi Terpadu dan Manajemen Pembelajaran"} {brand.nama_pondok}
             </p>
           </div>
           <div className="relative pt-5 mt-8 border-t border-white/15">
-            <div className="font-serif-dh text-lg italic text-white whitespace-pre-line">"{brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran"}"</div>
+            <div className="font-serif-dh text-lg italic text-white whitespace-pre-line" style={{ textAlign: brand.align_slogan || "left" }}>"{brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran"}"</div>
           </div>
         </div>
 
@@ -993,6 +993,8 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   const [subjudul, setSubjudul] = useState(brand.subjudul || "Sistem Informasi Terpadu dan Manajemen Pembelajaran");
   const [ukuranSubjudul, setUkuranSubjudul] = useState(brand.ukuran_subjudul || 18);
   const [fontStyle, setFontStyle] = useState(brand.font_style || "fraunces");
+  const [alignSubjudul, setAlignSubjudul] = useState(brand.align_subjudul || "center");
+  const [alignSlogan, setAlignSlogan] = useState(brand.align_slogan || "left");
   const [slogan, setSlogan] = useState(brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran");
   const [sapaan, setSapaan] = useState(brand.sapaan || "Selamat Datang");
   const [logoUploading, setLogoUploading] = useState(false);
@@ -1034,6 +1036,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
       nama_pondok: namaPondok, tagline, warna_utama: warnaUtama, warna_aksen: warnaAksen,
       ukuran_logo_sidebar: Number(ukuranLogo), judul_besar: judulBesar, subjudul, slogan, sapaan,
       ukuran_judul: Number(ukuranJudul), ukuran_subjudul: Number(ukuranSubjudul), font_style: fontStyle,
+      align_subjudul: alignSubjudul, align_slogan: alignSlogan,
     }).eq("id", 1);
     if (error) setMsg("Gagal: " + error.message); else { setMsg("Identitas pondok berhasil diperbarui."); onBrandUpdated(); }
   }
@@ -1117,7 +1120,17 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
               <Field label={`Ukuran Judul Besar (${ukuranJudul}px)`}><input type="range" min="36" max="110" value={ukuranJudul} onChange={(e) => setUkuranJudul(e.target.value)} className="w-full" /></Field>
               <Field label="Sub-judul (di bawah judul besar — Enter untuk baris baru)"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={subjudul} onChange={(e) => setSubjudul(e.target.value)} /></Field>
               <Field label={`Ukuran Sub-judul (${ukuranSubjudul}px)`}><input type="range" min="12" max="32" value={ukuranSubjudul} onChange={(e) => setUkuranSubjudul(e.target.value)} className="w-full" /></Field>
+              <Field label="Perataan Sub-judul">
+                <Select value={alignSubjudul} onChange={(e) => setAlignSubjudul(e.target.value)}>
+                  <option value="left">Kiri</option><option value="center">Tengah</option><option value="right">Kanan</option>
+                </Select>
+              </Field>
               <Field label="Slogan / Kutipan (di bawah garis, panel kiri — Enter untuk baris baru)"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={slogan} onChange={(e) => setSlogan(e.target.value)} /></Field>
+              <Field label="Perataan Slogan">
+                <Select value={alignSlogan} onChange={(e) => setAlignSlogan(e.target.value)}>
+                  <option value="left">Kiri</option><option value="center">Tengah</option><option value="right">Kanan</option>
+                </Select>
+              </Field>
               <Field label="Kata Sapaan (panel kanan, di atas form login)"><Input value={sapaan} onChange={(e) => setSapaan(e.target.value)} /></Field>
             </div>
             <Field label="Tagline (© footer)"><Input value={tagline} onChange={(e) => setTagline(e.target.value)} /></Field>
