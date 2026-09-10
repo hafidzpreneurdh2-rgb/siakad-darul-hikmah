@@ -5,7 +5,6 @@ const BrandContext = createContext({ warna_utama: "#0B4D30", warna_aksen: "#AD7F
 
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 const MATA_PELAJARAN = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"];
-const KELAS_LIST = ["Marhalah I","Marhalah II","Marhalah III"];
 const JENIS_IBADAH = ["Sholat 5 Waktu Berjamaah","Puasa Sunnah","Tilawah Harian","Dzikir Pagi-Petang","Qiyamullail"];
 const ROLE_LABEL = { admin: "Administrator", musyrif: "Musyrif", musyrifah: "Musyrifah", keuangan: "Bendahara", akademik: "Staf Akademik", pimpinan: "Pimpinan Pondok", santri: "Santri / Wali" };
 const AVATAR_COLORS = ["#0B4D30","#AD7F2C","#8A4A3A","#3F6C8A","#5C4A8A","#2F6B5E"];
@@ -209,7 +208,7 @@ function LoginScreen({ brand }) {
               <LogoMark size={76} url={brand.logo_url} />
             </div>
             <div className="font-serif-dh font-bold leading-none mb-4 drop-shadow-sm" style={{ fontSize: `${brand.ukuran_judul || 72}px` }}>{brand.judul_besar || "SIAKAD"}</div>
-            <p className="text-white/90 mt-2 leading-snug max-w-sm font-semibold whitespace-pre-line" style={{ fontSize: `${brand.ukuran_subjudul || 18}px` }}>
+            <p className="text-white/90 mt-2 leading-snug max-w-sm font-semibold whitespace-pre-line text-center mx-auto" style={{ fontSize: `${brand.ukuran_subjudul || 18}px` }}>
               {brand.subjudul || "Sistem Informasi Terpadu dan Manajemen Pembelajaran"} {brand.nama_pondok}
             </p>
           </div>
@@ -397,7 +396,7 @@ function DataSantriPage({ profile }) {
       <PageHeader title="Data Santri" actions={editable && <Btn onClick={() => setModal("new")}>+ Tambah Santri</Btn>} />
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Kelas</th><th className="p-3.5">Juz</th><th className="p-3.5"></th></tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">Juz</th><th className="p-3.5"></th></tr></thead>
           <tbody>
             {rows.map((s) => (
               <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60">
@@ -416,19 +415,22 @@ function DataSantriPage({ profile }) {
           </tbody>
         </table>
       </Card>
-      {modal && <SantriForm initial={modal === "new" ? null : modal} onCancel={() => setModal(null)} onSubmit={upsert} />}
+      {modal && <SantriForm initial={modal === "new" ? null : modal} daftarAngkatan={[...new Set(rows.map((s) => s.kelas))]} onCancel={() => setModal(null)} onSubmit={upsert} />}
     </div>
   );
 }
-function SantriForm({ initial, onCancel, onSubmit }) {
-  const [f, setF] = useState(initial || { nim: "", nama: "", jk: "Santri", kelas: KELAS_LIST[0], angkatan: String(nowYear), kamar: "", musyrif_username: "" });
+function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
+  const [f, setF] = useState(initial || { nim: "", nama: "", jk: "Santri", kelas: "", angkatan: String(nowYear), kamar: "", musyrif_username: "" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
     <Modal title={initial ? "Edit Santri" : "Tambah Santri"} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="NIM"><Input value={f.nim} onChange={set("nim")} disabled={!!initial} required /></Field>
         <Field label="Nama"><Input value={f.nama} onChange={set("nama")} required /></Field>
-        <Field label="Kelas"><Select value={f.kelas} onChange={set("kelas")}>{KELAS_LIST.map((k) => <option key={k}>{k}</option>)}</Select></Field>
+        <Field label="Angkatan">
+          <Input value={f.kelas} onChange={set("kelas")} list="daftar-angkatan" placeholder="cth: Angkatan 8, atau 2026" required />
+          <datalist id="daftar-angkatan">{daftarAngkatan.map((a) => <option key={a} value={a} />)}</datalist>
+        </Field>
         <Field label="Musyrif/ah (username)"><Input value={f.musyrif_username} onChange={set("musyrif_username")} placeholder="cth: musyrif1" /></Field>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
       </form>
@@ -464,7 +466,7 @@ function AkademikStaffPage({ profile }) {
         <PageHeader title="Input Akademik" sub="Semua santri — klik salah satu untuk kelola nilai." />
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Kelas</th><th className="p-3.5">IPK</th><th className="p-3.5">Mapel Selesai</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">IPK</th><th className="p-3.5">Mapel Selesai</th></tr></thead>
             <tbody>
               {santriT.rows.map((s) => {
                 const sel = akT.rows.filter((a) => a.nim === s.nim && a.status === "selesai");
@@ -950,7 +952,7 @@ function AkunForm({ onCancel, onSubmit }) {
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
     <Modal title="Tambah Akun" onClose={onCancel}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }} onKeyDown={(e) => { if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") { e.preventDefault(); onSubmit(f); } }}>
         <Field label="Username / NIM"><Input value={f.username} onChange={set("username")} required /></Field>
         <Field label="Nama"><Input value={f.nama} onChange={set("nama")} required /></Field>
         <Field label="Kata Sandi (min. 6 karakter)"><Input type="password" value={f.password} onChange={set("password")} required /></Field>
