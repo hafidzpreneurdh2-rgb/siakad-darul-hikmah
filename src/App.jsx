@@ -12,6 +12,14 @@ const AVATAR_COLORS = ["#0B4D30","#AD7F2C","#8A4A3A","#3F6C8A","#5C4A8A","#2F6B5
 const nowYear = new Date().getFullYear();
 const DEFAULT_TAGLINE = "Pondok Tahfidz Qur'an dan Entrepreneur Darul Hikmah";
 
+const FONT_OPTIONS = {
+  fraunces: { label: "Elegan Serif (Fraunces)", heading: "'Fraunces', Georgia, serif", body: "'Plus Jakarta Sans', sans-serif" },
+  poppins: { label: "Modern Bulat (Poppins)", heading: "'Poppins', sans-serif", body: "'Poppins', sans-serif" },
+  inter: { label: "Bersih Minimalis (Inter)", heading: "'Inter', sans-serif", body: "'Inter', sans-serif" },
+  georgia: { label: "Klasik Formal (Georgia)", heading: "Georgia, 'Times New Roman', serif", body: "Georgia, serif" },
+  calibri: { label: "Standar Kantor (Calibri)", heading: "Calibri, 'Segoe UI', sans-serif", body: "Calibri, 'Segoe UI', sans-serif" },
+};
+
 function formatRupiah(n) { return n == null ? "-" : "Rp " + Number(n).toLocaleString("id-ID"); }
 function nilaiHuruf(a) { if (a == null) return "-"; if (a >= 85) return "A"; if (a >= 75) return "B"; if (a >= 65) return "C"; if (a >= 50) return "D"; return "E"; }
 function bobot(h) { return { A: 4, B: 3, C: 2, D: 1, E: 0 }[h] ?? 0; }
@@ -30,21 +38,21 @@ const CAN_EDIT = {
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
 const MENUS = {
-  admin: [["dashboard","Dashboard"],["santri","Data Santri"],["akademik","Input Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["spp","Tagihan SPP"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
-  musyrif: [["dashboard","Dashboard"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["pengaturan","Pengaturan"]],
-  musyrifah: [["dashboard","Dashboard"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["pengaturan","Pengaturan"]],
+  admin: [["dashboard","Dashboard"],["santri","Data Santri"],["akademik","Input Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
+  musyrif: [["dashboard","Dashboard"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
+  musyrifah: [["dashboard","Dashboard"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
   keuangan: [["dashboard","Dashboard"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
   akademik: [["dashboard","Dashboard"],["akademik","Input Akademik"],["pengaturan","Pengaturan"]],
-  pimpinan: [["dashboard","Dashboard"],["santri","Data Santri"],["akademik","Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
-  santri: [["dashboard","Dashboard"],["akademik","Akademik (KHS/KRS)"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
+  pimpinan: [["dashboard","Dashboard"],["santri","Data Santri"],["akademik","Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
+  santri: [["dashboard","Dashboard"],["akademik","Akademik (KHS/KRS)"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Santri", akademik: "Akademik", quran: "Laporan Capaian Al-Qur'an", ibadah: "Laporan Ibadah", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Santri", akademik: "Akademik", quran: "Laporan Capaian Al-Qur'an", ibadah: "Laporan Ibadah", catatan: "Catatan Pojok", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
 /* ---------------------------------------------------------------------- */
 function useBrand() {
-  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B4D30", warna_aksen: "#AD7F2C", ukuran_logo_sidebar: 52, judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang" });
+  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B4D30", warna_aksen: "#AD7F2C", ukuran_logo_sidebar: 52, judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang", ukuran_judul: 72, ukuran_subjudul: 18, font_style: "fraunces" });
   const [loaded, setLoaded] = useState(false);
   async function reload() {
     const { data } = await supabase.from("pengaturan_pondok").select("*").eq("id", 1).single();
@@ -65,11 +73,19 @@ function Badge({ tone = "grey", children }) {
 function Card({ children, className = "" }) {
   return <div className={`bg-white border border-stone-200 rounded-2xl p-5 shadow-[0_1px_2px_rgba(20,30,22,.06)] ${className}`}>{children}</div>;
 }
+function contrastText(hex) {
+  if (!hex) return "#fff";
+  const h = hex.replace("#", "");
+  if (h.length !== 6) return "#fff";
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.65 ? "#1a1a1a" : "#fff";
+}
 function Btn({ children, onClick, tone = "primary", type = "button", disabled }) {
   const brand = useContext(BrandContext);
-  const base = "inline-flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl transition-all disabled:opacity-40 shadow-sm hover:shadow hover:brightness-90";
-  if (tone === "primary") return <button type={type} disabled={disabled} onClick={onClick} style={{ backgroundColor: brand.warna_utama, color: "#fff" }} className={base}>{children}</button>;
-  if (tone === "gold") return <button type={type} disabled={disabled} onClick={onClick} style={{ backgroundColor: brand.warna_aksen, color: "#fff" }} className={base}>{children}</button>;
+  const base = "inline-flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl transition-all disabled:opacity-40 shadow-sm hover:shadow hover:brightness-90 border border-black/5";
+  if (tone === "primary") { const bg = brand.warna_utama || "#0B4D30"; return <button type={type} disabled={disabled} onClick={onClick} style={{ backgroundColor: bg, color: contrastText(bg) }} className={base}>{children}</button>; }
+  if (tone === "gold") { const bg = brand.warna_aksen || "#AD7F2C"; return <button type={type} disabled={disabled} onClick={onClick} style={{ backgroundColor: bg, color: contrastText(bg) }} className={base}>{children}</button>; }
   const map = {
     ghost: "bg-transparent text-stone-600 border border-stone-300 hover:bg-stone-50",
     danger: "bg-transparent text-red-700 border border-red-200 hover:bg-red-50",
@@ -192,13 +208,13 @@ function LoginScreen({ brand }) {
             <div className="mb-10">
               <LogoMark size={76} url={brand.logo_url} />
             </div>
-            <div className="font-serif-dh text-7xl font-bold leading-none mb-4 drop-shadow-sm">{brand.judul_besar || "SIAKAD"}</div>
-            <p className="text-lg text-white/90 mt-2 leading-snug max-w-sm font-semibold">
+            <div className="font-serif-dh font-bold leading-none mb-4 drop-shadow-sm" style={{ fontSize: `${brand.ukuran_judul || 72}px` }}>{brand.judul_besar || "SIAKAD"}</div>
+            <p className="text-white/90 mt-2 leading-snug max-w-sm font-semibold whitespace-pre-line" style={{ fontSize: `${brand.ukuran_subjudul || 18}px` }}>
               {brand.subjudul || "Sistem Informasi Terpadu dan Manajemen Pembelajaran"} {brand.nama_pondok}
             </p>
           </div>
           <div className="relative pt-5 mt-8 border-t border-white/15">
-            <div className="font-serif-dh text-lg italic" style={{ color: brand.warna_aksen }}>"{brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran"}"</div>
+            <div className="font-serif-dh text-lg italic text-white whitespace-pre-line">"{brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran"}"</div>
           </div>
         </div>
 
@@ -729,6 +745,88 @@ function IbadahForm({ onCancel, onSubmit }) {
 }
 
 /* ---------------------------------------------------------------------- */
+/* Catatan Pojok — catatan pribadi musyrif untuk santri, privat            */
+/* ---------------------------------------------------------------------- */
+function CatatanPojokPage({ profile }) {
+  const isViewer = profile.role !== "santri";
+  const canView = ["admin", "musyrif", "musyrifah", "pimpinan"].includes(profile.role);
+  const santriT = useTable("santri");
+  const catT = useTable("catatan_pojok");
+  const [nim, setNim] = useState(isViewer ? "" : profile.nim);
+  const [showForm, setShowForm] = useState(false);
+  const santri = santriT.rows.find((s) => s.nim === nim);
+  const catatan = catT.rows.filter((c) => c.nim === nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+  const pickable = canView ? santriT.rows : [];
+  const canAddForThis = profile.role === "admin" || (["musyrif", "musyrifah"].includes(profile.role) && santri?.musyrif_username === profile.username);
+
+  async function addCatatan(f) {
+    const { error } = await supabase.from("catatan_pojok").insert({ ...f, nim, musyrif: profile.nama });
+    if (error) alert(error.message); else { setShowForm(false); catT.reload(); }
+  }
+  async function removeCatatan(id) {
+    if (!confirm("Hapus catatan ini?")) return;
+    const { error } = await supabase.from("catatan_pojok").delete().eq("id", id);
+    if (!error) catT.reload();
+  }
+
+  if (isViewer && !nim) {
+    return (
+      <div>
+        <PageHeader title="Catatan Pojok" sub="Catatan pribadi untuk santri binaan — hanya terlihat oleh santri/wali yang bersangkutan." />
+        <Card className="p-0 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Jumlah Catatan</th></tr></thead>
+            <tbody>
+              {pickable.map((s) => (
+                <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
+                  <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
+                  <td className="p-3.5">{catT.rows.filter((c) => c.nim === s.nim).length} catatan</td>
+                </tr>
+              ))}
+              {pickable.length === 0 && <tr><td colSpan={2}><Empty text="Belum ada santri binaan." /></td></tr>}
+            </tbody>
+          </table>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {isViewer && <BackBar onBack={() => setNim("")} />}
+      <PageHeader title={isViewer ? (santri?.nama || "Catatan Pojok") : "Catatan Pojok"} sub={!isViewer ? "Catatan pribadi dari musyrif — hanya Anda yang bisa melihat ini." : undefined}
+        actions={canAddForThis && isViewer && <Btn onClick={() => setShowForm(true)}>+ Tambah Catatan</Btn>} />
+      <div className="space-y-3">
+        {catatan.map((c) => (
+          <Card key={c.id}>
+            <div className="flex justify-between items-start mb-2">
+              <div className="text-xs font-bold text-stone-500">{c.tanggal} · {c.musyrif}</div>
+              {canAddForThis && isViewer && <button onClick={() => removeCatatan(c.id)} className="text-red-600 text-xs font-bold">Hapus</button>}
+            </div>
+            <div className="text-sm text-stone-700 whitespace-pre-line">{c.isi_catatan}</div>
+          </Card>
+        ))}
+        {catatan.length === 0 && <Empty text="Belum ada catatan." />}
+      </div>
+      {showForm && <CatatanPojokForm onCancel={() => setShowForm(false)} onSubmit={addCatatan} />}
+    </div>
+  );
+}
+function CatatanPojokForm({ onCancel, onSubmit }) {
+  const [f, setF] = useState({ tanggal: new Date().toISOString().slice(0, 10), isi_catatan: "" });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title="Tambah Catatan Pojok" onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <Field label="Tanggal"><Input type="date" value={f.tanggal} onChange={set("tanggal")} /></Field>
+        <Field label="Isi Catatan"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={5} value={f.isi_catatan} onChange={set("isi_catatan")} placeholder="Tulis catatan pribadi untuk santri ini..." required /></Field>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
 /* Tagihan SPP — overview semua santri + drill-down                        */
 /* ---------------------------------------------------------------------- */
 function SppPage({ profile }) {
@@ -889,7 +987,10 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   const [warnaAksen, setWarnaAksen] = useState(brand.warna_aksen || "#AD7F2C");
   const [ukuranLogo, setUkuranLogo] = useState(brand.ukuran_logo_sidebar || 52);
   const [judulBesar, setJudulBesar] = useState(brand.judul_besar || "SIAKAD");
+  const [ukuranJudul, setUkuranJudul] = useState(brand.ukuran_judul || 72);
   const [subjudul, setSubjudul] = useState(brand.subjudul || "Sistem Informasi Terpadu dan Manajemen Pembelajaran");
+  const [ukuranSubjudul, setUkuranSubjudul] = useState(brand.ukuran_subjudul || 18);
+  const [fontStyle, setFontStyle] = useState(brand.font_style || "fraunces");
   const [slogan, setSlogan] = useState(brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran");
   const [sapaan, setSapaan] = useState(brand.sapaan || "Selamat Datang");
   const [logoUploading, setLogoUploading] = useState(false);
@@ -930,6 +1031,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
     const { error } = await supabase.from("pengaturan_pondok").update({
       nama_pondok: namaPondok, tagline, warna_utama: warnaUtama, warna_aksen: warnaAksen,
       ukuran_logo_sidebar: Number(ukuranLogo), judul_besar: judulBesar, subjudul, slogan, sapaan,
+      ukuran_judul: Number(ukuranJudul), ukuran_subjudul: Number(ukuranSubjudul), font_style: fontStyle,
     }).eq("id", 1);
     if (error) setMsg("Gagal: " + error.message); else { setMsg("Identitas pondok berhasil diperbarui."); onBrandUpdated(); }
   }
@@ -1004,9 +1106,16 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
             <Field label="Nama Pondok (ditampilkan di sidebar)"><Input value={namaPondok} onChange={(e) => setNamaPondok(e.target.value)} /></Field>
             <div className="border-t border-amber-200 my-4 pt-4">
               <div className="text-xs font-extrabold text-stone-500 uppercase tracking-wide mb-3">Teks Halaman Login</div>
+              <Field label="Gaya Font (berlaku ke seluruh aplikasi)">
+                <Select value={fontStyle} onChange={(e) => setFontStyle(e.target.value)}>
+                  {Object.entries(FONT_OPTIONS).map(([key, f]) => <option key={key} value={key}>{f.label}</option>)}
+                </Select>
+              </Field>
               <Field label="Judul Besar"><Input value={judulBesar} onChange={(e) => setJudulBesar(e.target.value)} placeholder="SIAKAD" /></Field>
-              <Field label="Sub-judul (di bawah judul besar)"><Input value={subjudul} onChange={(e) => setSubjudul(e.target.value)} /></Field>
-              <Field label="Slogan / Kutipan (di bawah garis, panel kiri)"><Input value={slogan} onChange={(e) => setSlogan(e.target.value)} /></Field>
+              <Field label={`Ukuran Judul Besar (${ukuranJudul}px)`}><input type="range" min="36" max="110" value={ukuranJudul} onChange={(e) => setUkuranJudul(e.target.value)} className="w-full" /></Field>
+              <Field label="Sub-judul (di bawah judul besar — Enter untuk baris baru)"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={subjudul} onChange={(e) => setSubjudul(e.target.value)} /></Field>
+              <Field label={`Ukuran Sub-judul (${ukuranSubjudul}px)`}><input type="range" min="12" max="32" value={ukuranSubjudul} onChange={(e) => setUkuranSubjudul(e.target.value)} className="w-full" /></Field>
+              <Field label="Slogan / Kutipan (di bawah garis, panel kiri — Enter untuk baris baru)"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={slogan} onChange={(e) => setSlogan(e.target.value)} /></Field>
               <Field label="Kata Sapaan (panel kanan, di atas form login)"><Input value={sapaan} onChange={(e) => setSapaan(e.target.value)} /></Field>
             </div>
             <Field label="Tagline (© footer)"><Input value={tagline} onChange={(e) => setTagline(e.target.value)} /></Field>
@@ -1046,6 +1155,12 @@ export default function App() {
   const { brand, reloadBrand } = useBrand();
 
   useEffect(() => {
+    const f = FONT_OPTIONS[brand.font_style] || FONT_OPTIONS.fraunces;
+    document.documentElement.style.setProperty("--font-heading", f.heading);
+    document.documentElement.style.setProperty("--font-body", f.body);
+  }, [brand.font_style]);
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => sub.subscription.unsubscribe();
@@ -1071,6 +1186,7 @@ export default function App() {
     if (view === "akademik") return profile.role === "santri" ? <AkademikSantriPage /> : <AkademikStaffPage profile={profile} />;
     if (view === "quran") return <QuranPage profile={profile} />;
     if (view === "ibadah") return <IbadahPage profile={profile} />;
+    if (view === "catatan") return <CatatanPojokPage profile={profile} />;
     if (view === "spp") return <SppPage profile={profile} />;
     if (view === "akun" && profile.role === "admin") return <KelolaAkunPage />;
     if (view === "pengaturan") return <PengaturanPage profile={profile} onProfileUpdated={loadProfile} brand={brand} onBrandUpdated={reloadBrand} />;
