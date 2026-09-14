@@ -10,6 +10,7 @@ const ROLE_LABEL = { admin: "Administrator", musyrif: "Musyrif", musyrifah: "Mus
 const AVATAR_COLORS = ["#0B4D30","#AD7F2C","#8A4A3A","#3F6C8A","#5C4A8A","#2F6B5E"];
 const nowYear = new Date().getFullYear();
 const DEFAULT_TAGLINE = "Pondok Tahfidz Qur'an dan Entrepreneur Darul Hikmah";
+function fontFamilyOf(brand, key) { return (FONT_OPTIONS[brand[key]] || FONT_OPTIONS.fraunces).heading; }
 
 const FONT_OPTIONS = {
   fraunces: { label: "Elegan Serif (Fraunces)", heading: "'Fraunces', Georgia, serif", body: "'Plus Jakarta Sans', sans-serif" },
@@ -51,7 +52,7 @@ const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Santri", akademik: "
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
 /* ---------------------------------------------------------------------- */
 function useBrand() {
-  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B4D30", warna_aksen: "#AD7F2C", ukuran_logo_sidebar: 52, judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang", ukuran_judul: 72, ukuran_subjudul: 18, font_style: "fraunces", align_subjudul: "left", align_slogan: "left" });
+  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B4D30", warna_aksen: "#AD7F2C", ukuran_logo_sidebar: 52, judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang", ukuran_judul: 72, ukuran_subjudul: 18, font_style: "fraunces", align_subjudul: "left", align_slogan: "left", font_judul: "fraunces", font_subjudul: "fraunces", font_slogan: "fraunces", font_sapaan: "fraunces" });
   const [loaded, setLoaded] = useState(false);
   async function reload() {
     const { data } = await supabase.from("pengaturan_pondok").select("*").eq("id", 1).single();
@@ -144,7 +145,7 @@ function JuzTracker({ juz = [] }) {
 }
 function LogoMark({ size = 40, url }) {
   const brand = useContext(BrandContext);
-  if (url) return <img src={url} alt="Logo" style={{ width: size, height: size }} className="rounded-xl object-cover flex-shrink-0 shadow-sm" />;
+  if (url) return <img src={url} alt="Logo" style={{ maxWidth: size, maxHeight: size, width: "auto", height: "auto" }} className="flex-shrink-0" />;
   return (
     <div style={{ width: size, height: size, backgroundColor: brand.warna_aksen }} className="rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
       <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 24 24" fill="none">
@@ -207,18 +208,18 @@ function LoginScreen({ brand }) {
             <div className="mb-10">
               <LogoMark size={76} url={brand.logo_url} />
             </div>
-            <div className="font-serif-dh font-bold leading-none mb-4 drop-shadow-sm" style={{ fontSize: `${brand.ukuran_judul || 72}px` }}>{brand.judul_besar || "SIAKAD"}</div>
-            <p className="text-white/90 mt-2 leading-snug max-w-sm font-semibold whitespace-pre-line" style={{ fontSize: `${brand.ukuran_subjudul || 18}px`, textAlign: brand.align_subjudul || "center", marginLeft: brand.align_subjudul === "center" ? "auto" : 0, marginRight: brand.align_subjudul === "center" ? "auto" : 0 }}>
+            <div className="font-bold leading-none mb-4 drop-shadow-sm" style={{ fontSize: `${brand.ukuran_judul || 72}px`, fontFamily: fontFamilyOf(brand, "font_judul") }}>{brand.judul_besar || "SIAKAD"}</div>
+            <p className="text-white/90 mt-2 leading-snug max-w-sm font-semibold whitespace-pre-line" style={{ fontSize: `${brand.ukuran_subjudul || 18}px`, textAlign: brand.align_subjudul || "left", marginLeft: brand.align_subjudul === "center" ? "auto" : 0, marginRight: brand.align_subjudul === "center" ? "auto" : 0, fontFamily: fontFamilyOf(brand, "font_subjudul") }}>
               {brand.subjudul || "Sistem Informasi Terpadu dan Manajemen Pembelajaran"} {brand.nama_pondok}
             </p>
           </div>
           <div className="relative pt-5 mt-8 border-t border-white/15">
-            <div className="font-serif-dh text-lg italic text-white whitespace-pre-line" style={{ textAlign: brand.align_slogan || "left" }}>"{brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran"}"</div>
+            <div className="text-lg italic text-white whitespace-pre-line" style={{ textAlign: brand.align_slogan || "left", fontFamily: fontFamilyOf(brand, "font_slogan") }}>"{brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran"}"</div>
           </div>
         </div>
 
         <div className="bg-white p-10 flex flex-col justify-center">
-          <h3 className="font-serif-dh text-2xl mb-1 font-semibold" style={{ color: brand.warna_utama }}>{brand.sapaan || "Selamat Datang"}</h3>
+          <h3 className="text-2xl mb-1 font-semibold" style={{ color: brand.warna_utama, fontFamily: fontFamilyOf(brand, "font_sapaan") }}>{brand.sapaan || "Selamat Datang"}</h3>
           <p dir="rtl" lang="ar" className="font-serif-dh text-xl text-amber-700 mb-4 text-left">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
           <form onSubmit={submit}>
             <Field label="Masuk Sebagai">
@@ -993,6 +994,10 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   const [subjudul, setSubjudul] = useState(brand.subjudul || "Sistem Informasi Terpadu dan Manajemen Pembelajaran");
   const [ukuranSubjudul, setUkuranSubjudul] = useState(brand.ukuran_subjudul || 18);
   const [fontStyle, setFontStyle] = useState(brand.font_style || "fraunces");
+  const [fontJudul, setFontJudul] = useState(brand.font_judul || "fraunces");
+  const [fontSubjudul, setFontSubjudul] = useState(brand.font_subjudul || "fraunces");
+  const [fontSlogan, setFontSlogan] = useState(brand.font_slogan || "fraunces");
+  const [fontSapaan, setFontSapaan] = useState(brand.font_sapaan || "fraunces");
   const [alignSubjudul, setAlignSubjudul] = useState(brand.align_subjudul || "left");
   const [alignSlogan, setAlignSlogan] = useState(brand.align_slogan || "left");
   const [slogan, setSlogan] = useState(brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran");
@@ -1036,6 +1041,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
       nama_pondok: namaPondok, tagline, warna_utama: warnaUtama, warna_aksen: warnaAksen,
       ukuran_logo_sidebar: Number(ukuranLogo), judul_besar: judulBesar, subjudul, slogan, sapaan,
       ukuran_judul: Number(ukuranJudul), ukuran_subjudul: Number(ukuranSubjudul), font_style: fontStyle,
+      font_judul: fontJudul, font_subjudul: fontSubjudul, font_slogan: fontSlogan, font_sapaan: fontSapaan,
       align_subjudul: alignSubjudul, align_slogan: alignSlogan,
     }).eq("id", 1);
     if (error) setMsg("Gagal: " + error.message); else { setMsg("Identitas pondok berhasil diperbarui."); onBrandUpdated(); }
@@ -1117,8 +1123,18 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
                 </Select>
               </Field>
               <Field label="Judul Besar"><Input value={judulBesar} onChange={(e) => setJudulBesar(e.target.value)} placeholder="SIAKAD" /></Field>
+              <Field label="Font Judul Besar">
+                <Select value={fontJudul} onChange={(e) => setFontJudul(e.target.value)}>
+                  {Object.entries(FONT_OPTIONS).map(([key, f]) => <option key={key} value={key}>{f.label}</option>)}
+                </Select>
+              </Field>
               <Field label={`Ukuran Judul Besar (${ukuranJudul}px)`}><input type="range" min="36" max="110" value={ukuranJudul} onChange={(e) => setUkuranJudul(e.target.value)} className="w-full" /></Field>
               <Field label="Sub-judul (di bawah judul besar — Enter untuk baris baru)"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={subjudul} onChange={(e) => setSubjudul(e.target.value)} /></Field>
+              <Field label="Font Sub-judul">
+                <Select value={fontSubjudul} onChange={(e) => setFontSubjudul(e.target.value)}>
+                  {Object.entries(FONT_OPTIONS).map(([key, f]) => <option key={key} value={key}>{f.label}</option>)}
+                </Select>
+              </Field>
               <Field label={`Ukuran Sub-judul (${ukuranSubjudul}px)`}><input type="range" min="12" max="32" value={ukuranSubjudul} onChange={(e) => setUkuranSubjudul(e.target.value)} className="w-full" /></Field>
               <Field label="Perataan Sub-judul">
                 <Select value={alignSubjudul} onChange={(e) => setAlignSubjudul(e.target.value)}>
@@ -1126,12 +1142,22 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
                 </Select>
               </Field>
               <Field label="Slogan / Kutipan (di bawah garis, panel kiri — Enter untuk baris baru)"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={slogan} onChange={(e) => setSlogan(e.target.value)} /></Field>
+              <Field label="Font Slogan">
+                <Select value={fontSlogan} onChange={(e) => setFontSlogan(e.target.value)}>
+                  {Object.entries(FONT_OPTIONS).map(([key, f]) => <option key={key} value={key}>{f.label}</option>)}
+                </Select>
+              </Field>
               <Field label="Perataan Slogan">
                 <Select value={alignSlogan} onChange={(e) => setAlignSlogan(e.target.value)}>
                   <option value="left">Kiri</option><option value="center">Tengah</option><option value="right">Kanan</option>
                 </Select>
               </Field>
               <Field label="Kata Sapaan (panel kanan, di atas form login)"><Input value={sapaan} onChange={(e) => setSapaan(e.target.value)} /></Field>
+              <Field label="Font Kata Sapaan">
+                <Select value={fontSapaan} onChange={(e) => setFontSapaan(e.target.value)}>
+                  {Object.entries(FONT_OPTIONS).map(([key, f]) => <option key={key} value={key}>{f.label}</option>)}
+                </Select>
+              </Field>
             </div>
             <Field label="Tagline (© footer)"><Input value={tagline} onChange={(e) => setTagline(e.target.value)} /></Field>
             <div className="grid grid-cols-2 gap-4">
