@@ -4,9 +4,9 @@ import { supabase } from "./supabaseClient.js";
 const BrandContext = createContext({ warna_utama: "#0B4D30", warna_aksen: "#AD7F2C" });
 
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-const MATA_PELAJARAN = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"];
+const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"];
 const JENIS_IBADAH = ["Sholat 5 Waktu Berjamaah","Puasa Sunnah","Tilawah Harian","Dzikir Pagi-Petang","Qiyamullail"];
-const ROLE_LABEL = { admin: "Administrator", musyrif: "Musyrif", musyrifah: "Musyrifah", keuangan: "Bendahara", akademik: "Staf Akademik", pimpinan: "Pimpinan Pondok", santri: "Santri / Wali" };
+const ROLE_LABEL = { admin: "Administrator", musyrif: "Musyrif", musyrifah: "Musyrifah", keuangan: "Bendahara", akademik: "Staf Akademik", pimpinan: "Pimpinan Pondok", santri: "Mahasantri / Wali" };
 const AVATAR_COLORS = ["#0B4D30","#AD7F2C","#8A4A3A","#3F6C8A","#5C4A8A","#2F6B5E"];
 const nowYear = new Date().getFullYear();
 const DEFAULT_TAGLINE = "Pondok Tahfidz Qur'an dan Entrepreneur Darul Hikmah";
@@ -38,15 +38,15 @@ const CAN_EDIT = {
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
 const MENUS = {
-  admin: [["dashboard","Dashboard"],["santri","Data Santri"],["akademik","Input Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
+  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Input Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
   musyrif: [["dashboard","Dashboard"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
   musyrifah: [["dashboard","Dashboard"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
   keuangan: [["dashboard","Dashboard"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
   akademik: [["dashboard","Dashboard"],["akademik","Input Akademik"],["pengaturan","Pengaturan"]],
-  pimpinan: [["dashboard","Dashboard"],["santri","Data Santri"],["akademik","Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
+  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
   santri: [["dashboard","Dashboard"],["akademik","Akademik (KHS/KRS)"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Santri", akademik: "Akademik", quran: "Laporan Capaian Al-Qur'an", ibadah: "Laporan Ibadah", catatan: "Catatan Pojok", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", quran: "Laporan Capaian Al-Qur'an", ibadah: "Laporan Ibadah", catatan: "Catatan Pojok", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
@@ -171,7 +171,7 @@ function PatternBG() {
 /* Login                                                                    */
 /* ---------------------------------------------------------------------- */
 const MASUK_SEBAGAI_OPTIONS = [
-  { value: "mahasantri", label: "Mahasantri", fieldLabel: "NIM Santri", placeholder: "contoh: 2024001" },
+  { value: "mahasantri", label: "Mahasantri", fieldLabel: "NIM Mahasantri", placeholder: "contoh: 2024001" },
   { value: "orangtua", label: "Orang Tua / Wali", fieldLabel: "NIM Putra/Putri", placeholder: "contoh: 2024001" },
   { value: "admin", label: "Admin / Staf Pondok", fieldLabel: "Username", placeholder: "contoh: admin" },
 ];
@@ -394,10 +394,10 @@ function DataSantriPage({ profile }) {
 
   return (
     <div>
-      <PageHeader title="Data Santri" actions={editable && <Btn onClick={() => setModal("new")}>+ Tambah Santri</Btn>} />
+      <PageHeader title="Data Mahasantri" actions={editable && <Btn onClick={() => setModal("new")}>+ Tambah Mahasantri</Btn>} />
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">Juz</th><th className="p-3.5"></th></tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">Juz</th><th className="p-3.5"></th></tr></thead>
           <tbody>
             {rows.map((s) => (
               <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60">
@@ -421,10 +421,10 @@ function DataSantriPage({ profile }) {
   );
 }
 function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
-  const [f, setF] = useState(initial || { nim: "", nama: "", jk: "Santri", kelas: "", angkatan: String(nowYear), kamar: "", musyrif_username: "" });
+  const [f, setF] = useState(initial || { nim: "", nama: "", jk: "Mahasantri", kelas: "", angkatan: String(nowYear), kamar: "", musyrif_username: "" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
-    <Modal title={initial ? "Edit Santri" : "Tambah Santri"} onClose={onCancel}>
+    <Modal title={initial ? "Edit Mahasantri" : "Tambah Mahasantri"} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="NIM"><Input value={f.nim} onChange={set("nim")} disabled={!!initial} required /></Field>
         <Field label="Nama"><Input value={f.nama} onChange={set("nama")} required /></Field>
@@ -467,7 +467,7 @@ function AkademikStaffPage({ profile }) {
         <PageHeader title="Input Akademik" sub="Semua santri — klik salah satu untuk kelola nilai." />
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">IPK</th><th className="p-3.5">Mapel Selesai</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">IPK</th><th className="p-3.5">Matkul Selesai</th></tr></thead>
             <tbody>
               {santriT.rows.map((s) => {
                 const sel = akT.rows.filter((a) => a.nim === s.nim && a.status === "selesai");
@@ -491,14 +491,14 @@ function AkademikStaffPage({ profile }) {
   return (
     <div>
       <BackBar onBack={() => setNim("")} />
-      <PageHeader title={santri?.nama || nim} sub={nim} actions={editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Mapel</Btn>} />
+      <PageHeader title={santri?.nama || nim} sub={nim} actions={editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Mata Kuliah</Btn>} />
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mapel</th><th className="p-3.5">SKS</th><th className="p-3.5">Status</th><th className="p-3.5">Nilai</th></tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mata Kuliah</th><th className="p-3.5">SKS</th><th className="p-3.5">Status</th><th className="p-3.5">Nilai</th></tr></thead>
           <tbody>
             {records.map((r) => (
               <tr key={r.id} className="border-t border-stone-100">
-                <td className="p-3.5">{r.mata_pelajaran}</td><td className="p-3.5">{r.sks}</td>
+                <td className="p-3.5">{r.mata_kuliah}</td><td className="p-3.5">{r.sks}</td>
                 <td className="p-3.5"><Badge tone={r.status === "selesai" ? "green" : "gold"}>{r.status}</Badge></td>
                 <td className="p-3.5 w-28">{editable ? <Input type="number" defaultValue={r.nilai_angka ?? ""} onBlur={(e) => updateNilai(r.id, e.target.value)} /> : (r.nilai_angka ?? "-")}</td>
               </tr>
@@ -512,14 +512,14 @@ function AkademikStaffPage({ profile }) {
   );
 }
 function AkademikForm({ onCancel, onSubmit }) {
-  const [f, setF] = useState({ tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_pelajaran: MATA_PELAJARAN[0], sks: 2, status: "aktif" });
+  const [f, setF] = useState({ tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_kuliah: MATA_KULIAH[0], sks: 2, status: "aktif" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
-    <Modal title="Tambah Mata Pelajaran" onClose={onCancel}>
+    <Modal title="Tambah Mata Kuliah" onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Tahun Ajaran"><Input value={f.tahun_ajaran} onChange={set("tahun_ajaran")} /></Field>
         <Field label="Semester"><Select value={f.semester} onChange={set("semester")}><option>Ganjil</option><option>Genap</option></Select></Field>
-        <Field label="Mata Pelajaran"><Select value={f.mata_pelajaran} onChange={set("mata_pelajaran")}>{MATA_PELAJARAN.map((m) => <option key={m}>{m}</option>)}</Select></Field>
+        <Field label="Mata Kuliah"><Select value={f.mata_kuliah} onChange={set("mata_kuliah")}>{MATA_KULIAH.map((m) => <option key={m}>{m}</option>)}</Select></Field>
         <Field label="SKS"><Input type="number" value={f.sks} onChange={set("sks")} /></Field>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
       </form>
@@ -551,10 +551,10 @@ function AkademikSantriPage() {
       </div>
       {aktif.length > 0 && (
         <Card className="p-0 overflow-hidden mb-5">
-          <div className="px-5 py-3 bg-stone-50 border-b border-stone-200 font-bold text-sm text-emerald-900">KRS — Mata Pelajaran Aktif</div>
+          <div className="px-5 py-3 bg-stone-50 border-b border-stone-200 font-bold text-sm text-emerald-900">KRS — Mata Kuliah Aktif</div>
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Mapel</th><th className="p-3">SKS</th></tr></thead>
-            <tbody>{aktif.map((r) => <tr key={r.id} className="border-t border-stone-100"><td className="p-3">{r.mata_pelajaran}</td><td className="p-3">{r.sks}</td></tr>)}</tbody>
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Mata Kuliah</th><th className="p-3">SKS</th></tr></thead>
+            <tbody>{aktif.map((r) => <tr key={r.id} className="border-t border-stone-100"><td className="p-3">{r.mata_kuliah}</td><td className="p-3">{r.sks}</td></tr>)}</tbody>
           </table>
         </Card>
       )}
@@ -565,9 +565,9 @@ function AkademikSantriPage() {
       <Card className="p-0 overflow-hidden">
         <div className="px-5 py-3 bg-stone-50 border-b border-stone-200 font-bold text-sm text-emerald-900">KHS — Nilai Selesai</div>
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Mapel</th><th className="p-3">SKS</th><th className="p-3">Nilai</th><th className="p-3">Huruf</th></tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Mata Kuliah</th><th className="p-3">SKS</th><th className="p-3">Nilai</th><th className="p-3">Huruf</th></tr></thead>
           <tbody>
-            {selesai.map((r) => <tr key={r.id} className="border-t border-stone-100"><td className="p-3">{r.mata_pelajaran}</td><td className="p-3">{r.sks}</td><td className="p-3">{r.nilai_angka}</td><td className="p-3"><Badge tone="green">{nilaiHuruf(r.nilai_angka)}</Badge></td></tr>)}
+            {selesai.map((r) => <tr key={r.id} className="border-t border-stone-100"><td className="p-3">{r.mata_kuliah}</td><td className="p-3">{r.sks}</td><td className="p-3">{r.nilai_angka}</td><td className="p-3"><Badge tone="green">{nilaiHuruf(r.nilai_angka)}</Badge></td></tr>)}
             {selesai.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada nilai pada semester ini." /></td></tr>}
           </tbody>
         </table>
@@ -606,7 +606,7 @@ function QuranPage({ profile }) {
         <PageHeader title="Laporan Capaian Al-Qur'an" sub="Semua santri — klik salah satu untuk lihat detail." />
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Juz Dikuasai</th><th className="p-3.5">Setoran Terakhir</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Juz Dikuasai</th><th className="p-3.5">Setoran Terakhir</th></tr></thead>
             <tbody>
               {pickable.map((s) => {
                 const last = logT.rows.filter((l) => l.nim === s.nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal))[0];
@@ -618,7 +618,7 @@ function QuranPage({ profile }) {
                   </tr>
                 );
               })}
-              {pickable.length === 0 && <tr><td colSpan={3}><Empty text="Belum ada santri binaan." /></td></tr>}
+              {pickable.length === 0 && <tr><td colSpan={3}><Empty text="Belum ada mahasantri binaan." /></td></tr>}
             </tbody>
           </table>
         </Card>
@@ -688,7 +688,7 @@ function IbadahPage({ profile }) {
         <PageHeader title="Laporan Ibadah" sub="Semua santri — klik salah satu untuk lihat detail." />
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Catatan Terakhir</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Catatan Terakhir</th></tr></thead>
             <tbody>
               {pickable.map((s) => {
                 const last = logT.rows.filter((l) => l.nim === s.nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal))[0];
@@ -699,7 +699,7 @@ function IbadahPage({ profile }) {
                   </tr>
                 );
               })}
-              {pickable.length === 0 && <tr><td colSpan={2}><Empty text="Belum ada santri binaan." /></td></tr>}
+              {pickable.length === 0 && <tr><td colSpan={2}><Empty text="Belum ada mahasantri binaan." /></td></tr>}
             </tbody>
           </table>
         </Card>
@@ -775,10 +775,10 @@ function CatatanPojokPage({ profile }) {
   if (isViewer && !nim) {
     return (
       <div>
-        <PageHeader title="Catatan Pojok" sub="Catatan pribadi untuk santri binaan — hanya terlihat oleh santri/wali yang bersangkutan." />
+        <PageHeader title="Catatan Pojok" sub="Catatan pribadi untuk mahasantri binaan — hanya terlihat oleh mahasantri/wali yang bersangkutan." />
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Jumlah Catatan</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Jumlah Catatan</th></tr></thead>
             <tbody>
               {pickable.map((s) => (
                 <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
@@ -786,7 +786,7 @@ function CatatanPojokPage({ profile }) {
                   <td className="p-3.5">{catT.rows.filter((c) => c.nim === s.nim).length} catatan</td>
                 </tr>
               ))}
-              {pickable.length === 0 && <tr><td colSpan={2}><Empty text="Belum ada santri binaan." /></td></tr>}
+              {pickable.length === 0 && <tr><td colSpan={2}><Empty text="Belum ada mahasantri binaan." /></td></tr>}
             </tbody>
           </table>
         </Card>
@@ -858,7 +858,7 @@ function SppPage({ profile }) {
         <PageHeader title="Tagihan SPP" sub={`Status pembayaran bulan ${bulanIni} — klik santri untuk kelola.`} />
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Santri</th><th className="p-3.5">Status Bulan Ini</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Status Bulan Ini</th></tr></thead>
             <tbody>
               {santriT.rows.map((s) => {
                 const bulanIniRow = sppT.rows.find((r) => r.nim === s.nim && r.bulan === bulanIni && r.tahun === nowYear);
@@ -959,7 +959,7 @@ function AkunForm({ onCancel, onSubmit }) {
         <Field label="Kata Sandi (min. 6 karakter)"><Input type="password" value={f.password} onChange={set("password")} required /></Field>
         <Field label="Peran">
           <Select value={f.role} onChange={set("role")}>
-            <option value="santri">Santri</option>
+            <option value="santri">Mahasantri</option>
             <option value="admin">Administrator</option>
             <option value="musyrif">Musyrif</option>
             <option value="musyrifah">Musyrifah</option>
