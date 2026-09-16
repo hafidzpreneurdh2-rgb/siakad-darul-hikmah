@@ -4,8 +4,7 @@ import { supabase } from "./supabaseClient.js";
 const BrandContext = createContext({ warna_utama: "#0B3B36", warna_aksen: "#B8935A" });
 
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"]; 
-
+const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"];
 const JENIS_IBADAH = ["Sholat 5 Waktu Berjamaah","Puasa Sunnah","Tilawah Harian","Dzikir Pagi-Petang","Qiyamullail"];
 const ROLE_LABEL = { admin: "Administrator", musyrif: "Musyrif", musyrifah: "Musyrifah", keuangan: "Bendahara", akademik: "Staf Akademik", pimpinan: "Pimpinan Pondok", santri: "Mahasantri / Wali" };
 const AVATAR_COLORS = ["#0B4D30","#AD7F2C","#8A4A3A","#3F6C8A","#5C4A8A","#2F6B5E"];
@@ -431,12 +430,61 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
     nama_ayah: "", nama_ibu: "", no_hp_ortu: "", pekerjaan_ortu: "", alamat_wali: "",
     tanggal_masuk: "", status_spp: "Lunas",
     golongan_darah: "", kontak_darurat: "", riwayat_penyakit: "",
+    foto_url: "", dok_kk_url: "", dok_akta_url: "", dok_ijazah_url: "",
   });
+  const [uploading, setUploading] = useState("");
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const SectionTitle = ({ children }) => <div className="text-[11px] font-extrabold text-[#B8935A] uppercase tracking-[0.1em] mt-5 mb-2 pt-4 border-t border-stone-100 first:mt-0 first:pt-0 first:border-0">{children}</div>;
+
+  async function uploadPhoto(e) {
+    const file = e.target.files?.[0];
+    if (!file || !f.nim) { if (!f.nim) alert("Isi NIM terlebih dahulu sebelum unggah foto."); return; }
+    setUploading("foto");
+    const path = `${f.nim}-${Date.now()}.${file.name.split(".").pop()}`;
+    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (upErr) { alert(upErr.message); setUploading(""); return; }
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    setF((prev) => ({ ...prev, foto_url: data.publicUrl }));
+    setUploading("");
+  }
+  async function uploadDokumen(field) {
+    return async (e) => {
+      const file = e.target.files?.[0];
+      if (!file || !f.nim) { if (!f.nim) alert("Isi NIM terlebih dahulu sebelum unggah dokumen."); return; }
+      setUploading(field);
+      const path = `${f.nim}/${field}-${Date.now()}.${file.name.split(".").pop()}`;
+      const { error: upErr } = await supabase.storage.from("dokumen-santri").upload(path, file, { upsert: true });
+      if (upErr) { alert(upErr.message); setUploading(""); return; }
+      const { data } = supabase.storage.from("dokumen-santri").getPublicUrl(path);
+      setF((prev) => ({ ...prev, [field]: data.publicUrl }));
+      setUploading("");
+    };
+  }
+  function DokRow({ label, field }) {
+    return (
+      <div className="flex items-center justify-between border border-dashed border-stone-300 rounded-xl px-3.5 py-2.5 mb-2.5 text-sm">
+        <span className="text-stone-600">{label}{f[field] && <a href={f[field]} target="_blank" rel="noreferrer" className="ml-2 text-[10px] font-bold text-[#145048] underline">Lihat file</a>}</span>
+        <label className="text-xs font-bold text-[#0B3B36] border border-stone-300 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-stone-50">
+          {uploading === field ? "Mengunggah…" : f[field] ? "Ganti" : "Unggah"}
+          <input type="file" accept="image/*,.pdf" className="hidden" onChange={uploadDokumen(field)} disabled={uploading === field} />
+        </label>
+      </div>
+    );
+  }
+
   return (
     <Modal title={initial ? "Edit Mahasantri" : "Tambah Mahasantri"} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <div className="flex items-center gap-4 mb-2">
+          <Avatar name={f.nama || "?"} url={f.foto_url} size={64} />
+          <div>
+            <label className="text-xs font-bold text-[#0B3B36] border border-stone-300 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-stone-50 inline-block">
+              {uploading === "foto" ? "Mengunggah…" : "Unggah Foto Profil"}
+              <input type="file" accept="image/*" className="hidden" onChange={uploadPhoto} disabled={uploading === "foto"} />
+            </label>
+            <div className="text-[11px] text-stone-400 mt-1">JPG/PNG, isi NIM dulu sebelum unggah.</div>
+          </div>
+        </div>
         <SectionTitle>Data Pribadi</SectionTitle>
         <Field label="NIM"><Input value={f.nim} onChange={set("nim")} disabled={!!initial} required /></Field>
         <Field label="Nama Lengkap"><Input value={f.nama} onChange={set("nama")} required /></Field>
@@ -478,6 +526,11 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
         <div className="grid grid-cols-2 gap-3">
           <Field label="Tanggal Masuk Pondok"><Input type="date" value={f.tanggal_masuk} onChange={set("tanggal_masuk")} /></Field>
           <Field label="Status SPP"><Select value={f.status_spp} onChange={set("status_spp")}><option>Lunas</option><option>Menunggak</option></Select></Field>
+        </div>
+        <div className="mb-1">
+          <DokRow label="Kartu Keluarga (KK)" field="dok_kk_url" />
+          <DokRow label="Akta Kelahiran" field="dok_akta_url" />
+          <DokRow label="Ijazah Terakhir" field="dok_ijazah_url" />
         </div>
 
         <SectionTitle>Data Kesehatan (opsional)</SectionTitle>
@@ -593,7 +646,7 @@ function AkademikForm({ onCancel, onSubmit }) {
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Tahun Ajaran"><Input value={f.tahun_ajaran} onChange={set("tahun_ajaran")} /></Field>
         <Field label="Semester"><Select value={f.semester} onChange={set("semester")}><option>Ganjil</option><option>Genap</option></Select></Field>
-        <Field label="Mata Kuliah"><Input list="daftar-mk" value={f.mata_kuliah} onChange={set("mata_kuliah")} placeholder="Ketik nama mata kuliah" /><datalist id="daftar-mk">{MATA_KULIAH.map((m) => <option key={m} value={m} />)}</datalist></Field>
+        <Field label="Mata Kuliah"><Select value={f.mata_kuliah} onChange={set("mata_kuliah")}>{MATA_KULIAH.map((m) => <option key={m}>{m}</option>)}</Select></Field>
         <Field label="Pengajar"><Input value={f.pengajar} onChange={set("pengajar")} placeholder="Nama ustadz/ustadzah pengampu" /></Field>
         <Field label="SKS"><Input type="number" value={f.sks} onChange={set("sks")} /></Field>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
@@ -666,9 +719,10 @@ function QuranPage({ profile }) {
   const pickable = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || s.musyrif_username === profile.username);
 
   async function addLog(f) {
-    const { error } = await supabase.from("quran_log").insert({ ...f, nim, musyrif: profile.nama, juz: Number(f.juz), halaman_dari: Number(f.halaman_dari), halaman_sampai: Number(f.halaman_sampai) });
+    const { tandai, ...payload } = f;
+    const { error } = await supabase.from("quran_log").insert({ ...payload, nim, musyrif: profile.nama, juz: Number(f.juz), halaman_dari: Number(f.halaman_dari), halaman_sampai: Number(f.halaman_sampai) });
     if (error) { alert(error.message); return; }
-    if (f.tandai && santri && !santri.juz_dikuasai.includes(Number(f.juz))) {
+    if (tandai && santri && !santri.juz_dikuasai.includes(Number(f.juz))) {
       await supabase.from("santri").update({ juz_dikuasai: [...santri.juz_dikuasai, Number(f.juz)] }).eq("nim", nim);
       santriT.reload();
     }
