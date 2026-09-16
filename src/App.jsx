@@ -4,7 +4,8 @@ import { supabase } from "./supabaseClient.js";
 const BrandContext = createContext({ warna_utama: "#0B3B36", warna_aksen: "#B8935A" });
 
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"];
+const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"]; 
+
 const JENIS_IBADAH = ["Sholat 5 Waktu Berjamaah","Puasa Sunnah","Tilawah Harian","Dzikir Pagi-Petang","Qiyamullail"];
 const ROLE_LABEL = { admin: "Administrator", musyrif: "Musyrif", musyrifah: "Musyrifah", keuangan: "Bendahara", akademik: "Staf Akademik", pimpinan: "Pimpinan Pondok", santri: "Mahasantri / Wali" };
 const AVATAR_COLORS = ["#0B4D30","#AD7F2C","#8A4A3A","#3F6C8A","#5C4A8A","#2F6B5E"];
@@ -592,7 +593,7 @@ function AkademikForm({ onCancel, onSubmit }) {
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Tahun Ajaran"><Input value={f.tahun_ajaran} onChange={set("tahun_ajaran")} /></Field>
         <Field label="Semester"><Select value={f.semester} onChange={set("semester")}><option>Ganjil</option><option>Genap</option></Select></Field>
-        <Field label="Mata Kuliah"><Select value={f.mata_kuliah} onChange={set("mata_kuliah")}>{MATA_KULIAH.map((m) => <option key={m}>{m}</option>)}</Select></Field>
+        <Field label="Mata Kuliah"><Input list="daftar-mk" value={f.mata_kuliah} onChange={set("mata_kuliah")} placeholder="Ketik nama mata kuliah" /><datalist id="daftar-mk">{MATA_KULIAH.map((m) => <option key={m} value={m} />)}</datalist></Field>
         <Field label="Pengajar"><Input value={f.pengajar} onChange={set("pengajar")} placeholder="Nama ustadz/ustadzah pengampu" /></Field>
         <Field label="SKS"><Input type="number" value={f.sks} onChange={set("sks")} /></Field>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
