@@ -812,7 +812,10 @@ function AkademikForm({ initial, onCancel, onSubmit }) {
         <Field label="Tahun Ajaran"><Input value={f.tahun_ajaran} onChange={set("tahun_ajaran")} /></Field>
         <Field label="Semester"><Select value={f.semester} onChange={set("semester")}><option>Ganjil</option><option>Genap</option></Select></Field>
         <Field label="Kode MK (opsional)"><Input value={f.kode_mk} onChange={set("kode_mk")} placeholder="cth. MKQ 1.1.1" /></Field>
-        <Field label="Mata Kuliah"><Select value={f.mata_kuliah} onChange={set("mata_kuliah")}>{MATA_KULIAH.map((m) => <option key={m}>{m}</option>)}</Select></Field>
+        <Field label="Mata Kuliah">
+          <Input list="mataKuliahSuggestions" value={f.mata_kuliah} onChange={set("mata_kuliah")} placeholder="Tulis nama mata kuliah" />
+          <datalist id="mataKuliahSuggestions">{MATA_KULIAH.map((m) => <option key={m} value={m} />)}</datalist>
+        </Field>
         <Field label="Pengajar"><Input value={f.pengajar} onChange={set("pengajar")} placeholder="Nama ustadz/ustadzah pengampu" /></Field>
         <Field label="SKS"><Input type="number" value={f.sks} onChange={set("sks")} /></Field>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
