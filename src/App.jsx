@@ -67,7 +67,7 @@ const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademi
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
 /* ---------------------------------------------------------------------- */
 function useBrand() {
-  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B3B36", warna_aksen: "#B8935A", ukuran_logo_sidebar: 52, judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang", ukuran_judul: 72, ukuran_subjudul: 18, font_style: "fraunces", align_subjudul: "left", align_slogan: "left", font_judul: "fraunces", font_subjudul: "fraunces", font_slogan: "fraunces", font_sapaan: "fraunces", ukuran_logo_login: 76, ukuran_slogan: 18, ukuran_sapaan: 24 });
+  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B3B36", warna_aksen: "#B8935A", warna_arab: "#B8935A", ukuran_logo_sidebar: 52, judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang", ukuran_judul: 72, ukuran_subjudul: 18, font_style: "fraunces", align_subjudul: "left", align_slogan: "left", font_judul: "fraunces", font_subjudul: "fraunces", font_slogan: "fraunces", font_sapaan: "fraunces", ukuran_logo_login: 76, ukuran_slogan: 18, ukuran_sapaan: 24 });
   const [loaded, setLoaded] = useState(false);
   async function reload() {
     const { data } = await supabase.from("pengaturan_pondok").select("*").eq("id", 1).single();
@@ -235,7 +235,7 @@ function LoginScreen({ brand }) {
 
         <div className="bg-white p-10 flex flex-col justify-center">
           <h3 className="mb-1 font-semibold" style={{ color: brand.warna_utama, fontFamily: fontFamilyOf(brand, "font_sapaan"), fontSize: `${brand.ukuran_sapaan || 24}px` }}>{brand.sapaan || "Selamat Datang"}</h3>
-          <p dir="rtl" lang="ar" style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif" }} className="text-xl text-[#F6F2E7]/90 mb-4 text-left">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
+          <p dir="rtl" lang="ar" style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif", color: brand.warna_arab || "#B8935A" }} className="text-xl mb-4 text-left">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
           <form onSubmit={submit}>
             <Field label="Masuk Sebagai">
               <Select value={masukSebagai} onChange={(e) => setMasukSebagai(e.target.value)}>
@@ -1266,6 +1266,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   const [tagline, setTagline] = useState(brand.tagline);
   const [warnaUtama, setWarnaUtama] = useState(brand.warna_utama || "#0B4D30");
   const [warnaAksen, setWarnaAksen] = useState(brand.warna_aksen || "#AD7F2C");
+  const [warnaArab, setWarnaArab] = useState(brand.warna_arab || "#B8935A");
   const [ukuranLogo, setUkuranLogo] = useState(brand.ukuran_logo_sidebar || 52);
   const [ukuranLogoLogin, setUkuranLogoLogin] = useState(brand.ukuran_logo_login || 76);
   const [ukuranSlogan, setUkuranSlogan] = useState(brand.ukuran_slogan || 18);
@@ -1319,7 +1320,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   async function saveBranding(e) {
     e.preventDefault(); setMsg("");
     const { error } = await supabase.from("pengaturan_pondok").update({
-      nama_pondok: namaPondok, tagline, warna_utama: warnaUtama, warna_aksen: warnaAksen,
+      nama_pondok: namaPondok, tagline, warna_utama: warnaUtama, warna_aksen: warnaAksen, warna_arab: warnaArab,
       ukuran_logo_sidebar: Number(ukuranLogo), ukuran_logo_login: Number(ukuranLogoLogin),
       ukuran_slogan: Number(ukuranSlogan), ukuran_sapaan: Number(ukuranSapaan),
       judul_besar: judulBesar, subjudul, slogan, sapaan,
@@ -1458,8 +1459,14 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
                   <Input value={warnaAksen} onChange={(e) => setWarnaAksen(e.target.value)} />
                 </div>
               </Field>
+              <Field label="Warna Teks Arab (Salam)">
+                <div className="flex items-center gap-2">
+                  <input type="color" value={warnaArab} onChange={(e) => setWarnaArab(e.target.value)} className="w-11 h-11 rounded-lg border border-stone-300 cursor-pointer" />
+                  <Input value={warnaArab} onChange={(e) => setWarnaArab(e.target.value)} />
+                </div>
+              </Field>
             </div>
-            <p className="text-xs text-stone-400 mb-4">Warna Utama untuk latar sidebar & tombol utama. Warna Aksen untuk logo, sorotan menu, dan tagline.</p>
+            <p className="text-xs text-stone-400 mb-4">Warna Utama untuk latar sidebar & tombol utama. Warna Aksen untuk logo, sorotan menu, dan tagline. Warna Teks Arab khusus untuk salam "Assalamu'alaikum" di halaman login.</p>
             <Field label={`Ukuran Logo di Sidebar (${ukuranLogo}px)`}>
               <input type="range" min="32" max="220" value={ukuranLogo} onChange={(e) => setUkuranLogo(e.target.value)} className="w-full" />
             </Field>
