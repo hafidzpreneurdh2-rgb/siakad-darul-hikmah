@@ -733,15 +733,29 @@ function QuranPage({ profile }) {
   const logs = logT.rows.filter((l) => l.nim === nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
   const pickable = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || s.musyrif_username === profile.username);
 
-  async function addLog(f) {
+  const [editingLog, setEditingLog] = useState(null);
+  async function saveLog(f) {
     const { tandai, ...payload } = f;
-    const { error } = await supabase.from("quran_log").insert({ ...payload, nim, musyrif: profile.nama, juz: Number(f.juz), halaman_dari: Number(f.halaman_dari), halaman_sampai: Number(f.halaman_sampai) });
-    if (error) { alert(error.message); return; }
+    const cleanPayload = { ...payload, juz: Number(f.juz), halaman_dari: Number(f.halaman_dari), halaman_sampai: Number(f.halaman_sampai) };
+    if (editingLog) {
+      const { error } = await supabase.from("quran_log").update(cleanPayload).eq("id", editingLog.id);
+      if (error) { alert(error.message); return; }
+      setEditingLog(null);
+    } else {
+      const { error } = await supabase.from("quran_log").insert({ ...cleanPayload, nim, musyrif: profile.nama });
+      if (error) { alert(error.message); return; }
+      setShowForm(false);
+    }
     if (tandai && santri && !santri.juz_dikuasai.includes(Number(f.juz))) {
       await supabase.from("santri").update({ juz_dikuasai: [...santri.juz_dikuasai, Number(f.juz)] }).eq("nim", nim);
       santriT.reload();
     }
-    setShowForm(false); logT.reload();
+    logT.reload();
+  }
+  async function removeLog(id) {
+    if (!confirm("Hapus catatan setoran ini?")) return;
+    const { error } = await supabase.from("quran_log").delete().eq("id", id);
+    if (error) alert(error.message); else logT.reload();
   }
 
   if (isViewer && !nim) {
@@ -786,7 +800,7 @@ function QuranPage({ profile }) {
           <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Peta Hafalan</h3><JuzTracker juz={santri.juz_dikuasai || []} /></Card>
           <Card className="p-0 overflow-hidden">
             <table className="w-full text-sm">
-              <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Tgl</th><th className="p-3">Jenis</th><th className="p-3">Juz &amp; Hal.</th><th className="p-3">Kelancaran</th><th className="p-3">Musyrif</th><th className="p-3">Catatan</th></tr></thead>
+              <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Tgl</th><th className="p-3">Jenis</th><th className="p-3">Juz &amp; Hal.</th><th className="p-3">Kelancaran</th><th className="p-3">Musyrif</th><th className="p-3">Catatan</th>{editable && isViewer && <th className="p-3 text-right">Aksi</th>}</tr></thead>
               <tbody>{logs.map((l) => (
                 <tr key={l.id} className="border-t border-stone-100 align-top">
                   <td className="p-3 whitespace-nowrap">{l.tanggal}</td>
@@ -795,23 +809,28 @@ function QuranPage({ profile }) {
                   <td className="p-3"><Badge tone={l.kelancaran === "Lancar" ? "green" : "gold"}>{l.kelancaran || "-"}</Badge></td>
                   <td className="p-3 text-stone-500">{l.musyrif}</td>
                   <td className="p-3 text-stone-500 max-w-[160px]">{l.catatan || "-"}</td>
+                  {editable && isViewer && <td className="p-3 text-right whitespace-nowrap">
+                    <button onClick={() => setEditingLog(l)} className="text-[#145048] text-xs font-bold mr-3">Edit</button>
+                    <button onClick={() => removeLog(l.id)} className="text-red-600 text-xs font-bold">Hapus</button>
+                  </td>}
                 </tr>
               ))}
-                {logs.length === 0 && <tr><td colSpan={6}><Empty text="Belum ada catatan." /></td></tr>}</tbody>
+                {logs.length === 0 && <tr><td colSpan={editable && isViewer ? 7 : 6}><Empty text="Belum ada catatan." /></td></tr>}</tbody>
             </table>
           </Card>
         </div>
         </>
       )}
-      {showForm && <QuranForm onCancel={() => setShowForm(false)} onSubmit={addLog} />}
+      {showForm && <QuranForm onCancel={() => setShowForm(false)} onSubmit={saveLog} />}
+      {editingLog && <QuranForm initial={editingLog} onCancel={() => setEditingLog(null)} onSubmit={saveLog} />}
     </div>
   );
 }
-function QuranForm({ onCancel, onSubmit }) {
-  const [f, setF] = useState({ tanggal: new Date().toISOString().slice(0, 10), jenis: "Setoran Baru", juz: 1, halaman_dari: 1, halaman_sampai: 1, kelancaran: "Lancar", catatan: "", tandai: false });
+function QuranForm({ initial, onCancel, onSubmit }) {
+  const [f, setF] = useState(initial || { tanggal: new Date().toISOString().slice(0, 10), jenis: "Setoran Baru", juz: 1, halaman_dari: 1, halaman_sampai: 1, kelancaran: "Lancar", catatan: "", tandai: false });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
-    <Modal title="Catat Setoran" onClose={onCancel}>
+    <Modal title={initial ? "Edit Setoran" : "Catat Setoran"} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Tanggal"><Input type="date" value={f.tanggal} onChange={set("tanggal")} /></Field>
         <Field label="Jenis"><Select value={f.jenis} onChange={set("jenis")}><option>Setoran Baru</option><option>Murojaah</option><option>Tasmi'</option></Select></Field>
