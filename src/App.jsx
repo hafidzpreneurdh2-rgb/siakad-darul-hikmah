@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useContext, createContext } from "react";
 import { supabase } from "./supabaseClient.js";
 
-const BrandContext = createContext({ warna_utama: "#0B4D30", warna_aksen: "#AD7F2C" });
+const BrandContext = createContext({ warna_utama: "#0B3B36", warna_aksen: "#B8935A" });
 
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"];
@@ -52,7 +52,7 @@ const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademi
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
 /* ---------------------------------------------------------------------- */
 function useBrand() {
-  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B4D30", warna_aksen: "#AD7F2C", ukuran_logo_sidebar: 52, judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang", ukuran_judul: 72, ukuran_subjudul: 18, font_style: "fraunces", align_subjudul: "left", align_slogan: "left", font_judul: "fraunces", font_subjudul: "fraunces", font_slogan: "fraunces", font_sapaan: "fraunces", ukuran_logo_login: 76, ukuran_slogan: 18, ukuran_sapaan: 24 });
+  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B3B36", warna_aksen: "#B8935A", ukuran_logo_sidebar: 52, judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang", ukuran_judul: 72, ukuran_subjudul: 18, font_style: "fraunces", align_subjudul: "left", align_slogan: "left", font_judul: "fraunces", font_subjudul: "fraunces", font_slogan: "fraunces", font_sapaan: "fraunces", ukuran_logo_login: 76, ukuran_slogan: 18, ukuran_sapaan: 24 });
   const [loaded, setLoaded] = useState(false);
   async function reload() {
     const { data } = await supabase.from("pengaturan_pondok").select("*").eq("id", 1).single();
@@ -67,7 +67,7 @@ function useBrand() {
 /* UI primitives                                                            */
 /* ---------------------------------------------------------------------- */
 function Badge({ tone = "grey", children }) {
-  const map = { green: "bg-emerald-50 text-emerald-800", gold: "bg-amber-50 text-amber-800", red: "bg-red-50 text-red-700", grey: "bg-stone-100 text-stone-600" };
+  const map = { green: "bg-[#E9F1EE] text-[#0F4A44]", gold: "bg-[#FBF3DF] text-[#8A6A2A]", red: "bg-red-50 text-red-700", grey: "bg-stone-100 text-stone-600" };
   return <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${map[tone]}`}><span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />{children}</span>;
 }
 function Card({ children, className = "" }) {
@@ -100,14 +100,14 @@ function Btn({ children, onClick, tone = "primary", type = "button", disabled })
 function Field({ label, children }) {
   return <div className="mb-3"><label className="block text-[11px] font-extrabold text-stone-500 uppercase tracking-wider mb-1.5">{label}</label>{children}</div>;
 }
-function Input(props) { return <input {...props} className={`w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-600 transition ${props.className || ""}`} />; }
-function Select(props) { return <select {...props} className={`w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-emerald-100 ${props.className || ""}`} />; }
+function Input(props) { return <input {...props} className={`w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-[#E9F1EE] focus:border-[#0B3B36] transition ${props.className || ""}`} />; }
+function Select(props) { return <select {...props} className={`w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-[#E9F1EE] ${props.className || ""}`} />; }
 function Modal({ title, onClose, children }) {
   return (
-    <div className="fixed inset-0 bg-emerald-950/50 backdrop-blur-[2px] flex items-center justify-center p-5 z-50" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 bg-[#082A26]/50 backdrop-blur-[2px] flex items-center justify-center p-5 z-50" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl">
         <div className="flex justify-between items-center px-6 py-4 border-b border-stone-200">
-          <h3 className="font-serif-dh text-lg text-emerald-900 font-semibold">{title}</h3>
+          <h3 className="font-serif-dh text-lg text-[#0B3B36] font-semibold">{title}</h3>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-700 w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center">✕</button>
         </div>
         <div className="p-6">{children}</div>
@@ -131,13 +131,13 @@ function JuzTracker({ juz = [] }) {
       <div className="grid grid-cols-10 gap-1.5">
         {Array.from({ length: 30 }, (_, i) => 30 - i).map((j) => (
           <div key={j} title={`Juz ${j}`}
-            className={`aspect-square flex items-center justify-center text-[10px] font-bold rounded-md transition-transform hover:scale-110 ${set.has(j) ? "bg-gradient-to-br from-amber-500 to-amber-700 text-white shadow-sm" : "bg-stone-100 text-stone-400"}`}>
+            className={`aspect-square flex items-center justify-center text-[10px] font-bold rounded-md transition-transform hover:scale-110 ${set.has(j) ? "bg-gradient-to-br from-[#D8BE93] to-[#B8935A] text-white shadow-sm" : "bg-stone-100 text-stone-400"}`}>
             {j}
           </div>
         ))}
       </div>
       <div className="text-xs text-stone-500 mt-3 font-semibold flex items-center gap-2">
-        <span className="w-2.5 h-2.5 rounded bg-amber-600 inline-block" />
+        <span className="w-2.5 h-2.5 rounded bg-[#B8935A] inline-block" />
         {juz.length} dari 30 juz dikuasai
       </div>
     </div>
@@ -220,7 +220,7 @@ function LoginScreen({ brand }) {
 
         <div className="bg-white p-10 flex flex-col justify-center">
           <h3 className="mb-1 font-semibold" style={{ color: brand.warna_utama, fontFamily: fontFamilyOf(brand, "font_sapaan"), fontSize: `${brand.ukuran_sapaan || 24}px` }}>{brand.sapaan || "Selamat Datang"}</h3>
-          <p dir="rtl" lang="ar" className="font-serif-dh text-xl text-amber-700 mb-4 text-left">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
+          <p dir="rtl" lang="ar" style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif" }} className="text-xl text-[#B8935A] mb-4 text-left">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
           <form onSubmit={submit}>
             <Field label="Masuk Sebagai">
               <Select value={masukSebagai} onChange={(e) => setMasukSebagai(e.target.value)}>
@@ -246,16 +246,17 @@ function Shell({ profile, view, setView, brand, children }) {
   const menu = MENUS[profile.role] || [];
   return (
     <div className="min-h-screen bg-[#F4F2EA] flex">
-      <aside className="w-64 text-white p-4 flex flex-col" style={{ background: `linear-gradient(180deg, ${brand.warna_utama}, #04100a)` }}>
-        <div className="flex items-center gap-3 pb-5 mb-5 border-b border-white/10">
+      <aside className="w-64 text-white p-4 flex flex-col relative overflow-hidden" style={{ background: `linear-gradient(180deg, ${brand.warna_utama}, #04100a)` }}>
+        <PatternBG />
+        <div className="relative flex items-center gap-3 pb-5 mb-5 border-b border-white/10">
           <LogoMark size={brand.ukuran_logo_sidebar || 52} url={brand.logo_url} />
           <div>
             <div className="text-[10px] font-bold text-white/45 tracking-[0.15em]">SIAKAD</div>
             <div className="font-serif-dh text-[15px] font-semibold">{brand.nama_pondok}</div>
           </div>
         </div>
-        <div className="text-[10px] font-extrabold text-white/35 tracking-[0.15em] px-3 mb-2">MENU UTAMA</div>
-        <nav className="flex-1 space-y-1">
+        <div className="relative text-[10px] font-extrabold text-white/35 tracking-[0.15em] px-3 mb-2">MENU UTAMA</div>
+        <nav className="relative flex-1 space-y-1">
           {menu.map(([key, label]) => (
             <div key={key} onClick={() => setView(key)}
               className={`relative px-3.5 py-2.5 rounded-xl text-[13.5px] font-semibold cursor-pointer transition ${view === key ? "bg-white/10 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
@@ -264,7 +265,7 @@ function Shell({ profile, view, setView, brand, children }) {
             </div>
           ))}
         </nav>
-        <div className="border-t border-white/10 pt-4 mt-3 flex items-center gap-3">
+        <div className="relative border-t border-white/10 pt-4 mt-3 flex items-center gap-3">
           <Avatar name={profile.nama} url={profile.avatar_url} />
           <div className="flex-1 min-w-0">
             <div className="text-[13px] font-bold truncate">{profile.nama}</div>
@@ -277,7 +278,7 @@ function Shell({ profile, view, setView, brand, children }) {
         <div className="flex items-center justify-between px-8 py-4 bg-white border-b border-stone-200 sticky top-0 z-10">
           <div>
             <div className="text-[11px] text-stone-400 font-semibold">Beranda / {PAGE_TITLES[view]}</div>
-            <div className="font-serif-dh text-[17px] font-semibold text-emerald-900">{PAGE_TITLES[view]}</div>
+            <div className="font-serif-dh text-[17px] font-semibold text-[#0B3B36]">{PAGE_TITLES[view]}</div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-xs text-stone-500 font-medium hidden sm:block">{todayLong()}</div>
@@ -295,8 +296,8 @@ function PageHeader({ eyebrow, title, sub, actions }) {
   return (
     <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
       <div>
-        {eyebrow && <div className="text-[11px] font-extrabold text-amber-700 uppercase tracking-[0.14em] mb-1">{eyebrow}</div>}
-        <h2 className="font-serif-dh text-2xl text-emerald-900 font-semibold">{title}</h2>
+        {eyebrow && <div className="text-[11px] font-extrabold text-[#B8935A] uppercase tracking-[0.14em] mb-1">{eyebrow}</div>}
+        <h2 className="font-serif-dh text-2xl text-[#0B3B36] font-semibold">{title}</h2>
         {sub && <p className="text-sm text-stone-500 mt-1">{sub}</p>}
       </div>
       {actions}
@@ -309,7 +310,7 @@ function StatCard({ label, value, sub, icon }) {
     <Card>
       <div className="flex items-center justify-between">
         <div className="text-[11px] font-extrabold text-stone-500 uppercase tracking-wider">{label}</div>
-        {icon && <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-800">{icon}</div>}
+        {icon && <div className="w-8 h-8 rounded-lg bg-[#E9F1EE] flex items-center justify-center text-[#0F4A44]">{icon}</div>}
       </div>
       <div className="font-serif-dh text-3xl font-semibold mt-2 text-stone-800">{value}</div>
       {sub && <div className="text-xs text-stone-400 mt-1">{sub}</div>}
@@ -317,7 +318,7 @@ function StatCard({ label, value, sub, icon }) {
   );
 }
 function BackBar({ onBack, label = "← Kembali ke semua santri" }) {
-  return <button onClick={onBack} className="text-sm font-bold text-emerald-800 hover:text-emerald-950 mb-4">{label}</button>;
+  return <button onClick={onBack} className="text-sm font-bold text-[#0F4A44] hover:text-[#082A26] mb-4">{label}</button>;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -348,7 +349,7 @@ function Dashboard({ profile }) {
     return (
       <div>
         <PageHeader eyebrow="Ruang Santri" title={`Assalamu'alaikum, ${profile.nama.split(" ")[0]}`} sub={profile.nim} />
-        <Card><h3 className="font-serif-dh text-base text-emerald-900 font-semibold mb-3">Peta Hafalan</h3><JuzTracker juz={s?.juz_dikuasai || []} /></Card>
+        <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Peta Hafalan</h3><JuzTracker juz={s?.juz_dikuasai || []} /></Card>
       </div>
     );
   }
@@ -397,22 +398,23 @@ function DataSantriPage({ profile }) {
       <PageHeader title="Data Mahasantri" actions={editable && <Btn onClick={() => setModal("new")}>+ Tambah Mahasantri</Btn>} />
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">Juz</th><th className="p-3.5"></th></tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">Juz</th><th className="p-3.5">Status</th><th className="p-3.5"></th></tr></thead>
           <tbody>
             {rows.map((s) => (
               <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60">
                 <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
                 <td className="p-3.5">{s.kelas}</td>
                 <td className="p-3.5"><Badge tone="gold">{s.juz_dikuasai?.length || 0} juz</Badge></td>
+                <td className="p-3.5"><Badge tone={s.status === "Aktif" || !s.status ? "green" : s.status === "Lulus" ? "gold" : "grey"}>{s.status || "Aktif"}</Badge></td>
                 <td className="p-3.5 text-right">
                   {editable && <>
-                    <button onClick={() => setModal(s)} className="text-emerald-700 text-xs font-bold mr-3">Edit</button>
+                    <button onClick={() => setModal(s)} className="text-[#145048] text-xs font-bold mr-3">Edit</button>
                     <button onClick={() => remove(s.nim)} className="text-red-600 text-xs font-bold">Hapus</button>
                   </>}
                 </td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada santri." /></td></tr>}
+            {rows.length === 0 && <tr><td colSpan={5}><Empty text="Belum ada santri." /></td></tr>}
           </tbody>
         </table>
       </Card>
@@ -421,19 +423,72 @@ function DataSantriPage({ profile }) {
   );
 }
 function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
-  const [f, setF] = useState(initial || { nim: "", nama: "", jk: "Mahasantri", kelas: "", angkatan: String(nowYear), kamar: "", musyrif_username: "" });
+  const [f, setF] = useState(initial || {
+    nim: "", nama: "", jk: "Mahasantri", kelas: "", angkatan: String(nowYear), kamar: "", musyrif_username: "",
+    nik: "", tempat_lahir: "", tanggal_lahir: "", no_hp: "", alamat: "",
+    target_hafalan: "30 Juz", status: "Aktif",
+    nama_ayah: "", nama_ibu: "", no_hp_ortu: "", pekerjaan_ortu: "", alamat_wali: "",
+    tanggal_masuk: "", status_spp: "Lunas",
+    golongan_darah: "", kontak_darurat: "", riwayat_penyakit: "",
+  });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const SectionTitle = ({ children }) => <div className="text-[11px] font-extrabold text-[#B8935A] uppercase tracking-[0.1em] mt-5 mb-2 pt-4 border-t border-stone-100 first:mt-0 first:pt-0 first:border-0">{children}</div>;
   return (
     <Modal title={initial ? "Edit Mahasantri" : "Tambah Mahasantri"} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <SectionTitle>Data Pribadi</SectionTitle>
         <Field label="NIM"><Input value={f.nim} onChange={set("nim")} disabled={!!initial} required /></Field>
-        <Field label="Nama"><Input value={f.nama} onChange={set("nama")} required /></Field>
+        <Field label="Nama Lengkap"><Input value={f.nama} onChange={set("nama")} required /></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="NIK"><Input value={f.nik} onChange={set("nik")} placeholder="16 digit" /></Field>
+          <Field label="No. HP Santri"><Input value={f.no_hp} onChange={set("no_hp")} placeholder="Opsional" /></Field>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Tempat Lahir"><Input value={f.tempat_lahir} onChange={set("tempat_lahir")} /></Field>
+          <Field label="Tanggal Lahir"><Input type="date" value={f.tanggal_lahir} onChange={set("tanggal_lahir")} /></Field>
+        </div>
+        <Field label="Alamat Lengkap"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={f.alamat} onChange={set("alamat")} /></Field>
+
+        <SectionTitle>Data Akademik &amp; Tahfidz</SectionTitle>
         <Field label="Angkatan">
           <Input value={f.kelas} onChange={set("kelas")} list="daftar-angkatan" placeholder="cth: Angkatan 8, atau 2026" required />
           <datalist id="daftar-angkatan">{daftarAngkatan.map((a) => <option key={a} value={a} />)}</datalist>
         </Field>
-        <Field label="Musyrif/ah (username)"><Input value={f.musyrif_username} onChange={set("musyrif_username")} placeholder="cth: musyrif1" /></Field>
-        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Musyrif/ah (username)"><Input value={f.musyrif_username} onChange={set("musyrif_username")} placeholder="cth: musyrif1" /></Field>
+          <Field label="Target Hafalan"><Input value={f.target_hafalan} onChange={set("target_hafalan")} /></Field>
+        </div>
+        <Field label="Status">
+          <Select value={f.status} onChange={set("status")}><option>Aktif</option><option>Cuti</option><option>Lulus</option><option>Keluar</option></Select>
+        </Field>
+
+        <SectionTitle>Data Orang Tua / Wali</SectionTitle>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Nama Ayah"><Input value={f.nama_ayah} onChange={set("nama_ayah")} /></Field>
+          <Field label="Nama Ibu"><Input value={f.nama_ibu} onChange={set("nama_ibu")} /></Field>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="No. HP Orang Tua/Wali"><Input value={f.no_hp_ortu} onChange={set("no_hp_ortu")} /></Field>
+          <Field label="Pekerjaan Orang Tua"><Input value={f.pekerjaan_ortu} onChange={set("pekerjaan_ortu")} /></Field>
+        </div>
+        <Field label="Alamat Wali (jika berbeda)"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={f.alamat_wali} onChange={set("alamat_wali")} /></Field>
+
+        <SectionTitle>Data Administrasi</SectionTitle>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Tanggal Masuk Pondok"><Input type="date" value={f.tanggal_masuk} onChange={set("tanggal_masuk")} /></Field>
+          <Field label="Status SPP"><Select value={f.status_spp} onChange={set("status_spp")}><option>Lunas</option><option>Menunggak</option></Select></Field>
+        </div>
+
+        <SectionTitle>Data Kesehatan (opsional)</SectionTitle>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Golongan Darah">
+            <Select value={f.golongan_darah} onChange={set("golongan_darah")}><option value="">—</option><option>A</option><option>B</option><option>AB</option><option>O</option></Select>
+          </Field>
+          <Field label="Kontak Darurat"><Input value={f.kontak_darurat} onChange={set("kontak_darurat")} placeholder="Nama & no. HP" /></Field>
+        </div>
+        <Field label="Riwayat Penyakit / Alergi"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={f.riwayat_penyakit} onChange={set("riwayat_penyakit")} /></Field>
+
+        <div className="flex justify-end gap-2 mt-5"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
       </form>
     </Modal>
   );
@@ -459,6 +514,11 @@ function AkademikStaffPage({ profile }) {
     const nilai = v === "" ? null : Number(v);
     const { error } = await supabase.from("akademik").update({ nilai_angka: nilai, status: nilai == null ? "aktif" : "selesai" }).eq("id", id);
     if (!error) akT.reload();
+  }
+  async function removeMatkul(id) {
+    if (!confirm("Hapus mata kuliah ini?")) return;
+    const { error } = await supabase.from("akademik").delete().eq("id", id);
+    if (error) alert(error.message); else akT.reload();
   }
 
   if (!nim) {
@@ -492,18 +552,31 @@ function AkademikStaffPage({ profile }) {
     <div>
       <BackBar onBack={() => setNim("")} />
       <PageHeader title={santri?.nama || nim} sub={nim} actions={editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Mata Kuliah</Btn>} />
+      <div className="grid grid-cols-3 gap-4 mb-5">
+        <StatCard label="Total SKS Diambil" value={records.reduce((a, r) => a + Number(r.sks || 0), 0)} />
+        <StatCard label="IPK (Rata-rata Nilai)" value={(() => {
+          const selesai = records.filter((r) => r.status === "selesai");
+          const tot = selesai.reduce((a, r) => a + Number(r.sks || 0), 0);
+          return tot ? (selesai.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
+        })()} />
+        <StatCard label="Mata Kuliah Selesai" value={`${records.filter((r) => r.status === "selesai").length} dari ${records.length}`} />
+      </div>
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mata Kuliah</th><th className="p-3.5">SKS</th><th className="p-3.5">Status</th><th className="p-3.5">Nilai</th></tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mata Kuliah</th><th className="p-3.5">Semester</th><th className="p-3.5">Pengajar</th><th className="p-3.5">SKS</th><th className="p-3.5">Status</th><th className="p-3.5">Nilai</th>{editable && <th className="p-3.5"></th>}</tr></thead>
           <tbody>
             {records.map((r) => (
               <tr key={r.id} className="border-t border-stone-100">
-                <td className="p-3.5">{r.mata_kuliah}</td><td className="p-3.5">{r.sks}</td>
+                <td className="p-3.5 font-semibold">{r.mata_kuliah}</td>
+                <td className="p-3.5 text-stone-500">{r.tahun_ajaran} · {r.semester}</td>
+                <td className="p-3.5 text-stone-500">{r.pengajar || "-"}</td>
+                <td className="p-3.5">{r.sks}</td>
                 <td className="p-3.5"><Badge tone={r.status === "selesai" ? "green" : "gold"}>{r.status}</Badge></td>
                 <td className="p-3.5 w-28">{editable ? <Input type="number" defaultValue={r.nilai_angka ?? ""} onBlur={(e) => updateNilai(r.id, e.target.value)} /> : (r.nilai_angka ?? "-")}</td>
+                {editable && <td className="p-3.5 text-right"><button onClick={() => removeMatkul(r.id)} className="text-red-600 text-xs font-bold">Hapus</button></td>}
               </tr>
             ))}
-            {records.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada data." /></td></tr>}
+            {records.length === 0 && <tr><td colSpan={editable ? 7 : 6}><Empty text="Belum ada data." /></td></tr>}
           </tbody>
         </table>
       </Card>
@@ -512,7 +585,7 @@ function AkademikStaffPage({ profile }) {
   );
 }
 function AkademikForm({ onCancel, onSubmit }) {
-  const [f, setF] = useState({ tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_kuliah: MATA_KULIAH[0], sks: 2, status: "aktif" });
+  const [f, setF] = useState({ tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_kuliah: MATA_KULIAH[0], sks: 2, status: "aktif", pengajar: "" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
     <Modal title="Tambah Mata Kuliah" onClose={onCancel}>
@@ -520,6 +593,7 @@ function AkademikForm({ onCancel, onSubmit }) {
         <Field label="Tahun Ajaran"><Input value={f.tahun_ajaran} onChange={set("tahun_ajaran")} /></Field>
         <Field label="Semester"><Select value={f.semester} onChange={set("semester")}><option>Ganjil</option><option>Genap</option></Select></Field>
         <Field label="Mata Kuliah"><Select value={f.mata_kuliah} onChange={set("mata_kuliah")}>{MATA_KULIAH.map((m) => <option key={m}>{m}</option>)}</Select></Field>
+        <Field label="Pengajar"><Input value={f.pengajar} onChange={set("pengajar")} placeholder="Nama ustadz/ustadzah pengampu" /></Field>
         <Field label="SKS"><Input type="number" value={f.sks} onChange={set("sks")} /></Field>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
       </form>
@@ -551,7 +625,7 @@ function AkademikSantriPage() {
       </div>
       {aktif.length > 0 && (
         <Card className="p-0 overflow-hidden mb-5">
-          <div className="px-5 py-3 bg-stone-50 border-b border-stone-200 font-bold text-sm text-emerald-900">KRS — Mata Kuliah Aktif</div>
+          <div className="px-5 py-3 bg-stone-50 border-b border-stone-200 font-bold text-sm text-[#0B3B36]">KRS — Mata Kuliah Aktif</div>
           <table className="w-full text-sm">
             <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Mata Kuliah</th><th className="p-3">SKS</th></tr></thead>
             <tbody>{aktif.map((r) => <tr key={r.id} className="border-t border-stone-100"><td className="p-3">{r.mata_kuliah}</td><td className="p-3">{r.sks}</td></tr>)}</tbody>
@@ -563,7 +637,7 @@ function AkademikSantriPage() {
         <StatCard label="Total SKS Selesai" value={totalSks} />
       </div>
       <Card className="p-0 overflow-hidden">
-        <div className="px-5 py-3 bg-stone-50 border-b border-stone-200 font-bold text-sm text-emerald-900">KHS — Nilai Selesai</div>
+        <div className="px-5 py-3 bg-stone-50 border-b border-stone-200 font-bold text-sm text-[#0B3B36]">KHS — Nilai Selesai</div>
         <table className="w-full text-sm">
           <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Mata Kuliah</th><th className="p-3">SKS</th><th className="p-3">Nilai</th><th className="p-3">Huruf</th></tr></thead>
           <tbody>
@@ -632,16 +706,32 @@ function QuranPage({ profile }) {
       <PageHeader title={isViewer ? (santri?.nama || "Laporan Capaian Al-Qur'an") : "Laporan Capaian Al-Qur'an"}
         actions={(!isViewer || editable) && <div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Catat Setoran</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
       {santri && (
+        <>
+        <div className="grid grid-cols-3 gap-4 mb-5">
+          <StatCard label="Total Setoran" value={logs.length} />
+          <StatCard label="Juz Aktif Sekarang" value={santri.juz_dikuasai?.length ? Math.max(...santri.juz_dikuasai) + 1 : 1} />
+          <StatCard label="Juz Dikuasai" value={`${santri.juz_dikuasai?.length || 0} / 30`} />
+        </div>
         <div className="grid grid-cols-2 gap-4 items-start">
-          <Card><h3 className="font-serif-dh text-base text-emerald-900 font-semibold mb-3">Peta Hafalan</h3><JuzTracker juz={santri.juz_dikuasai || []} /></Card>
+          <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Peta Hafalan</h3><JuzTracker juz={santri.juz_dikuasai || []} /></Card>
           <Card className="p-0 overflow-hidden">
             <table className="w-full text-sm">
-              <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Tgl</th><th className="p-3">Jenis</th><th className="p-3">Juz</th></tr></thead>
-              <tbody>{logs.map((l) => <tr key={l.id} className="border-t border-stone-100"><td className="p-3">{l.tanggal}</td><td className="p-3">{l.jenis}</td><td className="p-3">{l.juz}</td></tr>)}
-                {logs.length === 0 && <tr><td colSpan={3}><Empty text="Belum ada catatan." /></td></tr>}</tbody>
+              <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Tgl</th><th className="p-3">Jenis</th><th className="p-3">Juz &amp; Hal.</th><th className="p-3">Kelancaran</th><th className="p-3">Musyrif</th><th className="p-3">Catatan</th></tr></thead>
+              <tbody>{logs.map((l) => (
+                <tr key={l.id} className="border-t border-stone-100 align-top">
+                  <td className="p-3 whitespace-nowrap">{l.tanggal}</td>
+                  <td className="p-3">{l.jenis}</td>
+                  <td className="p-3">Juz {l.juz}{l.halaman_dari ? <div className="text-[11px] text-stone-400">hal. {l.halaman_dari}–{l.halaman_sampai}</div> : null}</td>
+                  <td className="p-3"><Badge tone={l.kelancaran === "Lancar" ? "green" : "gold"}>{l.kelancaran || "-"}</Badge></td>
+                  <td className="p-3 text-stone-500">{l.musyrif}</td>
+                  <td className="p-3 text-stone-500 max-w-[160px]">{l.catatan || "-"}</td>
+                </tr>
+              ))}
+                {logs.length === 0 && <tr><td colSpan={6}><Empty text="Belum ada catatan." /></td></tr>}</tbody>
             </table>
           </Card>
         </div>
+        </>
       )}
       {showForm && <QuranForm onCancel={() => setShowForm(false)} onSubmit={addLog} />}
     </div>
@@ -656,6 +746,13 @@ function QuranForm({ onCancel, onSubmit }) {
         <Field label="Tanggal"><Input type="date" value={f.tanggal} onChange={set("tanggal")} /></Field>
         <Field label="Jenis"><Select value={f.jenis} onChange={set("jenis")}><option>Setoran Baru</option><option>Murojaah</option><option>Tasmi'</option></Select></Field>
         <Field label="Juz"><Input type="number" min={1} max={30} value={f.juz} onChange={set("juz")} /></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Halaman Dari"><Input type="number" min={1} value={f.halaman_dari} onChange={set("halaman_dari")} /></Field>
+          <Field label="Halaman Sampai"><Input type="number" min={1} value={f.halaman_sampai} onChange={set("halaman_sampai")} /></Field>
+        </div>
+        <Field label="Kelancaran"><Select value={f.kelancaran} onChange={set("kelancaran")}><option>Lancar</option><option>Kurang Lancar</option><option>Mengulang</option></Select></Field>
+        <Field label="Musyrif/ah Penguji"><div className="text-sm text-stone-500 px-1">Otomatis tercatat sesuai akun Anda yang login.</div></Field>
+        <Field label="Catatan (opsional)"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} placeholder="cth. Tajwid perlu diperbaiki di ayat 12" value={f.catatan} onChange={set("catatan")} /></Field>
         <label className="flex items-center gap-2 text-sm mb-2"><input type="checkbox" checked={f.tandai} onChange={(e) => setF({ ...f, tandai: e.target.checked })} /> Tandai juz ini selesai</label>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
       </form>
@@ -682,24 +779,44 @@ function IbadahPage({ profile }) {
     if (error) alert(error.message); else { setShowForm(false); logT.reload(); }
   }
 
+  const [q, setQ] = useState("");
+  const [filterCapaian, setFilterCapaian] = useState("SEMUA");
+
   if (isViewer && !nim) {
+    const withStatus = pickable.map((s) => {
+      const own = logT.rows.filter((l) => l.nim === s.nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+      const last = own[0];
+      const kurangBulanIni = own.filter((l) => l.tanggal.slice(0, 7) === new Date().toISOString().slice(0, 7) && l.capaian === "Kurang").length;
+      return { s, last, kurangBulanIni, perhatian: kurangBulanIni >= 2 || last?.capaian === "Kurang" };
+    }).filter(({ s }) => !q || s.nama.toLowerCase().includes(q.toLowerCase()) || s.nim.includes(q))
+      .filter(({ last }) => filterCapaian === "SEMUA" || last?.capaian === filterCapaian);
+    const perluPerhatian = withStatus.filter((x) => x.perhatian).length;
+
     return (
       <div>
         <PageHeader title="Laporan Ibadah" sub="Semua santri — klik salah satu untuk lihat detail." />
+        <div className="grid grid-cols-2 gap-4 mb-5 max-w-xl">
+          <StatCard label="Total Santri Dipantau" value={pickable.length} />
+          <StatCard label="Perlu Perhatian" value={perluPerhatian} />
+        </div>
+        <div className="flex gap-3 mb-4">
+          <Input placeholder="Cari nama atau NIM..." value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
+          <Select value={filterCapaian} onChange={(e) => setFilterCapaian(e.target.value)} className="max-w-[180px]">
+            <option value="SEMUA">Semua status</option><option value="Baik">Baik</option><option value="Cukup">Cukup</option><option value="Kurang">Kurang</option>
+          </Select>
+        </div>
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Catatan Terakhir</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Catatan Terakhir</th><th className="p-3.5">Status</th></tr></thead>
             <tbody>
-              {pickable.map((s) => {
-                const last = logT.rows.filter((l) => l.nim === s.nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal))[0];
-                return (
-                  <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
-                    <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
-                    <td className="p-3.5 text-stone-500">{last ? <>{last.tanggal} · {last.jenis} · <Badge tone={last.capaian === "Baik" ? "green" : last.capaian === "Cukup" ? "gold" : "red"}>{last.capaian}</Badge></> : "-"}</td>
-                  </tr>
-                );
-              })}
-              {pickable.length === 0 && <tr><td colSpan={2}><Empty text="Belum ada mahasantri binaan." /></td></tr>}
+              {withStatus.map(({ s, last, perhatian }) => (
+                <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
+                  <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
+                  <td className="p-3.5 text-stone-500">{last ? <>{last.tanggal} · {last.jenis} · <Badge tone={last.capaian === "Baik" ? "green" : last.capaian === "Cukup" ? "gold" : "red"}>{last.capaian}</Badge></> : "-"}</td>
+                  <td className="p-3.5">{perhatian ? <Badge tone="red">Perlu Perhatian</Badge> : <Badge tone="green">Baik</Badge>}</td>
+                </tr>
+              ))}
+              {withStatus.length === 0 && <tr><td colSpan={3}><Empty text="Tidak ada santri yang cocok." /></td></tr>}
             </tbody>
           </table>
         </Card>
@@ -712,6 +829,18 @@ function IbadahPage({ profile }) {
       {isViewer && <BackBar onBack={() => setNim("")} />}
       <PageHeader title={isViewer ? (santri?.nama || "Laporan Ibadah") : "Laporan Ibadah"} sub="Catatan pembinaan ibadah harian santri."
         actions={<div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Catat Ibadah</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
+      {(() => {
+        const bulanIniLogs = logs.filter((l) => l.tanggal.slice(0, 7) === new Date().toISOString().slice(0, 7));
+        const baik = bulanIniLogs.filter((l) => l.capaian === "Baik").length;
+        const kurang = bulanIniLogs.filter((l) => l.capaian === "Kurang").length;
+        return (
+          <div className="grid grid-cols-3 gap-4 mb-5">
+            <StatCard label="Catatan Bulan Ini" value={bulanIniLogs.length} />
+            <StatCard label="Capaian Baik" value={baik} />
+            <StatCard label="Capaian Kurang" value={kurang} />
+          </div>
+        );
+      })()}
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
           <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Tanggal</th><th className="p-3">Jenis Ibadah</th><th className="p-3">Capaian</th><th className="p-3">Catatan</th></tr></thead>
@@ -772,21 +901,25 @@ function CatatanPojokPage({ profile }) {
     if (!error) catT.reload();
   }
 
+  const [q, setQ] = useState("");
+
   if (isViewer && !nim) {
+    const filtered = pickable.filter((s) => !q || s.nama.toLowerCase().includes(q.toLowerCase()) || s.nim.includes(q));
     return (
       <div>
         <PageHeader title="Catatan Pojok" sub="Catatan pribadi untuk mahasantri binaan — hanya terlihat oleh mahasantri/wali yang bersangkutan." />
+        <div className="mb-4 max-w-xs"><Input placeholder="Cari nama atau NIM..." value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Jumlah Catatan</th></tr></thead>
             <tbody>
-              {pickable.map((s) => (
+              {filtered.map((s) => (
                 <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
                   <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
                   <td className="p-3.5">{catT.rows.filter((c) => c.nim === s.nim).length} catatan</td>
                 </tr>
               ))}
-              {pickable.length === 0 && <tr><td colSpan={2}><Empty text="Belum ada mahasantri binaan." /></td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={2}><Empty text="Tidak ada santri yang cocok." /></td></tr>}
             </tbody>
           </table>
         </Card>
@@ -852,24 +985,37 @@ function SppPage({ profile }) {
     if (!error) sppT.reload();
   }
 
+  const [q, setQ] = useState("");
+
   if (isViewer && !nim) {
+    const withStatus = santriT.rows.map((s) => {
+      const row = sppT.rows.find((r) => r.nim === s.nim && r.bulan === bulanIni && r.tahun === nowYear);
+      return { s, row };
+    }).filter(({ s }) => !q || s.nama.toLowerCase().includes(q.toLowerCase()) || s.nim.includes(q));
+    const lunas = withStatus.filter(({ row }) => row?.status === "Lunas").length;
+    const belumLunas = withStatus.filter(({ row }) => row && row.status !== "Lunas").length;
+    const totalTertunggak = withStatus.filter(({ row }) => row && row.status !== "Lunas").reduce((a, { row }) => a + Number(row.nominal || 0), 0);
+
     return (
       <div>
         <PageHeader title="Tagihan SPP" sub={`Status pembayaran bulan ${bulanIni} — klik santri untuk kelola.`} />
+        <div className="grid grid-cols-3 gap-4 mb-5">
+          <StatCard label={`Lunas Bulan ${bulanIni}`} value={lunas} />
+          <StatCard label="Belum Lunas" value={belumLunas} />
+          <StatCard label="Total Tertunggak" value={formatRupiah(totalTertunggak)} />
+        </div>
+        <div className="mb-4 max-w-xs"><Input placeholder="Cari nama atau NIM..." value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Status Bulan Ini</th></tr></thead>
             <tbody>
-              {santriT.rows.map((s) => {
-                const bulanIniRow = sppT.rows.find((r) => r.nim === s.nim && r.bulan === bulanIni && r.tahun === nowYear);
-                return (
-                  <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
-                    <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
-                    <td className="p-3.5">{bulanIniRow ? <Badge tone={bulanIniRow.status === "Lunas" ? "green" : "red"}>{bulanIniRow.status}</Badge> : <Badge tone="grey">Belum ada tagihan</Badge>}</td>
-                  </tr>
-                );
-              })}
-              {santriT.rows.length === 0 && <tr><td colSpan={2}><Empty text="Belum ada santri." /></td></tr>}
+              {withStatus.map(({ s, row }) => (
+                <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
+                  <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
+                  <td className="p-3.5">{row ? <Badge tone={row.status === "Lunas" ? "green" : "red"}>{row.status}</Badge> : <Badge tone="grey">Belum ada tagihan</Badge>}</td>
+                </tr>
+              ))}
+              {withStatus.length === 0 && <tr><td colSpan={2}><Empty text="Tidak ada santri yang cocok." /></td></tr>}
             </tbody>
           </table>
         </Card>
@@ -882,6 +1028,10 @@ function SppPage({ profile }) {
       {isViewer && <BackBar onBack={() => setNim("")} />}
       <PageHeader title={isViewer ? (santri?.nama || "Tagihan SPP") : "Tagihan SPP"}
         actions={<div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Tambah Tagihan</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
+      <div className="grid grid-cols-2 gap-4 mb-5 max-w-lg">
+        <StatCard label="Total Tunggakan" value={formatRupiah(rows.filter((r) => r.status !== "Lunas").reduce((a, r) => a + Number(r.nominal || 0), 0))} />
+        <StatCard label="Bulan Belum Lunas" value={rows.filter((r) => r.status !== "Lunas").length} />
+      </div>
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
           <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Bulan</th><th className="p-3">Tahun</th><th className="p-3">Nominal</th><th className="p-3">Status</th></tr></thead>
@@ -921,6 +1071,7 @@ function SppForm({ onCancel, onSubmit }) {
 function KelolaAkunPage() {
   const [showForm, setShowForm] = useState(false);
   const [msg, setMsg] = useState("");
+  const profilesT = useTable("profiles");
 
   async function createAccount(f) {
     setMsg("");
@@ -934,15 +1085,34 @@ function KelolaAkunPage() {
     if (!res.ok) { setMsg("Gagal: " + data.error); return; }
     setMsg("Akun berhasil dibuat.");
     setShowForm(false);
+    profilesT.reload();
   }
 
   return (
     <div>
       <PageHeader title="Kelola Akun" sub="Buat akun login baru untuk santri atau staf." actions={<Btn onClick={() => setShowForm(true)}>+ Tambah Akun</Btn>} />
-      {msg && <div className="text-sm mb-4 p-3.5 rounded-xl bg-emerald-50 text-emerald-800 font-medium">{msg}</div>}
-      <Card className="bg-amber-50/60 border-amber-200 text-sm text-amber-900">
+      {msg && <div className="text-sm mb-4 p-3.5 rounded-xl bg-[#E9F1EE] text-[#0F4A44] font-medium">{msg}</div>}
+      <Card className="bg-[#FBF3DF]/60 border-[#EDD9A0] text-sm text-[#8A6A2A] mb-5">
         💡 Contoh akun staf yang biasa dibutuhkan: <b>musyrifah1</b> (Musyrifah), <b>akademik1</b> (Staf Akademik),
         <b> bendahara1</b> (Bendahara), <b>pimpinan1</b> (Pimpinan Pondok — akses lihat semua data, tanpa mengedit).
+      </Card>
+      <Card className="p-0 overflow-hidden">
+        <div className="px-5 py-3 bg-stone-50 border-b border-stone-200 flex items-center justify-between">
+          <div className="font-bold text-sm text-[#0B3B36]">Daftar Akun</div>
+          <div className="text-xs text-stone-400">{profilesT.rows.length} akun terdaftar</div>
+        </div>
+        <table className="w-full text-sm">
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Akun</th><th className="p-3.5">Peran</th></tr></thead>
+          <tbody>
+            {profilesT.rows.map((p) => (
+              <tr key={p.id} className="border-t border-stone-100">
+                <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={p.nama} url={p.avatar_url} size={30} /><div><div className="font-bold">{p.nama}</div><div className="text-[11px] text-stone-400">{p.username || p.nim}</div></div></div></td>
+                <td className="p-3.5"><Badge tone="grey">{ROLE_LABEL[p.role] || p.role}</Badge></td>
+              </tr>
+            ))}
+            {profilesT.rows.length === 0 && <tr><td colSpan={2}><Empty text="Belum ada akun." /></td></tr>}
+          </tbody>
+        </table>
       </Card>
       {showForm && <AkunForm onCancel={() => setShowForm(false)} onSubmit={createAccount} />}
     </div>
@@ -1074,10 +1244,10 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   return (
     <div>
       <PageHeader title="Pengaturan" sub="Kelola profil dan kata sandi akun Anda." />
-      {msg && <div className="text-sm mb-4 p-3.5 rounded-xl bg-emerald-50 text-emerald-800 font-medium">{msg}</div>}
+      {msg && <div className="text-sm mb-4 p-3.5 rounded-xl bg-[#E9F1EE] text-[#0F4A44] font-medium">{msg}</div>}
 
       <Card className="mb-5">
-        <h3 className="font-serif-dh text-base text-emerald-900 font-semibold mb-4">Foto Profil</h3>
+        <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-4">Foto Profil</h3>
         <div className="flex items-center gap-5">
           <Avatar name={profile.nama} url={profile.avatar_url} size={72} />
           <div>
@@ -1089,7 +1259,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
       </Card>
 
       <Card className="mb-5">
-        <h3 className="font-serif-dh text-base text-emerald-900 font-semibold mb-4">Nama Tampilan</h3>
+        <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-4">Nama Tampilan</h3>
         <form onSubmit={saveNama} className="flex gap-3 items-end max-w-md">
           <div className="flex-1"><Field label="Nama Lengkap"><Input value={nama} onChange={(e) => setNama(e.target.value)} /></Field></div>
           <Btn type="submit">Simpan</Btn>
@@ -1097,7 +1267,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
       </Card>
 
       <Card className="mb-5">
-        <h3 className="font-serif-dh text-base text-emerald-900 font-semibold mb-4">Ganti Kata Sandi</h3>
+        <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-4">Ganti Kata Sandi</h3>
         <form onSubmit={savePassword} className="flex gap-3 items-end max-w-md">
           <div className="flex-1"><Field label="Kata Sandi Baru"><Input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="Minimal 6 karakter" /></Field></div>
           <Btn type="submit" tone="gold">Ganti</Btn>
@@ -1105,8 +1275,8 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
       </Card>
 
       {profile.role === "admin" && (
-        <Card className="border-amber-200 bg-amber-50/40">
-          <h3 className="font-serif-dh text-base text-emerald-900 font-semibold mb-1">Identitas Pondok (Branding)</h3>
+        <Card className="border-[#EDD9A0] bg-[#FBF3DF]/40">
+          <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-1">Identitas Pondok (Branding)</h3>
           <p className="text-xs text-stone-500 mb-4">Tampil di halaman login dan sidebar seluruh pengguna.</p>
 
           <div className="flex items-center gap-5 mb-5">
@@ -1120,7 +1290,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
 
           <form onSubmit={saveBranding} className="max-w-md">
             <Field label="Nama Pondok (ditampilkan di sidebar)"><Input value={namaPondok} onChange={(e) => setNamaPondok(e.target.value)} /></Field>
-            <div className="border-t border-amber-200 my-4 pt-4">
+            <div className="border-t border-[#EDD9A0] my-4 pt-4">
               <div className="text-xs font-extrabold text-stone-500 uppercase tracking-wide mb-3">Teks Halaman Login</div>
               <Field label="Gaya Font (berlaku ke seluruh aplikasi)">
                 <Select value={fontStyle} onChange={(e) => setFontStyle(e.target.value)}>
