@@ -67,7 +67,9 @@ const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademi
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
 /* ---------------------------------------------------------------------- */
 function useBrand() {
-  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B3B36", warna_aksen: "#B8935A", warna_arab: "#B8935A", ukuran_logo_sidebar: 52, judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang", ukuran_judul: 72, ukuran_subjudul: 18, font_style: "fraunces", align_subjudul: "left", align_slogan: "left", font_judul: "fraunces", font_subjudul: "fraunces", font_slogan: "fraunces", font_sapaan: "fraunces", ukuran_logo_login: 76, ukuran_slogan: 18, ukuran_sapaan: 24 });
+  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B3B36", warna_aksen: "#B8935A", warna_arab: "#B8935A", ukuran_logo_sidebar: 52,
+    yayasan_nama: "YAYASAN WAKAF HAMALATUL QURAN", alamat_pondok: "Komplek Kampoeng Quran Darul Hikmah Jalan Ajun Mata Ie Desa Geundring, Kecamatan Darul Imarah, Kabupaten Aceh Besar Kode Pos 23352", kontak_pondok: "+62821-3227-3431",
+    nama_mudir: "Sudirman", nip_mudir: "", nama_kabag_akademik: "Nuraliah Syahfitri, S.Pd.", nip_kabag_akademik: "", judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang", ukuran_judul: 72, ukuran_subjudul: 18, font_style: "fraunces", align_subjudul: "left", align_slogan: "left", font_judul: "fraunces", font_subjudul: "fraunces", font_slogan: "fraunces", font_sapaan: "fraunces", ukuran_logo_login: 76, ukuran_slogan: 18, ukuran_sapaan: 24 });
   const [loaded, setLoaded] = useState(false);
   async function reload() {
     const { data } = await supabase.from("pengaturan_pondok").select("*").eq("id", 1).single();
@@ -568,12 +570,17 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
 /* ---------------------------------------------------------------------- */
 function AkademikStaffPage({ profile }) {
   const editable = canEdit(profile.role, "akademik");
+  const brand = useContext(BrandContext);
   const santriT = useTable("santri");
   const akT = useTable("akademik");
+  const profilesT = useTable("profiles");
   const [nim, setNim] = useState("");
   const [showForm, setShowForm] = useState(false);
   const records = akT.rows.filter((a) => a.nim === nim);
   const santri = santriT.rows.find((s) => s.nim === nim);
+  const pembimbing = profilesT.rows.find((p) => p.username === santri?.musyrif_username);
+  const semesterTerbaru = [...records].sort((a, b) => (b.tahun_ajaran || "").localeCompare(a.tahun_ajaran || "") || (b.semester || "").localeCompare(a.semester || ""))[0];
+  const recordsKRS = semesterTerbaru ? records.filter((r) => r.tahun_ajaran === semesterTerbaru.tahun_ajaran && r.semester === semesterTerbaru.semester) : [];
 
   async function add(f) {
     const { error } = await supabase.from("akademik").insert({ ...f, nim, sks: Number(f.sks) });
@@ -620,7 +627,92 @@ function AkademikStaffPage({ profile }) {
   return (
     <div>
       <BackBar onBack={() => setNim("")} />
-      <PageHeader title={santri?.nama || nim} sub={nim} actions={editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Mata Kuliah</Btn>} />
+      <PageHeader title={santri?.nama || nim} sub={nim} actions={
+        <div className="flex gap-2">
+          <Btn tone="ghost" onClick={() => window.print()}>🖨️ Cetak KRS</Btn>
+          {editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Mata Kuliah</Btn>}
+        </div>
+      } />
+
+      {/* ===== Tampilan cetak KRS (hanya muncul saat mencetak/PDF) ===== */}
+      <style>{`
+        .krs-print { display: none; }
+        @media print {
+          body * { visibility: hidden; }
+          .krs-print, .krs-print * { visibility: visible; }
+          .krs-print { display: block; position: absolute; top: 0; left: 0; width: 100%; padding: 24px 32px; }
+        }
+      `}</style>
+      <div className="krs-print">
+        <table style={{ width: "100%", marginBottom: 10 }}><tbody><tr>
+          <td style={{ width: 90, verticalAlign: "middle" }}>{brand.logo_url && <img src={brand.logo_url} alt="logo" style={{ width: 80 }} />}</td>
+          <td style={{ verticalAlign: "middle" }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#0B3B36" }}>{brand.yayasan_nama}</div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#0B3B36" }}>PONDOK TAHFIDZ QURAN DAN ENTREPRENEUR {brand.nama_pondok?.toUpperCase()}</div>
+            <div style={{ fontSize: 10.5, color: "#44544D" }}>{brand.alamat_pondok}</div>
+            <div style={{ fontSize: 10.5, color: "#44544D", fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
+          </td>
+        </tr></tbody></table>
+        <div style={{ borderBottom: "2px solid #0B3B36", marginBottom: 16 }} />
+
+        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15 }}>KARTU RENCANA STUDI (KRS)</div>
+        <div style={{ textAlign: "center", fontSize: 11, borderBottom: "1px solid #B8935A", paddingBottom: 6, marginBottom: 16 }}>
+          Semester {semesterTerbaru?.semester || "-"} {semesterTerbaru?.tahun_ajaran || ""}
+        </div>
+
+        <div style={{ fontSize: 11, marginBottom: 2 }}>Nama Mahasantri&nbsp;&nbsp;&nbsp;&nbsp;: {santri?.nama}</div>
+        <div style={{ fontSize: 11, marginBottom: 2 }}>NIM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {santri?.nim}</div>
+        <div style={{ fontSize: 11, marginBottom: 14 }}>Angkatan&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {santri?.kelas}</div>
+
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 8 }}>
+          <thead><tr style={{ background: "#0B3B36", color: "#fff" }}>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>No</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Kode MK</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Mata Kuliah</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>SKS</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Pengajar</th>
+          </tr></thead>
+          <tbody>
+            {recordsKRS.map((r, i) => (
+              <tr key={r.id}>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{i + 1}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.kode_mk || "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5 }}>{r.mata_kuliah}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.sks}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5 }}>{r.pengajar || "-"}</td>
+              </tr>
+            ))}
+            <tr style={{ background: "#F3EEE1", fontWeight: 700 }}>
+              <td colSpan={3} style={{ border: "1px solid #1F2937", padding: 5 }}>Total SKS</td>
+              <td colSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>{recordsKRS.reduce((a, r) => a + Number(r.sks || 0), 0)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table style={{ width: "100%", fontSize: 10.5, marginTop: 40 }}><tbody>
+          <tr>
+            <td style={{ width: "50%" }}>Menyetujui,<br/>Pembimbing</td>
+            <td style={{ width: "50%", textAlign: "right" }}>{new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}<br/>Mahasantri ybs</td>
+          </tr>
+          <tr><td colSpan={2} style={{ height: 50 }}></td></tr>
+          <tr>
+            <td><b>{pembimbing?.nama || "-"}</b><br/>NIP. {pembimbing?.nip || "-"}</td>
+            <td style={{ textAlign: "right" }}><b>{santri?.nama}</b><br/>NIM. {santri?.nim}</td>
+          </tr>
+          <tr><td colSpan={2} style={{ height: 24 }}></td></tr>
+          <tr><td colSpan={2} style={{ textAlign: "center" }}>Mengetahui</td></tr>
+          <tr>
+            <td>Plt. Mudir</td>
+            <td style={{ textAlign: "right" }}>Kabag. Akademik</td>
+          </tr>
+          <tr><td colSpan={2} style={{ height: 50 }}></td></tr>
+          <tr>
+            <td><b>{brand.nama_mudir}</b><br/>NIP. {brand.nip_mudir || "-"}</td>
+            <td style={{ textAlign: "right" }}><b>{brand.nama_kabag_akademik}</b><br/>NIP. {brand.nip_kabag_akademik || "-"}</td>
+          </tr>
+        </tbody></table>
+      </div>
+
       <div className="grid grid-cols-3 gap-4 mb-5">
         <StatCard label="Total SKS Diambil" value={records.reduce((a, r) => a + Number(r.sks || 0), 0)} />
         <StatCard label="IPK (Rata-rata Nilai)" value={(() => {
@@ -632,10 +724,11 @@ function AkademikStaffPage({ profile }) {
       </div>
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mata Kuliah</th><th className="p-3.5">Semester</th><th className="p-3.5">Pengajar</th><th className="p-3.5">SKS</th><th className="p-3.5">Status</th><th className="p-3.5">Nilai</th>{editable && <th className="p-3.5"></th>}</tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Kode MK</th><th className="p-3.5">Mata Kuliah</th><th className="p-3.5">Semester</th><th className="p-3.5">Pengajar</th><th className="p-3.5">SKS</th><th className="p-3.5">Status</th><th className="p-3.5">Nilai</th>{editable && <th className="p-3.5"></th>}</tr></thead>
           <tbody>
             {records.map((r) => (
               <tr key={r.id} className="border-t border-stone-100">
+                <td className="p-3.5 text-stone-400">{r.kode_mk || "-"}</td>
                 <td className="p-3.5 font-semibold">{r.mata_kuliah}</td>
                 <td className="p-3.5 text-stone-500">{r.tahun_ajaran} · {r.semester}</td>
                 <td className="p-3.5 text-stone-500">{r.pengajar || "-"}</td>
@@ -645,7 +738,7 @@ function AkademikStaffPage({ profile }) {
                 {editable && <td className="p-3.5 text-right"><button onClick={() => removeMatkul(r.id)} className="text-red-600 text-xs font-bold">Hapus</button></td>}
               </tr>
             ))}
-            {records.length === 0 && <tr><td colSpan={editable ? 7 : 6}><Empty text="Belum ada data." /></td></tr>}
+            {records.length === 0 && <tr><td colSpan={editable ? 8 : 7}><Empty text="Belum ada data." /></td></tr>}
           </tbody>
         </table>
       </Card>
@@ -654,13 +747,14 @@ function AkademikStaffPage({ profile }) {
   );
 }
 function AkademikForm({ onCancel, onSubmit }) {
-  const [f, setF] = useState({ tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_kuliah: MATA_KULIAH[0], sks: 2, status: "aktif", pengajar: "" });
+  const [f, setF] = useState({ tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_kuliah: MATA_KULIAH[0], sks: 2, status: "aktif", pengajar: "", kode_mk: "" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
     <Modal title="Tambah Mata Kuliah" onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Tahun Ajaran"><Input value={f.tahun_ajaran} onChange={set("tahun_ajaran")} /></Field>
         <Field label="Semester"><Select value={f.semester} onChange={set("semester")}><option>Ganjil</option><option>Genap</option></Select></Field>
+        <Field label="Kode MK (opsional)"><Input value={f.kode_mk} onChange={set("kode_mk")} placeholder="cth. MKQ 1.1.1" /></Field>
         <Field label="Mata Kuliah"><Select value={f.mata_kuliah} onChange={set("mata_kuliah")}>{MATA_KULIAH.map((m) => <option key={m}>{m}</option>)}</Select></Field>
         <Field label="Pengajar"><Input value={f.pengajar} onChange={set("pengajar")} placeholder="Nama ustadz/ustadzah pengampu" /></Field>
         <Field label="SKS"><Input type="number" value={f.sks} onChange={set("sks")} /></Field>
@@ -1267,6 +1361,13 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   const [warnaUtama, setWarnaUtama] = useState(brand.warna_utama || "#0B4D30");
   const [warnaAksen, setWarnaAksen] = useState(brand.warna_aksen || "#AD7F2C");
   const [warnaArab, setWarnaArab] = useState(brand.warna_arab || "#B8935A");
+  const [yayasanNama, setYayasanNama] = useState(brand.yayasan_nama || "");
+  const [alamatPondok, setAlamatPondok] = useState(brand.alamat_pondok || "");
+  const [kontakPondok, setKontakPondok] = useState(brand.kontak_pondok || "");
+  const [namaMudir, setNamaMudir] = useState(brand.nama_mudir || "");
+  const [nipMudir, setNipMudir] = useState(brand.nip_mudir || "");
+  const [namaKabagAkademik, setNamaKabagAkademik] = useState(brand.nama_kabag_akademik || "");
+  const [nipKabagAkademik, setNipKabagAkademik] = useState(brand.nip_kabag_akademik || "");
   const [ukuranLogo, setUkuranLogo] = useState(brand.ukuran_logo_sidebar || 52);
   const [ukuranLogoLogin, setUkuranLogoLogin] = useState(brand.ukuran_logo_login || 76);
   const [ukuranSlogan, setUkuranSlogan] = useState(brand.ukuran_slogan || 18);
@@ -1321,6 +1422,8 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
     e.preventDefault(); setMsg("");
     const { error } = await supabase.from("pengaturan_pondok").update({
       nama_pondok: namaPondok, tagline, warna_utama: warnaUtama, warna_aksen: warnaAksen, warna_arab: warnaArab,
+      yayasan_nama: yayasanNama, alamat_pondok: alamatPondok, kontak_pondok: kontakPondok,
+      nama_mudir: namaMudir, nip_mudir: nipMudir, nama_kabag_akademik: namaKabagAkademik, nip_kabag_akademik: nipKabagAkademik,
       ukuran_logo_sidebar: Number(ukuranLogo), ukuran_logo_login: Number(ukuranLogoLogin),
       ukuran_slogan: Number(ukuranSlogan), ukuran_sapaan: Number(ukuranSapaan),
       judul_besar: judulBesar, subjudul, slogan, sapaan,
@@ -1467,6 +1570,19 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
               </Field>
             </div>
             <p className="text-xs text-stone-400 mb-4">Warna Utama untuk latar sidebar & tombol utama. Warna Aksen untuk logo, sorotan menu, dan tagline. Warna Teks Arab khusus untuk salam "Assalamu'alaikum" di halaman login.</p>
+
+            <div className="text-[11px] font-extrabold text-[#B8935A] uppercase tracking-[0.1em] mt-6 mb-2 pt-4 border-t border-stone-100">Kop Surat & Tanda Tangan (untuk Cetak KRS)</div>
+            <Field label="Nama Yayasan"><Input value={yayasanNama} onChange={(e) => setYayasanNama(e.target.value)} placeholder="cth. YAYASAN WAKAF HAMALATUL QURAN" /></Field>
+            <Field label="Alamat Pondok"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={alamatPondok} onChange={(e) => setAlamatPondok(e.target.value)} /></Field>
+            <Field label="Kontak"><Input value={kontakPondok} onChange={(e) => setKontakPondok(e.target.value)} placeholder="cth. +62812-3456-7890" /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Nama Plt. Mudir"><Input value={namaMudir} onChange={(e) => setNamaMudir(e.target.value)} /></Field>
+              <Field label="NIP Mudir"><Input value={nipMudir} onChange={(e) => setNipMudir(e.target.value)} /></Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Nama Kabag. Akademik"><Input value={namaKabagAkademik} onChange={(e) => setNamaKabagAkademik(e.target.value)} /></Field>
+              <Field label="NIP Kabag. Akademik"><Input value={nipKabagAkademik} onChange={(e) => setNipKabagAkademik(e.target.value)} /></Field>
+            </div>
             <Field label={`Ukuran Logo di Sidebar (${ukuranLogo}px)`}>
               <input type="range" min="32" max="220" value={ukuranLogo} onChange={(e) => setUkuranLogo(e.target.value)} className="w-full" />
             </Field>
