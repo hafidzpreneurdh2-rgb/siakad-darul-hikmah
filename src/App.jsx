@@ -844,9 +844,20 @@ function IbadahPage({ profile }) {
   const logs = logT.rows.filter((l) => l.nim === nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
   const pickable = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || s.musyrif_username === profile.username);
 
-  async function addLog(f) {
-    const { error } = await supabase.from("ibadah_log").insert({ ...f, nim, musyrif: profile.nama });
-    if (error) alert(error.message); else { setShowForm(false); logT.reload(); }
+  const [editingLog, setEditingLog] = useState(null);
+  async function saveLog(f) {
+    if (editingLog) {
+      const { error } = await supabase.from("ibadah_log").update(f).eq("id", editingLog.id);
+      if (error) alert(error.message); else { setEditingLog(null); logT.reload(); }
+    } else {
+      const { error } = await supabase.from("ibadah_log").insert({ ...f, nim, musyrif: profile.nama });
+      if (error) alert(error.message); else { setShowForm(false); logT.reload(); }
+    }
+  }
+  async function removeLog(id) {
+    if (!confirm("Hapus catatan ibadah ini?")) return;
+    const { error } = await supabase.from("ibadah_log").delete().eq("id", id);
+    if (error) alert(error.message); else logT.reload();
   }
 
   const [q, setQ] = useState("");
@@ -913,29 +924,34 @@ function IbadahPage({ profile }) {
       })()}
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Tanggal</th><th className="p-3">Jenis Ibadah</th><th className="p-3">Capaian</th><th className="p-3">Catatan</th></tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Tanggal</th><th className="p-3">Jenis Ibadah</th><th className="p-3">Capaian</th><th className="p-3">Catatan</th>{editable && isViewer && <th className="p-3 text-right">Aksi</th>}</tr></thead>
           <tbody>
             {logs.map((l) => (
               <tr key={l.id} className="border-t border-stone-100">
                 <td className="p-3">{l.tanggal}</td><td className="p-3">{l.jenis}</td>
                 <td className="p-3"><Badge tone={capaianTone(l.capaian)}>{l.capaian}</Badge></td>
                 <td className="p-3 text-stone-500">{l.catatan}</td>
+                {editable && isViewer && <td className="p-3 text-right whitespace-nowrap">
+                  <button onClick={() => setEditingLog(l)} className="text-[#145048] text-xs font-bold mr-3">Edit</button>
+                  <button onClick={() => removeLog(l.id)} className="text-red-600 text-xs font-bold">Hapus</button>
+                </td>}
               </tr>
             ))}
-            {logs.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada catatan ibadah." /></td></tr>}
+            {logs.length === 0 && <tr><td colSpan={editable && isViewer ? 5 : 4}><Empty text="Belum ada catatan ibadah." /></td></tr>}
           </tbody>
         </table>
       </Card>
-      {showForm && <IbadahForm onCancel={() => setShowForm(false)} onSubmit={addLog} />}
+      {showForm && <IbadahForm onCancel={() => setShowForm(false)} onSubmit={saveLog} />}
+      {editingLog && <IbadahForm initial={editingLog} onCancel={() => setEditingLog(null)} onSubmit={saveLog} />}
     </div>
   );
 }
-function IbadahForm({ onCancel, onSubmit }) {
-  const [f, setF] = useState({ tanggal: new Date().toISOString().slice(0, 10), jenis: JENIS_IBADAH[0], capaian: CAPAIAN_OPTIONS[JENIS_IBADAH[0]][0], catatan: "" });
+function IbadahForm({ initial, onCancel, onSubmit }) {
+  const [f, setF] = useState(initial || { tanggal: new Date().toISOString().slice(0, 10), jenis: JENIS_IBADAH[0], capaian: CAPAIAN_OPTIONS[JENIS_IBADAH[0]][0], catatan: "" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const setJenis = (e) => setF({ ...f, jenis: e.target.value, capaian: CAPAIAN_OPTIONS[e.target.value][0] });
   return (
-    <Modal title="Catat Ibadah" onClose={onCancel}>
+    <Modal title={initial ? "Edit Catatan Ibadah" : "Catat Ibadah"} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Tanggal"><Input type="date" value={f.tanggal} onChange={set("tanggal")} /></Field>
         <Field label="Jenis Ibadah"><Select value={f.jenis} onChange={setJenis}>{JENIS_IBADAH.map((j) => <option key={j}>{j}</option>)}</Select></Field>
