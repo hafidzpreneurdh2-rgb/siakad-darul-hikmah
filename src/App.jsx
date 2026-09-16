@@ -576,6 +576,7 @@ function AkademikStaffPage({ profile }) {
   const profilesT = useTable("profiles");
   const [nim, setNim] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [dokType, setDokType] = useState("KRS");
   const records = akT.rows.filter((a) => a.nim === nim);
   const santri = santriT.rows.find((s) => s.nim === nim);
   const pembimbing = profilesT.rows.find((p) => p.username === santri?.musyrif_username);
@@ -629,22 +630,27 @@ function AkademikStaffPage({ profile }) {
       <BackBar onBack={() => setNim("")} />
       <PageHeader title={santri?.nama || nim} sub={nim} actions={
         <div className="flex gap-2">
-          <Btn tone="ghost" onClick={() => window.print()}>🖨️ Cetak KRS</Btn>
           {editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Mata Kuliah</Btn>}
         </div>
       } />
 
-      {/* ===== Tampilan cetak KRS (hanya muncul saat mencetak/PDF) ===== */}
+      {/* ===== Pratinjau & Cetak Dokumen Akademik (KRS / KHS) ===== */}
       <style>{`
-        .krs-print { display: none; }
         @media print {
           body * { visibility: hidden; }
           .krs-print, .krs-print * { visibility: visible; }
-          .krs-print { display: block; position: absolute; top: 0; left: 0; width: 100%; padding: 24px 32px; }
+          .krs-print { position: absolute; top: 0; left: 0; width: 100%; padding: 24px 32px; box-shadow: none !important; border: none !important; }
         }
       `}</style>
-      <div className="krs-print">
-        <table style={{ width: "100%", marginBottom: 10 }}><tbody><tr>
+      <div className="flex items-center justify-between mb-2">
+        <div className="inline-flex rounded-lg border border-stone-300 overflow-hidden">
+          <button onClick={() => setDokType("KRS")} className={`px-4 py-1.5 text-xs font-bold ${dokType === "KRS" ? "bg-[#0B3B36] text-white" : "bg-white text-stone-500"}`}>KRS</button>
+          <button onClick={() => setDokType("KHS")} className={`px-4 py-1.5 text-xs font-bold ${dokType === "KHS" ? "bg-[#0B3B36] text-white" : "bg-white text-stone-500"}`}>KHS</button>
+        </div>
+        <Btn tone="ghost" onClick={() => window.print()}>🖨️ Cetak {dokType}</Btn>
+      </div>
+      <div className="krs-print bg-white rounded-2xl border border-stone-200 shadow-sm p-8 mb-6">
+        <table style={{ width: "100%", marginBottom: 14 }}><tbody><tr>
           <td style={{ width: 90, verticalAlign: "middle" }}>{brand.logo_url && <img src={brand.logo_url} alt="logo" style={{ width: 80 }} />}</td>
           <td style={{ verticalAlign: "middle" }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: "#0B3B36" }}>{brand.yayasan_nama}</div>
@@ -653,17 +659,17 @@ function AkademikStaffPage({ profile }) {
             <div style={{ fontSize: 10.5, color: "#44544D", fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
           </td>
         </tr></tbody></table>
-        <div style={{ borderBottom: "2px solid #0B3B36", marginBottom: 16 }} />
 
-        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15 }}>KARTU RENCANA STUDI (KRS)</div>
+        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15 }}>{dokType === "KRS" ? "KARTU RENCANA STUDI (KRS)" : "KARTU HASIL STUDI (KHS)"}</div>
         <div style={{ textAlign: "center", fontSize: 11, borderBottom: "1px solid #B8935A", paddingBottom: 6, marginBottom: 16 }}>
           Semester {semesterTerbaru?.semester || "-"} {semesterTerbaru?.tahun_ajaran || ""}
         </div>
 
-        <div style={{ fontSize: 11, marginBottom: 2 }}>Nama Mahasantri&nbsp;&nbsp;&nbsp;&nbsp;: {santri?.nama}</div>
-        <div style={{ fontSize: 11, marginBottom: 2 }}>NIM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {santri?.nim}</div>
-        <div style={{ fontSize: 11, marginBottom: 14 }}>Angkatan&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {santri?.kelas}</div>
+        <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>Nama Mahasantri</span><span>: {santri?.nama}</span></div>
+        <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>NIM</span><span>: {santri?.nim}</span></div>
+        <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Angkatan</span><span>: {santri?.kelas}</span></div>
 
+        {dokType === "KRS" ? (
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 8 }}>
           <thead><tr style={{ background: "#0B3B36", color: "#fff" }}>
             <th style={{ border: "1px solid #1F2937", padding: 5 }}>No</th>
@@ -688,6 +694,46 @@ function AkademikStaffPage({ profile }) {
             </tr>
           </tbody>
         </table>
+        ) : (
+        <>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 8 }}>
+          <thead><tr style={{ background: "#0B3B36", color: "#fff" }}>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>No</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Kode MK</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Mata Kuliah</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>SKS</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai Angka</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai Huruf</th>
+          </tr></thead>
+          <tbody>
+            {recordsKRS.map((r, i) => (
+              <tr key={r.id}>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{i + 1}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.kode_mk || "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5 }}>{r.mata_kuliah}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.sks}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.nilai_angka ?? "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.nilai_angka != null ? nilaiHuruf(r.nilai_angka) : "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <table style={{ width: "100%", fontSize: 10.5, marginBottom: 16 }}><tbody>
+          <tr>
+            <td>IP Semester ini: <b>{(() => {
+              const sel = recordsKRS.filter((r) => r.status === "selesai");
+              const tot = sel.reduce((a, r) => a + Number(r.sks || 0), 0);
+              return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
+            })()}</b></td>
+            <td style={{ textAlign: "right" }}>IPK Kumulatif: <b>{(() => {
+              const sel = records.filter((r) => r.status === "selesai");
+              const tot = sel.reduce((a, r) => a + Number(r.sks || 0), 0);
+              return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
+            })()}</b></td>
+          </tr>
+        </tbody></table>
+        </>
+        )}
 
         <table style={{ width: "100%", fontSize: 10.5, marginTop: 40 }}><tbody>
           <tr>
