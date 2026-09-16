@@ -5,7 +5,22 @@ const BrandContext = createContext({ warna_utama: "#0B3B36", warna_aksen: "#B893
 
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"];
-const JENIS_IBADAH = ["Sholat 5 Waktu Berjamaah","Puasa Sunnah","Tilawah Harian","Dzikir Pagi-Petang","Qiyamullail"];
+const JENIS_IBADAH = ["Sholat 5 Waktu Berjamaah","Sholat Sunnah Rawatib (Qabliyah/Ba'diyah)","Puasa Sunnah","Tilawah Harian","Dzikir Pagi-Petang","Qiyamullail"];
+const CAPAIAN_OPTIONS = {
+  "Sholat 5 Waktu Berjamaah": ["Berjamaah", "Sendiri", "Tidak Sholat"],
+  "Sholat Sunnah Rawatib (Qabliyah/Ba'diyah)": ["Lengkap", "Sebagian", "Tidak Dikerjakan"],
+  "Puasa Sunnah": ["Puasa Penuh", "Tidak Puasa"],
+  "Tilawah Harian": ["Selesai", "Tidak Selesai"],
+  "Dzikir Pagi-Petang": ["Lengkap", "Tidak Lengkap"],
+  "Qiyamullail": ["Dikerjakan", "Tidak Dikerjakan"],
+};
+const CAPAIAN_NEGATIF = ["Tidak Sholat", "Tidak Puasa", "Tidak Selesai", "Tidak Lengkap", "Tidak Dikerjakan"];
+const CAPAIAN_NETRAL = ["Sendiri", "Sebagian"];
+function capaianTone(capaian) {
+  if (CAPAIAN_NEGATIF.includes(capaian)) return "red";
+  if (CAPAIAN_NETRAL.includes(capaian)) return "gold";
+  return "green";
+}
 const ROLE_LABEL = { admin: "Administrator", musyrif: "Musyrif", musyrifah: "Musyrifah", keuangan: "Bendahara", akademik: "Staf Akademik", pimpinan: "Pimpinan Pondok", santri: "Mahasantri / Wali" };
 const AVATAR_COLORS = ["#0B4D30","#AD7F2C","#8A4A3A","#3F6C8A","#5C4A8A","#2F6B5E"];
 const nowYear = new Date().getFullYear();
@@ -841,10 +856,10 @@ function IbadahPage({ profile }) {
     const withStatus = pickable.map((s) => {
       const own = logT.rows.filter((l) => l.nim === s.nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
       const last = own[0];
-      const kurangBulanIni = own.filter((l) => l.tanggal.slice(0, 7) === new Date().toISOString().slice(0, 7) && l.capaian === "Kurang").length;
-      return { s, last, kurangBulanIni, perhatian: kurangBulanIni >= 2 || last?.capaian === "Kurang" };
+      const kurangBulanIni = own.filter((l) => l.tanggal.slice(0, 7) === new Date().toISOString().slice(0, 7) && CAPAIAN_NEGATIF.includes(l.capaian)).length;
+      return { s, last, kurangBulanIni, perhatian: kurangBulanIni >= 2 || CAPAIAN_NEGATIF.includes(last?.capaian) };
     }).filter(({ s }) => !q || s.nama.toLowerCase().includes(q.toLowerCase()) || s.nim.includes(q))
-      .filter(({ last }) => filterCapaian === "SEMUA" || last?.capaian === filterCapaian);
+      .filter(({ perhatian }) => filterCapaian === "SEMUA" || (filterCapaian === "Perhatian" ? perhatian : !perhatian));
     const perluPerhatian = withStatus.filter((x) => x.perhatian).length;
 
     return (
@@ -857,7 +872,7 @@ function IbadahPage({ profile }) {
         <div className="flex gap-3 mb-4">
           <Input placeholder="Cari nama atau NIM..." value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
           <Select value={filterCapaian} onChange={(e) => setFilterCapaian(e.target.value)} className="max-w-[180px]">
-            <option value="SEMUA">Semua status</option><option value="Baik">Baik</option><option value="Cukup">Cukup</option><option value="Kurang">Kurang</option>
+            <option value="SEMUA">Semua status</option><option value="Baik">Baik</option><option value="Perhatian">Perlu Perhatian</option>
           </Select>
         </div>
         <Card className="p-0 overflow-hidden">
@@ -867,7 +882,7 @@ function IbadahPage({ profile }) {
               {withStatus.map(({ s, last, perhatian }) => (
                 <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
                   <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
-                  <td className="p-3.5 text-stone-500">{last ? <>{last.tanggal} · {last.jenis} · <Badge tone={last.capaian === "Baik" ? "green" : last.capaian === "Cukup" ? "gold" : "red"}>{last.capaian}</Badge></> : "-"}</td>
+                  <td className="p-3.5 text-stone-500">{last ? <>{last.tanggal} · {last.jenis} · <Badge tone={capaianTone(last.capaian)}>{last.capaian}</Badge></> : "-"}</td>
                   <td className="p-3.5">{perhatian ? <Badge tone="red">Perlu Perhatian</Badge> : <Badge tone="green">Baik</Badge>}</td>
                 </tr>
               ))}
@@ -886,13 +901,13 @@ function IbadahPage({ profile }) {
         actions={<div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Catat Ibadah</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
       {(() => {
         const bulanIniLogs = logs.filter((l) => l.tanggal.slice(0, 7) === new Date().toISOString().slice(0, 7));
-        const baik = bulanIniLogs.filter((l) => l.capaian === "Baik").length;
-        const kurang = bulanIniLogs.filter((l) => l.capaian === "Kurang").length;
+        const baik = bulanIniLogs.filter((l) => !CAPAIAN_NEGATIF.includes(l.capaian) && !CAPAIAN_NETRAL.includes(l.capaian)).length;
+        const perluPerhatianBulanIni = bulanIniLogs.filter((l) => CAPAIAN_NEGATIF.includes(l.capaian)).length;
         return (
           <div className="grid grid-cols-3 gap-4 mb-5">
             <StatCard label="Catatan Bulan Ini" value={bulanIniLogs.length} />
             <StatCard label="Capaian Baik" value={baik} />
-            <StatCard label="Capaian Kurang" value={kurang} />
+            <StatCard label="Perlu Perhatian" value={perluPerhatianBulanIni} />
           </div>
         );
       })()}
@@ -903,7 +918,7 @@ function IbadahPage({ profile }) {
             {logs.map((l) => (
               <tr key={l.id} className="border-t border-stone-100">
                 <td className="p-3">{l.tanggal}</td><td className="p-3">{l.jenis}</td>
-                <td className="p-3"><Badge tone={l.capaian === "Baik" ? "green" : l.capaian === "Cukup" ? "gold" : "red"}>{l.capaian}</Badge></td>
+                <td className="p-3"><Badge tone={capaianTone(l.capaian)}>{l.capaian}</Badge></td>
                 <td className="p-3 text-stone-500">{l.catatan}</td>
               </tr>
             ))}
@@ -916,14 +931,15 @@ function IbadahPage({ profile }) {
   );
 }
 function IbadahForm({ onCancel, onSubmit }) {
-  const [f, setF] = useState({ tanggal: new Date().toISOString().slice(0, 10), jenis: JENIS_IBADAH[0], capaian: "Baik", catatan: "" });
+  const [f, setF] = useState({ tanggal: new Date().toISOString().slice(0, 10), jenis: JENIS_IBADAH[0], capaian: CAPAIAN_OPTIONS[JENIS_IBADAH[0]][0], catatan: "" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const setJenis = (e) => setF({ ...f, jenis: e.target.value, capaian: CAPAIAN_OPTIONS[e.target.value][0] });
   return (
     <Modal title="Catat Ibadah" onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Tanggal"><Input type="date" value={f.tanggal} onChange={set("tanggal")} /></Field>
-        <Field label="Jenis Ibadah"><Select value={f.jenis} onChange={set("jenis")}>{JENIS_IBADAH.map((j) => <option key={j}>{j}</option>)}</Select></Field>
-        <Field label="Capaian"><Select value={f.capaian} onChange={set("capaian")}><option>Baik</option><option>Cukup</option><option>Kurang</option></Select></Field>
+        <Field label="Jenis Ibadah"><Select value={f.jenis} onChange={setJenis}>{JENIS_IBADAH.map((j) => <option key={j}>{j}</option>)}</Select></Field>
+        <Field label="Capaian"><Select value={f.capaian} onChange={set("capaian")}>{CAPAIAN_OPTIONS[f.jenis].map((c) => <option key={c}>{c}</option>)}</Select></Field>
         <Field label="Catatan"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={3} value={f.catatan} onChange={set("catatan")} /></Field>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
       </form>
