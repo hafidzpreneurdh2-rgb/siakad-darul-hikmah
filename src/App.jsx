@@ -796,18 +796,19 @@ function QuranPage({ profile }) {
           <StatCard label="Juz Aktif Sekarang" value={santri.juz_dikuasai?.length ? Math.max(...santri.juz_dikuasai) + 1 : 1} />
           <StatCard label="Juz Dikuasai" value={`${santri.juz_dikuasai?.length || 0} / 30`} />
         </div>
-        <div className="grid grid-cols-2 gap-4 items-start">
+        <div className="grid grid-cols-[0.85fr_1.3fr] gap-4 items-start">
           <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Peta Hafalan</h3><JuzTracker juz={santri.juz_dikuasai || []} /></Card>
           <Card className="p-0 overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Tgl</th><th className="p-3">Jenis</th><th className="p-3">Juz &amp; Hal.</th><th className="p-3">Kelancaran</th><th className="p-3">Musyrif</th><th className="p-3">Catatan</th>{editable && isViewer && <th className="p-3 text-right">Aksi</th>}</tr></thead>
+              <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3 whitespace-nowrap">Tgl</th><th className="p-3 whitespace-nowrap">Jenis</th><th className="p-3 whitespace-nowrap">Juz &amp; Hal.</th><th className="p-3 whitespace-nowrap">Kelancaran</th><th className="p-3 whitespace-nowrap">Musyrif</th><th className="p-3 whitespace-nowrap">Catatan</th>{editable && isViewer && <th className="p-3 text-right whitespace-nowrap">Aksi</th>}</tr></thead>
               <tbody>{logs.map((l) => (
                 <tr key={l.id} className="border-t border-stone-100 align-top">
                   <td className="p-3 whitespace-nowrap">{l.tanggal}</td>
-                  <td className="p-3">{l.jenis}</td>
-                  <td className="p-3">Juz {l.juz}{l.halaman_dari ? <div className="text-[11px] text-stone-400">hal. {l.halaman_dari}–{l.halaman_sampai}</div> : null}</td>
-                  <td className="p-3"><Badge tone={l.kelancaran === "Lancar" ? "green" : "gold"}>{l.kelancaran || "-"}</Badge></td>
-                  <td className="p-3 text-stone-500">{l.musyrif}</td>
+                  <td className="p-3 whitespace-nowrap">{l.jenis}</td>
+                  <td className="p-3 whitespace-nowrap">Juz {l.juz}{l.halaman_dari ? <div className="text-[11px] text-stone-400">hal. {l.halaman_dari}–{l.halaman_sampai}</div> : null}</td>
+                  <td className="p-3 whitespace-nowrap"><Badge tone={l.kelancaran === "Lancar" ? "green" : "gold"}>{l.kelancaran || "-"}</Badge></td>
+                  <td className="p-3 text-stone-500 whitespace-nowrap">{l.musyrif}</td>
                   <td className="p-3 text-stone-500 max-w-[160px]">{l.catatan || "-"}</td>
                   {editable && isViewer && <td className="p-3 text-right whitespace-nowrap">
                     <button onClick={() => setEditingLog(l)} className="text-[#145048] text-xs font-bold mr-3">Edit</button>
@@ -817,6 +818,7 @@ function QuranPage({ profile }) {
               ))}
                 {logs.length === 0 && <tr><td colSpan={editable && isViewer ? 7 : 6}><Empty text="Belum ada catatan." /></td></tr>}</tbody>
             </table>
+            </div>
           </Card>
         </div>
         </>
