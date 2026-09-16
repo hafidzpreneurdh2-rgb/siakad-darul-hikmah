@@ -235,7 +235,7 @@ function LoginScreen({ brand }) {
 
         <div className="bg-white p-10 flex flex-col justify-center">
           <h3 className="mb-1 font-semibold" style={{ color: brand.warna_utama, fontFamily: fontFamilyOf(brand, "font_sapaan"), fontSize: `${brand.ukuran_sapaan || 24}px` }}>{brand.sapaan || "Selamat Datang"}</h3>
-          <p dir="rtl" lang="ar" style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif" }} className="text-xl text-[#B8935A] mb-4 text-left">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
+          <p dir="rtl" lang="ar" style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif" }} className="text-xl text-[#F6F2E7]/90 mb-4 text-left">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
           <form onSubmit={submit}>
             <Field label="Masuk Sebagai">
               <Select value={masukSebagai} onChange={(e) => setMasukSebagai(e.target.value)}>
@@ -263,7 +263,7 @@ function Shell({ profile, view, setView, brand, children }) {
     <div className="min-h-screen bg-[#F4F2EA] flex">
       <aside className="w-64 text-white p-4 flex flex-col relative overflow-hidden" style={{ background: `linear-gradient(180deg, ${brand.warna_utama}, #04100a)` }}>
         <PatternBG />
-        <div className="relative flex items-center gap-3 pb-5 mb-5 border-b border-white/10">
+        <div className="relative flex flex-col items-center text-center gap-2 pb-5 mb-5 border-b border-white/10">
           <LogoMark size={brand.ukuran_logo_sidebar || 52} url={brand.logo_url} />
           <div>
             <div className="text-[10px] font-bold text-white/45 tracking-[0.15em]">SIAKAD</div>
@@ -1461,10 +1461,10 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
             </div>
             <p className="text-xs text-stone-400 mb-4">Warna Utama untuk latar sidebar & tombol utama. Warna Aksen untuk logo, sorotan menu, dan tagline.</p>
             <Field label={`Ukuran Logo di Sidebar (${ukuranLogo}px)`}>
-              <input type="range" min="32" max="96" value={ukuranLogo} onChange={(e) => setUkuranLogo(e.target.value)} className="w-full" />
+              <input type="range" min="32" max="220" value={ukuranLogo} onChange={(e) => setUkuranLogo(e.target.value)} className="w-full" />
             </Field>
             <Field label={`Ukuran Logo di Halaman Login (${ukuranLogoLogin}px)`}>
-              <input type="range" min="40" max="160" value={ukuranLogoLogin} onChange={(e) => setUkuranLogoLogin(e.target.value)} className="w-full" />
+              <input type="range" min="40" max="320" value={ukuranLogoLogin} onChange={(e) => setUkuranLogoLogin(e.target.value)} className="w-full" />
             </Field>
             <Btn type="submit" tone="gold">Simpan Identitas Pondok</Btn>
           </form>
