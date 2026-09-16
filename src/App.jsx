@@ -67,7 +67,7 @@ const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademi
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
 /* ---------------------------------------------------------------------- */
 function useBrand() {
-  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, warna_utama: "#0B3B36", warna_aksen: "#B8935A", warna_arab: "#B8935A", ukuran_logo_sidebar: 52,
+  const [brand, setBrand] = useState({ nama_pondok: "Darul Hikmah", tagline: DEFAULT_TAGLINE, logo_url: null, logo_dokumen_url: null, warna_utama: "#0B3B36", warna_aksen: "#B8935A", warna_arab: "#B8935A", ukuran_logo_sidebar: 52,
     yayasan_nama: "YAYASAN WAKAF HAMALATUL QURAN", alamat_pondok: "Komplek Kampoeng Quran Darul Hikmah Jalan Ajun Mata Ie Desa Geundring, Kecamatan Darul Imarah, Kabupaten Aceh Besar Kode Pos 23352", kontak_pondok: "+62821-3227-3431",
     nama_mudir: "Sudirman", nip_mudir: "", nama_kabag_akademik: "Nuraliah Syahfitri, S.Pd.", nip_kabag_akademik: "", judul_besar: "SIAKAD", subjudul: "Sistem Informasi Terpadu dan Manajemen Pembelajaran", slogan: "Mencetak Pengusaha Muda Penghafal Quran", sapaan: "Selamat Datang", ukuran_judul: 72, ukuran_subjudul: 18, font_style: "fraunces", align_subjudul: "left", align_slogan: "left", font_judul: "fraunces", font_subjudul: "fraunces", font_slogan: "fraunces", font_sapaan: "fraunces", ukuran_logo_login: 76, ukuran_slogan: 18, ukuran_sapaan: 24 });
   const [loaded, setLoaded] = useState(false);
@@ -583,9 +583,16 @@ function AkademikStaffPage({ profile }) {
   const semesterTerbaru = [...records].sort((a, b) => (b.tahun_ajaran || "").localeCompare(a.tahun_ajaran || "") || (b.semester || "").localeCompare(a.semester || ""))[0];
   const recordsKRS = semesterTerbaru ? records.filter((r) => r.tahun_ajaran === semesterTerbaru.tahun_ajaran && r.semester === semesterTerbaru.semester) : [];
 
-  async function add(f) {
-    const { error } = await supabase.from("akademik").insert({ ...f, nim, sks: Number(f.sks) });
-    if (error) alert(error.message); else { setShowForm(false); akT.reload(); }
+  const [editingRecord, setEditingRecord] = useState(null);
+  async function saveRecord(f) {
+    const payload = { ...f, sks: Number(f.sks) };
+    if (editingRecord) {
+      const { error } = await supabase.from("akademik").update(payload).eq("id", editingRecord.id);
+      if (error) alert(error.message); else { setEditingRecord(null); akT.reload(); }
+    } else {
+      const { error } = await supabase.from("akademik").insert({ ...payload, nim });
+      if (error) alert(error.message); else { setShowForm(false); akT.reload(); }
+    }
   }
   async function updateNilai(id, v) {
     const nilai = v === "" ? null : Number(v);
@@ -651,7 +658,7 @@ function AkademikStaffPage({ profile }) {
       </div>
       <div className="krs-print bg-white rounded-2xl border border-stone-200 shadow-sm p-8 mb-6">
         <table style={{ width: "100%", marginBottom: 14 }}><tbody><tr>
-          <td style={{ width: 90, verticalAlign: "middle" }}>{brand.logo_url && <img src={brand.logo_url} alt="logo" style={{ width: 80 }} />}</td>
+          <td style={{ width: 90, verticalAlign: "middle" }}>{(brand.logo_dokumen_url || brand.logo_url) && <img src={brand.logo_dokumen_url || brand.logo_url} alt="logo" style={{ width: 80 }} />}</td>
           <td style={{ verticalAlign: "middle" }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: "#0B3B36" }}>{brand.yayasan_nama}</div>
             <div style={{ fontWeight: 700, fontSize: 13, color: "#0B3B36" }}>PONDOK TAHFIDZ QURAN DAN ENTREPRENEUR {brand.nama_pondok?.toUpperCase()}</div>
@@ -781,22 +788,26 @@ function AkademikStaffPage({ profile }) {
                 <td className="p-3.5">{r.sks}</td>
                 <td className="p-3.5"><Badge tone={r.status === "selesai" ? "green" : "gold"}>{r.status}</Badge></td>
                 <td className="p-3.5 w-28">{editable ? <Input type="number" defaultValue={r.nilai_angka ?? ""} onBlur={(e) => updateNilai(r.id, e.target.value)} /> : (r.nilai_angka ?? "-")}</td>
-                {editable && <td className="p-3.5 text-right"><button onClick={() => removeMatkul(r.id)} className="text-red-600 text-xs font-bold">Hapus</button></td>}
+                {editable && <td className="p-3.5 text-right whitespace-nowrap">
+                  <button onClick={() => setEditingRecord(r)} className="text-[#145048] text-xs font-bold mr-3">Edit</button>
+                  <button onClick={() => removeMatkul(r.id)} className="text-red-600 text-xs font-bold">Hapus</button>
+                </td>}
               </tr>
             ))}
             {records.length === 0 && <tr><td colSpan={editable ? 8 : 7}><Empty text="Belum ada data." /></td></tr>}
           </tbody>
         </table>
       </Card>
-      {showForm && <AkademikForm onCancel={() => setShowForm(false)} onSubmit={add} />}
+      {showForm && <AkademikForm onCancel={() => setShowForm(false)} onSubmit={saveRecord} />}
+      {editingRecord && <AkademikForm initial={editingRecord} onCancel={() => setEditingRecord(null)} onSubmit={saveRecord} />}
     </div>
   );
 }
-function AkademikForm({ onCancel, onSubmit }) {
-  const [f, setF] = useState({ tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_kuliah: MATA_KULIAH[0], sks: 2, status: "aktif", pengajar: "", kode_mk: "" });
+function AkademikForm({ initial, onCancel, onSubmit }) {
+  const [f, setF] = useState(initial || { tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_kuliah: MATA_KULIAH[0], sks: 2, status: "aktif", pengajar: "", kode_mk: "" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
-    <Modal title="Tambah Mata Kuliah" onClose={onCancel}>
+    <Modal title={initial ? "Edit Mata Kuliah" : "Tambah Mata Kuliah"} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Tahun Ajaran"><Input value={f.tahun_ajaran} onChange={set("tahun_ajaran")} /></Field>
         <Field label="Semester"><Select value={f.semester} onChange={set("semester")}><option>Ganjil</option><option>Genap</option></Select></Field>
@@ -1432,6 +1443,8 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   const [slogan, setSlogan] = useState(brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran");
   const [sapaan, setSapaan] = useState(brand.sapaan || "Selamat Datang");
   const [logoUploading, setLogoUploading] = useState(false);
+  const [logoDokumenUploading, setLogoDokumenUploading] = useState(false);
+  const logoDokumenRef = useRef(null);
   const logoRef = useRef(null);
 
   async function saveNama(e) {
@@ -1498,6 +1511,25 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
       setLogoUploading(false);
     }
   }
+  async function uploadLogoDokumen(e) {
+    const file = e.target.files[0]; if (!file) return;
+    setLogoDokumenUploading(true); setMsg("");
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `logo-dokumen.${ext}`;
+      const { error: upErr } = await supabase.storage.from("branding").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("branding").getPublicUrl(path);
+      const { error: dbErr } = await supabase.from("pengaturan_pondok").update({ logo_dokumen_url: `${data.publicUrl}?t=${Date.now()}` }).eq("id", 1);
+      if (dbErr) throw dbErr;
+      setMsg("Logo dokumen berhasil diperbarui.");
+      onBrandUpdated();
+    } catch (err) {
+      setMsg("Gagal unggah logo dokumen: " + err.message);
+    } finally {
+      setLogoDokumenUploading(false);
+    }
+  }
 
   return (
     <div>
@@ -1543,6 +1575,17 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
               <Btn tone="ghost" onClick={() => logoRef.current?.click()} disabled={logoUploading}>{logoUploading ? "Mengunggah…" : "Ganti Logo"}</Btn>
               <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={uploadLogo} />
               <p className="text-xs text-stone-400 mt-2">Disarankan gambar persegi, JPG/PNG.</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-5 mb-5 pt-4 border-t border-[#EDD9A0]">
+            <div className="w-16 h-16 rounded-lg bg-white border border-stone-200 flex items-center justify-center overflow-hidden">
+              {brand.logo_dokumen_url ? <img src={brand.logo_dokumen_url} alt="logo dokumen" className="w-full h-full object-contain p-1" /> : <span className="text-[10px] text-stone-300 text-center px-2">Belum ada</span>}
+            </div>
+            <div>
+              <Btn tone="ghost" onClick={() => logoDokumenRef.current?.click()} disabled={logoDokumenUploading}>{logoDokumenUploading ? "Mengunggah…" : "Ganti Logo untuk Dokumen (KRS/KHS)"}</Btn>
+              <input ref={logoDokumenRef} type="file" accept="image/*" className="hidden" onChange={uploadLogoDokumen} />
+              <p className="text-xs text-stone-400 mt-2">Pakai versi logo BERWARNA ASLI (bukan putih) — dipakai khusus di kop KRS/KHS yang latarnya putih. Tidak memengaruhi logo sidebar & login.</p>
             </div>
           </div>
 
