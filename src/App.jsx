@@ -186,10 +186,10 @@ function PatternBG() {
 
 function SoftPatternBG({ color = "#0B3B36" }) {
   return (
-    <svg className="absolute inset-0 w-full h-full opacity-[0.05] pointer-events-none" preserveAspectRatio="xMidYMid slice">
+    <svg className="absolute inset-0 w-full h-full opacity-[0.11] pointer-events-none" preserveAspectRatio="xMidYMid slice">
       <defs>
         <pattern id="dh-rosette" width="120" height="120" patternUnits="userSpaceOnUse">
-          <g fill="none" stroke={color} strokeWidth="0.8" transform="translate(60,60)">
+          <g fill="none" stroke={color} strokeWidth="1.1" transform="translate(60,60)">
             <path d="M0 0 C8 -15 8 -35 0 -50 C-8 -35 -8 -15 0 0 Z" />
             <path d="M0 0 C8 -15 8 -35 0 -50 C-8 -35 -8 -15 0 0 Z" transform="rotate(45)" />
             <path d="M0 0 C8 -15 8 -35 0 -50 C-8 -35 -8 -15 0 0 Z" transform="rotate(90)" />
@@ -198,8 +198,8 @@ function SoftPatternBG({ color = "#0B3B36" }) {
             <path d="M0 0 C8 -15 8 -35 0 -50 C-8 -35 -8 -15 0 0 Z" transform="rotate(225)" />
             <path d="M0 0 C8 -15 8 -35 0 -50 C-8 -35 -8 -15 0 0 Z" transform="rotate(270)" />
             <path d="M0 0 C8 -15 8 -35 0 -50 C-8 -35 -8 -15 0 0 Z" transform="rotate(315)" />
-            <circle cx="0" cy="0" r="2.5" fill={color} stroke="none" />
-            <circle cx="0" cy="0" r="18" strokeWidth="0.5" />
+            <circle cx="0" cy="0" r="3" fill={color} stroke="none" />
+            <circle cx="0" cy="0" r="18" strokeWidth="0.8" />
           </g>
         </pattern>
       </defs>
