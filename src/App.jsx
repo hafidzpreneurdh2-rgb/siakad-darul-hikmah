@@ -6,6 +6,8 @@ const BrandContext = createContext({ warna_utama: "#0B3B36", warna_aksen: "#B893
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"];
 const JENIS_IBADAH = ["Sholat 5 Waktu Berjamaah","Sholat Sunnah Rawatib (Qabliyah/Ba'diyah)","Puasa Sunnah","Tilawah Harian","Dzikir Pagi-Petang","Qiyamullail"];
+const JENIS_SETORAN_QURAN = ["Ziyadah", "Murajaah", "Tilawah", "Tahsin", "Talaqqi"];
+const JENIS_SETORAN_QURAN_COLOR = { Ziyadah: "#0B4D30", Murajaah: "#B8935A", Tilawah: "#3F6C8A", Tahsin: "#8A4A3A", Talaqqi: "#5C4A8A" };
 const CAPAIAN_OPTIONS = {
   "Sholat 5 Waktu Berjamaah": ["Berjamaah", "Sendiri", "Tidak Sholat"],
   "Sholat Sunnah Rawatib (Qabliyah/Ba'diyah)": ["Lengkap", "Sebagian", "Tidak Dikerjakan"],
@@ -211,19 +213,17 @@ function SoftPatternBG({ color = "#0B3B36" }) {
 /* ---------------------------------------------------------------------- */
 /* Login                                                                    */
 /* ---------------------------------------------------------------------- */
-const MASUK_SEBAGAI_OPTIONS = [
-  { value: "mahasantri", label: "Mahasantri", fieldLabel: "NIM Mahasantri", placeholder: "contoh: 2024001" },
-  { value: "orangtua", label: "Orang Tua / Wali", fieldLabel: "NIM Putra/Putri", placeholder: "contoh: 2024001" },
-  { value: "admin", label: "Admin / Staf Pondok", fieldLabel: "Username", placeholder: "contoh: admin" },
-];
-
 function LoginScreen({ brand }) {
-  const [masukSebagai, setMasukSebagai] = useState("mahasantri");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
-  const opt = MASUK_SEBAGAI_OPTIONS.find((o) => o.value === masukSebagai);
+
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotUsername, setForgotUsername] = useState("");
+  const [forgotErr, setForgotErr] = useState("");
+  const [forgotMsg, setForgotMsg] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
@@ -237,6 +237,22 @@ function LoginScreen({ brand }) {
       setErr(e2.message || "NIM/Username atau kata sandi salah.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function requestReset(e) {
+    e.preventDefault();
+    setForgotErr(""); setForgotMsg(""); setForgotLoading(true);
+    try {
+      const { data: email, error: rpcErr } = await supabase.rpc("get_login_email", { p_username: forgotUsername.trim() });
+      if (rpcErr || !email) throw new Error("Username/NIM tidak ditemukan.");
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+      if (resetErr) throw resetErr;
+      setForgotMsg("Tautan reset kata sandi sudah dikirim ke email yang terdaftar untuk akun ini. Silakan cek inbox (atau folder spam), lalu buka tautannya untuk membuat kata sandi baru.");
+    } catch (e2) {
+      setForgotErr(e2.message || "Gagal mengirim tautan reset. Pastikan username/NIM sudah benar.");
+    } finally {
+      setForgotLoading(false);
     }
   }
 
@@ -270,19 +286,72 @@ function LoginScreen({ brand }) {
         <div className="bg-white p-10 flex flex-col justify-center">
           <h3 className="mb-1 font-semibold" style={{ color: brand.warna_utama, fontFamily: fontFamilyOf(brand, "font_sapaan"), fontSize: `${brand.ukuran_sapaan || 24}px` }}>{brand.sapaan || "Selamat Datang"}</h3>
           <p dir="rtl" lang="ar" style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif", color: brand.warna_arab || "#B8935A" }} className="text-xl mb-4 text-left">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
-          <form onSubmit={submit}>
-            <Field label="Masuk Sebagai">
-              <Select value={masukSebagai} onChange={(e) => setMasukSebagai(e.target.value)}>
-                {MASUK_SEBAGAI_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </Select>
-            </Field>
-            <Field label={opt.fieldLabel}><Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={opt.placeholder} required autoFocus /></Field>
-            <Field label="Kata Sandi"><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></Field>
-            {err && <div className="text-red-700 text-xs bg-red-50 rounded-xl px-3.5 py-2.5 mb-4 font-medium">{err}</div>}
-            <Btn type="submit" disabled={loading}>{loading ? "Memproses…" : "Masuk"}</Btn>
-          </form>
+          {!forgotMode ? (
+            <form onSubmit={submit}>
+              <Field label="Username / NIM"><Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Masukkan username atau NIM Anda" required autoFocus /></Field>
+              <Field label="Kata Sandi"><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></Field>
+              {err && <div className="text-red-700 text-xs bg-red-50 rounded-xl px-3.5 py-2.5 mb-4 font-medium">{err}</div>}
+              <Btn type="submit" disabled={loading}>{loading ? "Memproses…" : "Masuk"}</Btn>
+              <button type="button" onClick={() => { setForgotMode(true); setForgotUsername(username); setForgotErr(""); setForgotMsg(""); }} className="block mt-4 text-xs font-bold text-[#0F4A44] hover:text-[#082A26]">
+                Lupa kata sandi?
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={requestReset}>
+              <p className="text-sm text-stone-500 mb-4">Masukkan username atau NIM Anda. Tautan untuk membuat kata sandi baru akan dikirim ke email yang terdaftar pada akun tersebut.</p>
+              <Field label="Username / NIM"><Input value={forgotUsername} onChange={(e) => setForgotUsername(e.target.value)} placeholder="Masukkan username atau NIM Anda" required autoFocus /></Field>
+              {forgotErr && <div className="text-red-700 text-xs bg-red-50 rounded-xl px-3.5 py-2.5 mb-4 font-medium">{forgotErr}</div>}
+              {forgotMsg && <div className="text-[#0F4A44] text-xs bg-[#E9F1EE] rounded-xl px-3.5 py-2.5 mb-4 font-medium">{forgotMsg}</div>}
+              <Btn type="submit" disabled={forgotLoading}>{forgotLoading ? "Mengirim…" : "Kirim Tautan Reset"}</Btn>
+              <button type="button" onClick={() => { setForgotMode(false); setForgotErr(""); setForgotMsg(""); }} className="block mt-4 text-xs font-bold text-stone-500 hover:text-stone-700">
+                ← Kembali ke halaman masuk
+              </button>
+            </form>
+          )}
           <div className="text-center mt-8 text-[11px] text-stone-400">© {nowYear} {brand.tagline || DEFAULT_TAGLINE}</div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ResetPasswordScreen({ brand, onDone }) {
+  const [pw1, setPw1] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setErr("");
+    if (pw1.length < 6) { setErr("Kata sandi minimal 6 karakter."); return; }
+    if (pw1 !== pw2) { setErr("Konfirmasi kata sandi tidak sama."); return; }
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: pw1 });
+    setLoading(false);
+    if (error) { setErr(error.message); return; }
+    setOk(true);
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F4F2EA] p-5 relative overflow-hidden">
+      <SoftPatternBG color={brand.warna_utama} />
+      <div className="w-full max-w-md bg-white rounded-[28px] p-10 shadow-[0_30px_70px_-20px_rgba(10,30,20,.35)] relative z-10">
+        <h3 className="mb-1 font-semibold" style={{ color: brand.warna_utama }}>Buat Kata Sandi Baru</h3>
+        {ok ? (
+          <>
+            <p className="text-sm text-stone-500 mt-2 mb-5">Kata sandi berhasil diperbarui. Silakan lanjutkan masuk ke aplikasi.</p>
+            <Btn onClick={onDone}>Lanjutkan</Btn>
+          </>
+        ) : (
+          <form onSubmit={submit} className="mt-4">
+            <Field label="Kata Sandi Baru"><Input type="password" value={pw1} onChange={(e) => setPw1(e.target.value)} placeholder="Minimal 6 karakter" required autoFocus /></Field>
+            <Field label="Ulangi Kata Sandi Baru"><Input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} required /></Field>
+            {err && <div className="text-red-700 text-xs bg-red-50 rounded-xl px-3.5 py-2.5 mb-4 font-medium">{err}</div>}
+            <Btn type="submit" disabled={loading}>{loading ? "Menyimpan…" : "Simpan Kata Sandi"}</Btn>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -354,6 +423,27 @@ function PageHeader({ eyebrow, title, sub, actions }) {
   );
 }
 function Empty({ text }) { return <div className="text-center text-stone-400 text-sm py-10">{text}</div>; }
+function StackedBarChart({ data }) {
+  // data: [{ label, lunas, belum }]
+  return (
+    <div className="flex items-end gap-3 h-40">
+      {data.map((d) => {
+        const total = d.lunas + d.belum || 1;
+        const lunasPct = (d.lunas / total) * 100;
+        const belumPct = 100 - lunasPct;
+        return (
+          <div key={d.label} className="flex-1 flex flex-col items-center gap-2 h-full">
+            <div className="w-full flex-1 rounded-lg overflow-hidden flex flex-col justify-end bg-stone-100">
+              {belumPct > 0 && <div style={{ height: `${belumPct}%`, backgroundColor: "#DC2626" }} />}
+              {lunasPct > 0 && <div style={{ height: `${lunasPct}%`, backgroundColor: "#0B4D30" }} />}
+            </div>
+            <div className="text-[11px] font-bold text-stone-500">{d.label}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 function StatCard({ label, value, sub, icon }) {
   return (
     <Card>
@@ -368,6 +458,26 @@ function StatCard({ label, value, sub, icon }) {
 }
 function BackBar({ onBack, label = "← Kembali ke semua santri" }) {
   return <button onClick={onBack} className="text-sm font-bold text-[#0F4A44] hover:text-[#082A26] mb-4">{label}</button>;
+}
+function BarChartSimple({ data }) {
+  // data: [{ label, value, color }]
+  const max = Math.max(1, ...data.map((d) => d.value));
+  return (
+    <div className="flex flex-col gap-3">
+      {data.map((d) => (
+        <div key={d.label} className="flex items-center gap-3">
+          <div className="w-20 text-xs font-bold text-stone-600 flex-shrink-0">{d.label}</div>
+          <div className="flex-1 h-6 bg-stone-100 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${(d.value / max) * 100}%`, backgroundColor: d.color, minWidth: d.value > 0 ? 10 : 0 }}
+            />
+          </div>
+          <div className="w-8 text-right text-xs font-extrabold text-stone-700 flex-shrink-0">{d.value}</div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /* ---------------------------------------------------------------------- */
@@ -389,22 +499,52 @@ function useTable(table, deps = []) {
 /* ---------------------------------------------------------------------- */
 /* Dashboard                                                                */
 /* ---------------------------------------------------------------------- */
+function monthsBack(n) {
+  const arr = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    arr.push({ bulan: BULAN[d.getMonth()], tahun: d.getFullYear(), label: BULAN[d.getMonth()].slice(0, 3) });
+  }
+  return arr;
+}
 function Dashboard({ profile }) {
   const santriT = useTable("santri");
   const sppT = useTable("spp");
+  const quranT = useTable("quran_log");
 
   if (profile.role === "santri") {
     const s = santriT.rows.find((x) => x.nim === profile.nim);
+    const bulanIni = BULAN[new Date().getMonth()];
+    const sppBulanIni = sppT.rows.find((r) => r.nim === profile.nim && r.bulan === bulanIni && r.tahun === nowYear);
+    const setoranBulanIni = quranT.rows.filter((l) => l.nim === profile.nim && l.tanggal?.slice(0, 7) === new Date().toISOString().slice(0, 7)).length;
     return (
       <div>
         <PageHeader eyebrow="Ruang Santri" title={`Assalamu'alaikum, ${profile.nama.split(" ")[0]}`} sub={profile.nim} />
-        <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Peta Hafalan</h3><JuzTracker juz={s?.juz_dikuasai || []} /></Card>
+        <div className="grid grid-cols-3 gap-4">
+          <StatCard label="Juz Dikuasai" value={`${s?.juz_dikuasai?.length || 0} / 30`} icon="📖" />
+          <StatCard label="Setoran Bulan Ini" value={setoranBulanIni} icon="🕋" />
+          <StatCard label="Status SPP Bulan Ini" value={sppBulanIni?.status || "Belum Ada Data"} icon="💳" />
+        </div>
       </div>
     );
   }
 
   const bulanIni = BULAN[new Date().getMonth()];
   const belumLunas = sppT.rows.filter((r) => r.bulan === bulanIni && r.tahun === nowYear && r.status !== "Lunas").length;
+  const jenisCounts = JENIS_SETORAN_QURAN.map((j) => ({
+    label: j,
+    value: quranT.rows.filter((l) => l.jenis === j).length,
+    color: JENIS_SETORAN_QURAN_COLOR[j],
+  }));
+  const totalSantri = santriT.rows.length;
+  const sppTrend = monthsBack(6).map(({ bulan, tahun, label }) => {
+    const lunas = sppT.rows.filter((r) => r.bulan === bulan && r.tahun === tahun && r.status === "Lunas").length;
+    return { label, lunas, belum: Math.max(0, totalSantri - lunas) };
+  });
+
+  const showQuranChart = true;
+  const showSppChart = true;
 
   return (
     <div>
@@ -414,6 +554,27 @@ function Dashboard({ profile }) {
         <StatCard label="Tunggakan Bulan Ini" value={belumLunas} icon="💳" />
         <StatCard label="Rata-rata Juz" value={santriT.rows.length ? (santriT.rows.reduce((a, s) => a + (s.juz_dikuasai?.length || 0), 0) / santriT.rows.length).toFixed(1) : 0} icon="📖" />
       </div>
+      {(showQuranChart || showSppChart) && (
+        <div className={`grid gap-4 ${showQuranChart && showSppChart ? "grid-cols-2" : "grid-cols-1"}`}>
+          {showQuranChart && (
+            <Card>
+              <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-4">Capaian Al-Qur'an Mahasantri</h3>
+              <BarChartSimple data={jenisCounts} />
+              <div className="text-xs text-stone-400 mt-3">Total seluruh catatan setoran berdasarkan jenis, dari semua mahasantri.</div>
+            </Card>
+          )}
+          {showSppChart && (
+            <Card>
+              <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-4">Tren Pembayaran SPP (6 Bulan)</h3>
+              <StackedBarChart data={sppTrend} />
+              <div className="flex items-center gap-4 mt-4 text-xs font-semibold text-stone-500">
+                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: "#0B4D30" }} /> Lunas</div>
+                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: "#DC2626" }} /> Belum Lunas</div>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1015,13 +1176,13 @@ function QuranPage({ profile }) {
   );
 }
 function QuranForm({ initial, onCancel, onSubmit }) {
-  const [f, setF] = useState(initial || { tanggal: new Date().toISOString().slice(0, 10), jenis: "Setoran Baru", juz: 1, halaman_dari: 1, halaman_sampai: 1, kelancaran: "Lancar", catatan: "", tandai: false });
+  const [f, setF] = useState(initial || { tanggal: new Date().toISOString().slice(0, 10), jenis: JENIS_SETORAN_QURAN[0], juz: 1, halaman_dari: 1, halaman_sampai: 1, kelancaran: "Lancar", catatan: "", tandai: false });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
     <Modal title={initial ? "Edit Setoran" : "Catat Setoran"} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Tanggal"><Input type="date" value={f.tanggal} onChange={set("tanggal")} /></Field>
-        <Field label="Jenis"><Select value={f.jenis} onChange={set("jenis")}><option>Setoran Baru</option><option>Murojaah</option><option>Tasmi'</option></Select></Field>
+        <Field label="Jenis"><Select value={f.jenis} onChange={set("jenis")}>{JENIS_SETORAN_QURAN.map((j) => <option key={j}>{j}</option>)}</Select></Field>
         <Field label="Juz"><Input type="number" min={1} max={30} value={f.juz} onChange={set("juz")} /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Halaman Dari"><Input type="number" min={1} value={f.halaman_dari} onChange={set("halaman_dari")} /></Field>
@@ -1413,13 +1574,17 @@ function KelolaAkunPage() {
   );
 }
 function AkunForm({ onCancel, onSubmit }) {
-  const [f, setF] = useState({ username: "", password: "", nama: "", role: "santri", nim: "" });
+  const [f, setF] = useState({ username: "", email: "", password: "", nama: "", role: "santri", nim: "" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
     <Modal title="Tambah Akun" onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }} onKeyDown={(e) => { if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") { e.preventDefault(); onSubmit(f); } }}>
         <Field label="Username / NIM"><Input value={f.username} onChange={set("username")} required /></Field>
         <Field label="Nama"><Input value={f.nama} onChange={set("nama")} required /></Field>
+        <Field label="Email">
+          <Input type="email" value={f.email} onChange={set("email")} placeholder="cth. email wali/orang tua" required />
+        </Field>
+        <div className="text-xs text-stone-400 -mt-2 mb-3">Untuk mahasantri, isi dengan email orang tua/wali. Email ini dipakai untuk fitur "Lupa Kata Sandi", jadi pastikan aktif dan bisa diakses.</div>
         <Field label="Kata Sandi (min. 6 karakter)"><Input type="password" value={f.password} onChange={set("password")} required /></Field>
         <Field label="Peran">
           <Select value={f.role} onChange={set("role")}>
@@ -1770,6 +1935,7 @@ export default function App() {
   const [session, setSession] = useState(undefined);
   const [profile, setProfile] = useState(null);
   const [view, setView] = useState("dashboard");
+  const [recovery, setRecovery] = useState(false);
   const { brand, reloadBrand } = useBrand();
 
   useEffect(() => {
@@ -1780,7 +1946,10 @@ export default function App() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s);
+      if (event === "PASSWORD_RECOVERY") setRecovery(true);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -1794,6 +1963,7 @@ export default function App() {
   }
   useEffect(loadProfile, [session]);
 
+  if (recovery) return <BrandContext.Provider value={brand}><ResetPasswordScreen brand={brand} onDone={() => setRecovery(false)} /></BrandContext.Provider>;
   if (session === undefined) return <div className="min-h-screen flex items-center justify-center text-stone-500">Memuat…</div>;
   if (!session) return <BrandContext.Provider value={brand}><LoginScreen brand={brand} /></BrandContext.Provider>;
   if (!profile) return <div className="min-h-screen flex items-center justify-center text-stone-500">Memuat profil…</div>;

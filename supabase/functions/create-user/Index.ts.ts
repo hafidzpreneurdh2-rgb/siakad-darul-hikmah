@@ -35,12 +35,15 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { username, password, nama, role, nim } = body;
-    if (!username || !password || !nama || !role) {
-      return json({ error: "Data tidak lengkap." }, 400);
+    const { username, email, password, nama, role, nim } = body;
+    if (!username || !email || !password || !nama || !role) {
+      return json({ error: "Data tidak lengkap. Email wajib diisi." }, 400);
     }
     if (password.length < 6) {
       return json({ error: "Kata sandi minimal 6 karakter." }, 400);
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return json({ error: "Format email tidak valid." }, 400);
     }
 
     // Klien admin: pakai service role key, HANYA ada di server ini
@@ -49,7 +52,6 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const email = `${username}@santri.internal`;
     const { data: created, error: createErr } = await adminClient.auth.admin.createUser({
       email, password, email_confirm: true,
     });
