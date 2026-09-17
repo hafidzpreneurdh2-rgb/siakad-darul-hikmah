@@ -184,6 +184,30 @@ function PatternBG() {
   );
 }
 
+function SoftPatternBG({ color = "#0B3B36" }) {
+  return (
+    <svg className="absolute inset-0 w-full h-full opacity-[0.05] pointer-events-none" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <pattern id="dh-rosette" width="120" height="120" patternUnits="userSpaceOnUse">
+          <g fill="none" stroke={color} strokeWidth="0.8" transform="translate(60,60)">
+            <path d="M0 0 C8 -15 8 -35 0 -50 C-8 -35 -8 -15 0 0 Z" />
+            <path d="M0 0 C8 -15 8 -35 0 -50 C-8 -35 -8 -15 0 0 Z" transform="rotate(45)" />
+            <path d="M0 0 C8 -15 8 -35 0 -50 C-8 -35 -8 -15 0 0 Z" transform="rotate(90)" />
+            <path d="M0 0 C8 -15 8 -35 0 -50 C-8 -35 -8 -15 0 0 Z" transform="rotate(135)" />
+            <path d="M0 0 C8 -15 8 -35 0 -50 C-8 -35 -8 -15 0 0 Z" transform="rotate(180)" />
+            <path d="M0 0 C8 -15 8 -35 0 -50 C-8 -35 -8 -15 0 0 Z" transform="rotate(225)" />
+            <path d="M0 0 C8 -15 8 -35 0 -50 C-8 -35 -8 -15 0 0 Z" transform="rotate(270)" />
+            <path d="M0 0 C8 -15 8 -35 0 -50 C-8 -35 -8 -15 0 0 Z" transform="rotate(315)" />
+            <circle cx="0" cy="0" r="2.5" fill={color} stroke="none" />
+            <circle cx="0" cy="0" r="18" strokeWidth="0.5" />
+          </g>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#dh-rosette)" />
+    </svg>
+  );
+}
+
 /* ---------------------------------------------------------------------- */
 /* Login                                                                    */
 /* ---------------------------------------------------------------------- */
@@ -217,10 +241,18 @@ function LoginScreen({ brand }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F4F2EA] p-5">
-      <div className="w-full max-w-4xl grid md:grid-cols-2 rounded-[28px] overflow-hidden shadow-[0_30px_70px_-20px_rgba(10,30,20,.35)]">
-        <div className="relative p-10 text-white flex flex-col justify-between overflow-hidden" style={{ background: `linear-gradient(150deg, ${brand.warna_utama}, #050b08 130%)` }}>
-          <PatternBG />
+    <div className="min-h-screen flex items-center justify-center bg-[#F4F2EA] p-5 relative overflow-hidden">
+      <SoftPatternBG color={brand.warna_utama} />
+      <div className="w-full max-w-4xl grid md:grid-cols-2 rounded-[28px] overflow-hidden shadow-[0_30px_70px_-20px_rgba(10,30,20,.35)] relative z-10">
+        <div
+          className="relative p-10 text-white flex flex-col justify-between overflow-hidden bg-cover bg-center"
+          style={
+            brand.foto_latar_url
+              ? { backgroundImage: `linear-gradient(150deg, ${brand.warna_utama}dd, #050b08e6 130%), url(${brand.foto_latar_url})` }
+              : { background: `linear-gradient(150deg, ${brand.warna_utama}, #050b08 130%)` }
+          }
+        >
+          {!brand.foto_latar_url && <PatternBG />}
           <div className="relative">
             <div className="mb-10">
               <LogoMark size={brand.ukuran_logo_login || 76} url={brand.logo_url} />
@@ -1447,8 +1479,10 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   const [sapaan, setSapaan] = useState(brand.sapaan || "Selamat Datang");
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoDokumenUploading, setLogoDokumenUploading] = useState(false);
+  const [wallpaperUploading, setWallpaperUploading] = useState(false);
   const logoDokumenRef = useRef(null);
   const logoRef = useRef(null);
+  const wallpaperRef = useRef(null);
 
   async function saveNama(e) {
     e.preventDefault(); setMsg("");
@@ -1534,6 +1568,32 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
     }
   }
 
+  async function uploadWallpaper(e) {
+    const file = e.target.files[0]; if (!file) return;
+    setWallpaperUploading(true); setMsg("");
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `wallpaper.${ext}`;
+      const { error: upErr } = await supabase.storage.from("branding").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("branding").getPublicUrl(path);
+      const { error: dbErr } = await supabase.from("pengaturan_pondok").update({ foto_latar_url: `${data.publicUrl}?t=${Date.now()}` }).eq("id", 1);
+      if (dbErr) throw dbErr;
+      setMsg("Wallpaper latar login berhasil diperbarui.");
+      onBrandUpdated();
+    } catch (err) {
+      setMsg("Gagal unggah wallpaper: " + err.message);
+    } finally {
+      setWallpaperUploading(false);
+    }
+  }
+  async function hapusWallpaper() {
+    setWallpaperUploading(true); setMsg("");
+    const { error } = await supabase.from("pengaturan_pondok").update({ foto_latar_url: null }).eq("id", 1);
+    setWallpaperUploading(false);
+    if (error) setMsg("Gagal: " + error.message); else { setMsg("Wallpaper dihapus, kembali ke latar gradasi warna."); onBrandUpdated(); }
+  }
+
   return (
     <div>
       <PageHeader title="Pengaturan" sub="Kelola profil dan kata sandi akun Anda." />
@@ -1589,6 +1649,20 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
               <Btn tone="ghost" onClick={() => logoDokumenRef.current?.click()} disabled={logoDokumenUploading}>{logoDokumenUploading ? "Mengunggah…" : "Ganti Logo untuk Dokumen (KRS/KHS)"}</Btn>
               <input ref={logoDokumenRef} type="file" accept="image/*" className="hidden" onChange={uploadLogoDokumen} />
               <p className="text-xs text-stone-400 mt-2">Pakai versi logo BERWARNA ASLI (bukan putih) — dipakai khusus di kop KRS/KHS yang latarnya putih. Tidak memengaruhi logo sidebar & login.</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-5 mb-5 pt-4 border-t border-[#EDD9A0]">
+            <div className="w-24 h-16 rounded-lg bg-stone-800 border border-stone-200 flex items-center justify-center overflow-hidden">
+              {brand.foto_latar_url ? <img src={brand.foto_latar_url} alt="wallpaper login" className="w-full h-full object-cover" /> : <span className="text-[10px] text-stone-400 text-center px-2">Belum ada — pakai gradasi warna</span>}
+            </div>
+            <div>
+              <div className="flex gap-2">
+                <Btn tone="ghost" onClick={() => wallpaperRef.current?.click()} disabled={wallpaperUploading}>{wallpaperUploading ? "Mengunggah…" : "Ganti Wallpaper Latar Login"}</Btn>
+                {brand.foto_latar_url && <Btn tone="ghost" onClick={hapusWallpaper} disabled={wallpaperUploading}>Hapus</Btn>}
+              </div>
+              <input ref={wallpaperRef} type="file" accept="image/*" className="hidden" onChange={uploadWallpaper} />
+              <p className="text-xs text-stone-400 mt-2">Foto latar di panel kiri halaman login (mis. foto gedung/gerbang pondok). Otomatis digelapkan supaya teks & logo tetap terbaca. Kosongkan untuk pakai gradasi warna seperti sekarang.</p>
             </div>
           </div>
 
