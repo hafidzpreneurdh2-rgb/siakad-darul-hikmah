@@ -55,13 +55,13 @@ const CAN_EDIT = {
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
 const MENUS = {
-  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Input Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
+  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
   musyrif: [["dashboard","Dashboard"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
   musyrifah: [["dashboard","Dashboard"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
   keuangan: [["dashboard","Dashboard"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
-  akademik: [["dashboard","Dashboard"],["akademik","Input Akademik"],["pengaturan","Pengaturan"]],
+  akademik: [["dashboard","Dashboard"],["akademik","Akademik"],["pengaturan","Pengaturan"]],
   pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
-  santri: [["dashboard","Dashboard"],["akademik","Akademik (KHS/KRS)"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
+  santri: [["dashboard","Dashboard"],["akademik","Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
 };
 const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", quran: "Laporan Capaian Al-Qur'an", ibadah: "Laporan Ibadah", catatan: "Catatan Pojok", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
@@ -456,6 +456,23 @@ function StatCard({ label, value, sub, icon }) {
     </Card>
   );
 }
+function DokumenQR({ dokType, nim, ta, sem, pondok }) {
+  const kode = `${dokType || "DOK"}-${nim || "-"}-${(ta || "").replace("/", "")}${(sem || "").slice(0, 1).toUpperCase()}`;
+  const data = `${pondok || "SIAKAD"} | ${dokType} | NIM ${nim} | ${ta} Semester ${sem}`;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 18, paddingTop: 10, borderTop: "1px dashed #B8935A" }}>
+      <img
+        src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(data)}`}
+        alt="QR dokumen"
+        style={{ width: 56, height: 56, flexShrink: 0 }}
+      />
+      <div style={{ fontSize: 8.5, color: "#6B7280", lineHeight: 1.5 }}>
+        <div>No. Dokumen: {kode}</div>
+        <div>Dicetak: {new Date().toLocaleString("id-ID")}</div>
+      </div>
+    </div>
+  );
+}
 function BackBar({ onBack, label = "← Kembali ke semua santri" }) {
   return <button onClick={onBack} className="text-sm font-bold text-[#0F4A44] hover:text-[#082A26] mb-4">{label}</button>;
 }
@@ -640,7 +657,7 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
     nama_ayah: "", nama_ibu: "", no_hp_ortu: "", pekerjaan_ortu: "", alamat_wali: "",
     tanggal_masuk: "", status_spp: "Lunas",
     golongan_darah: "", kontak_darurat: "", riwayat_penyakit: "",
-    foto_url: "", dok_kk_url: "", dok_akta_url: "", dok_ijazah_url: "",
+    foto_url: "", dok_kk_url: "", dok_akta_url: "", dok_ijazah_url: "", dok_ktp_url: "", dok_bpjs_url: "",
   });
   const [uploading, setUploading] = useState("");
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -741,6 +758,8 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
           <DokRow label="Kartu Keluarga (KK)" field="dok_kk_url" />
           <DokRow label="Akta Kelahiran" field="dok_akta_url" />
           <DokRow label="Ijazah Terakhir" field="dok_ijazah_url" />
+          <DokRow label="KTP Mahasantri" field="dok_ktp_url" />
+          <DokRow label="Kartu BPJS" field="dok_bpjs_url" />
         </div>
 
         <SectionTitle>Data Kesehatan (opsional)</SectionTitle>
@@ -801,7 +820,7 @@ function AkademikStaffPage({ profile }) {
   if (!nim) {
     return (
       <div>
-        <PageHeader title="Input Akademik" sub="Semua santri — klik salah satu untuk kelola nilai." />
+        <PageHeader title="Akademik" sub="Semua santri — klik salah satu untuk kelola nilai." />
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">IPK</th><th className="p-3.5">Matkul Selesai</th></tr></thead>
@@ -935,28 +954,29 @@ function AkademikStaffPage({ profile }) {
         </>
         )}
 
-        <table style={{ width: "100%", fontSize: 10.5, marginTop: 40 }}><tbody>
+        <table style={{ width: "100%", fontSize: 10.5, marginTop: 28 }}><tbody>
           <tr>
             <td style={{ width: "50%" }}>Menyetujui,<br/>Pembimbing</td>
             <td style={{ width: "50%", textAlign: "right" }}>{new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}<br/>Mahasantri ybs</td>
           </tr>
-          <tr><td colSpan={2} style={{ height: 50 }}></td></tr>
+          <tr><td colSpan={2} style={{ height: 38 }}></td></tr>
           <tr>
             <td><b>{pembimbing?.nama || "-"}</b><br/>NIP. {pembimbing?.nip || "-"}</td>
             <td style={{ textAlign: "right" }}><b>{santri?.nama}</b><br/>NIM. {santri?.nim}</td>
           </tr>
-          <tr><td colSpan={2} style={{ height: 24 }}></td></tr>
+          <tr><td colSpan={2} style={{ height: 18 }}></td></tr>
           <tr><td colSpan={2} style={{ textAlign: "center" }}>Mengetahui</td></tr>
           <tr>
             <td>Plt. Mudir</td>
             <td style={{ textAlign: "right" }}>Kabag. Akademik</td>
           </tr>
-          <tr><td colSpan={2} style={{ height: 50 }}></td></tr>
+          <tr><td colSpan={2} style={{ height: 38 }}></td></tr>
           <tr>
             <td><b>{brand.nama_mudir}</b><br/>NIP. {brand.nip_mudir || "-"}</td>
             <td style={{ textAlign: "right" }}><b>{brand.nama_kabag_akademik}</b><br/>NIP. {brand.nip_kabag_akademik || "-"}</td>
           </tr>
         </tbody></table>
+        <DokumenQR dokType={dokType} nim={santri?.nim} ta={semesterTerbaru?.tahun_ajaran} sem={semesterTerbaru?.semester} pondok={brand.nama_pondok} />
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-5">
@@ -1020,48 +1040,165 @@ function AkademikForm({ initial, onCancel, onSubmit }) {
 /* ---------------------------------------------------------------------- */
 /* Akademik santri — gabungan KRS + KHS                                    */
 /* ---------------------------------------------------------------------- */
-function AkademikSantriPage() {
+function AkademikSantriPage({ profile }) {
+  const brand = useContext(BrandContext);
   const akT = useTable("akademik");
+  const santriT = useTable("santri");
+  const profilesT = useTable("profiles");
+  const santri = santriT.rows.find((s) => s.nim === profile.nim);
+  const pembimbing = profilesT.rows.find((p) => p.username === santri?.musyrif_username);
+
   const semesters = [...new Set(akT.rows.map((r) => `${r.tahun_ajaran}|${r.semester}`))].sort().reverse();
-  const [pilihan, setPilihan] = useState("SEMUA");
-  const rows = pilihan === "SEMUA" ? akT.rows : akT.rows.filter((r) => `${r.tahun_ajaran}|${r.semester}` === pilihan);
-  const aktif = rows.filter((r) => r.status === "aktif");
-  const selesai = rows.filter((r) => r.status === "selesai");
-  const totalSks = selesai.reduce((a, r) => a + r.sks, 0);
-  const ipk = totalSks ? (selesai.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * r.sks, 0) / totalSks).toFixed(2) : "-";
+  const [pilihan, setPilihan] = useState(semesters[0] || "");
+  const [dokType, setDokType] = useState("KRS");
+  useEffect(() => { if (!pilihan && semesters[0]) setPilihan(semesters[0]); }, [semesters.join(",")]);
+
+  const [ta, sem] = pilihan ? pilihan.split("|") : [null, null];
+  const recordsSemester = pilihan ? akT.rows.filter((r) => r.tahun_ajaran === ta && r.semester === sem) : [];
 
   return (
     <div>
-      <PageHeader title="Akademik — KHS & KRS" sub="Pilih semester untuk melihat atau mengunduh laporan." actions={<Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>} />
+      <PageHeader title="Akademik" sub="KRS dan KHS Anda, pilih semester di bawah ini." />
+
       <div className="mb-5 max-w-xs">
         <Select value={pilihan} onChange={(e) => setPilihan(e.target.value)}>
-          <option value="SEMUA">Semua Semester (Transkrip Lengkap)</option>
-          {semesters.map((s) => { const [ta, sem] = s.split("|"); return <option key={s} value={s}>{ta} · Semester {sem}</option>; })}
+          {semesters.length === 0 && <option value="">Belum ada data</option>}
+          {semesters.map((s) => { const [ta2, sem2] = s.split("|"); return <option key={s} value={s}>{ta2} · Semester {sem2}</option>; })}
         </Select>
       </div>
-      {aktif.length > 0 && (
-        <Card className="p-0 overflow-hidden mb-5">
-          <div className="px-5 py-3 bg-stone-50 border-b border-stone-200 font-bold text-sm text-[#0B3B36]">KRS — Mata Kuliah Aktif</div>
-          <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Mata Kuliah</th><th className="p-3">SKS</th></tr></thead>
-            <tbody>{aktif.map((r) => <tr key={r.id} className="border-t border-stone-100"><td className="p-3">{r.mata_kuliah}</td><td className="p-3">{r.sks}</td></tr>)}</tbody>
-          </table>
-        </Card>
-      )}
-      <div className="grid grid-cols-2 gap-4 mb-5">
-        <StatCard label="IPK" value={ipk} />
-        <StatCard label="Total SKS Selesai" value={totalSks} />
+
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .krs-print, .krs-print * { visibility: visible; }
+          .krs-print { position: absolute; top: 0; left: 0; width: 100%; padding: 24px 32px; box-shadow: none !important; border: none !important; }
+        }
+      `}</style>
+      <div className="flex items-center justify-between mb-2">
+        <div className="inline-flex rounded-lg border border-stone-300 overflow-hidden">
+          <button onClick={() => setDokType("KRS")} className={`px-4 py-1.5 text-xs font-bold ${dokType === "KRS" ? "bg-[#0B3B36] text-white" : "bg-white text-stone-500"}`}>KRS</button>
+          <button onClick={() => setDokType("KHS")} className={`px-4 py-1.5 text-xs font-bold ${dokType === "KHS" ? "bg-[#0B3B36] text-white" : "bg-white text-stone-500"}`}>KHS</button>
+        </div>
+        <Btn tone="ghost" onClick={() => window.print()}>🖨️ Cetak {dokType}</Btn>
       </div>
-      <Card className="p-0 overflow-hidden">
-        <div className="px-5 py-3 bg-stone-50 border-b border-stone-200 font-bold text-sm text-[#0B3B36]">KHS — Nilai Selesai</div>
-        <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Mata Kuliah</th><th className="p-3">SKS</th><th className="p-3">Nilai</th><th className="p-3">Huruf</th></tr></thead>
+
+      <div className="krs-print bg-white rounded-2xl border border-stone-200 shadow-sm p-8 mb-6">
+        <table style={{ width: "100%", marginBottom: 14 }}><tbody><tr>
+          <td style={{ width: 90, verticalAlign: "middle" }}>{(brand.logo_dokumen_url || brand.logo_url) && <img src={brand.logo_dokumen_url || brand.logo_url} alt="logo" style={{ width: 80 }} />}</td>
+          <td style={{ verticalAlign: "middle" }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#0B3B36" }}>{brand.yayasan_nama}</div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#0B3B36" }}>PONDOK TAHFIDZ QURAN DAN ENTREPRENEUR {brand.nama_pondok?.toUpperCase()}</div>
+            <div style={{ fontSize: 10.5, color: "#44544D" }}>{brand.alamat_pondok}</div>
+            <div style={{ fontSize: 10.5, color: "#44544D", fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
+          </td>
+        </tr></tbody></table>
+
+        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15 }}>{dokType === "KRS" ? "KARTU RENCANA STUDI (KRS)" : "KARTU HASIL STUDI (KHS)"}</div>
+        <div style={{ textAlign: "center", fontSize: 11, borderBottom: "1px solid #B8935A", paddingBottom: 6, marginBottom: 16 }}>
+          Semester {sem || "-"} {ta || ""}
+        </div>
+
+        <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>Nama Mahasantri</span><span>: {santri?.nama}</span></div>
+        <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>NIM</span><span>: {santri?.nim}</span></div>
+        <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Angkatan</span><span>: {santri?.kelas}</span></div>
+
+        {dokType === "KRS" ? (
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 8 }}>
+          <thead><tr style={{ background: "#0B3B36", color: "#fff" }}>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>No</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Kode MK</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Mata Kuliah</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>SKS</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Pengajar</th>
+          </tr></thead>
           <tbody>
-            {selesai.map((r) => <tr key={r.id} className="border-t border-stone-100"><td className="p-3">{r.mata_kuliah}</td><td className="p-3">{r.sks}</td><td className="p-3">{r.nilai_angka}</td><td className="p-3"><Badge tone="green">{nilaiHuruf(r.nilai_angka)}</Badge></td></tr>)}
-            {selesai.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada nilai pada semester ini." /></td></tr>}
+            {recordsSemester.map((r, i) => (
+              <tr key={r.id}>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{i + 1}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.kode_mk || "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5 }}>{r.mata_kuliah}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.sks}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5 }}>{r.pengajar || "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot><tr><td colSpan={3} style={{ border: "1px solid #1F2937", padding: 5, textAlign: "right", fontWeight: 700 }}>Total SKS</td><td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center", fontWeight: 700 }}>{recordsSemester.reduce((a, r) => a + Number(r.sks || 0), 0)}</td><td style={{ border: "1px solid #1F2937", padding: 5 }}></td></tr></tfoot>
+        </table>
+        ) : (
+        <>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 8 }}>
+          <thead><tr style={{ background: "#0B3B36", color: "#fff" }}>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>No</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Kode MK</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Mata Kuliah</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>SKS</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai Angka</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai Huruf</th>
+          </tr></thead>
+          <tbody>
+            {recordsSemester.map((r, i) => (
+              <tr key={r.id}>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{i + 1}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.kode_mk || "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5 }}>{r.mata_kuliah}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.sks}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.nilai_angka ?? "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.nilai_angka != null ? nilaiHuruf(r.nilai_angka) : "-"}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
-      </Card>
+        <table style={{ width: "100%", fontSize: 10.5, marginBottom: 16 }}><tbody>
+          <tr>
+            <td>IP Semester ini: <b>{(() => {
+              const sel = recordsSemester.filter((r) => r.status === "selesai");
+              const tot = sel.reduce((a, r) => a + Number(r.sks || 0), 0);
+              return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
+            })()}</b></td>
+            <td style={{ textAlign: "right" }}>IPK Kumulatif: <b>{(() => {
+              const sel = akT.rows.filter((r) => r.status === "selesai");
+              const tot = sel.reduce((a, r) => a + Number(r.sks || 0), 0);
+              return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
+            })()}</b></td>
+          </tr>
+        </tbody></table>
+        </>
+        )}
+
+        <table style={{ width: "100%", fontSize: 10.5, marginTop: 28 }}><tbody>
+          <tr>
+            <td style={{ width: "50%" }}>Menyetujui,<br/>Pembimbing</td>
+            <td style={{ width: "50%", textAlign: "right" }}>{new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}<br/>Mahasantri ybs</td>
+          </tr>
+          <tr><td colSpan={2} style={{ height: 38 }}></td></tr>
+          <tr>
+            <td><b>{pembimbing?.nama || "-"}</b><br/>NIP. {pembimbing?.nip || "-"}</td>
+            <td style={{ textAlign: "right" }}><b>{santri?.nama}</b><br/>NIM. {santri?.nim}</td>
+          </tr>
+          <tr><td colSpan={2} style={{ height: 18 }}></td></tr>
+          <tr><td colSpan={2} style={{ textAlign: "center" }}>Mengetahui</td></tr>
+          <tr>
+            <td>Plt. Mudir</td>
+            <td style={{ textAlign: "right" }}>Kabag. Akademik</td>
+          </tr>
+          <tr><td colSpan={2} style={{ height: 38 }}></td></tr>
+          <tr>
+            <td><b>{brand.nama_mudir}</b><br/>NIP. {brand.nip_mudir || "-"}</td>
+            <td style={{ textAlign: "right" }}><b>{brand.nama_kabag_akademik}</b><br/>NIP. {brand.nip_kabag_akademik || "-"}</td>
+          </tr>
+        </tbody></table>
+        <DokumenQR dokType={dokType} nim={santri?.nim} ta={ta} sem={sem} pondok={brand.nama_pondok} />
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <StatCard label="Total SKS Diambil" value={akT.rows.reduce((a, r) => a + Number(r.sks || 0), 0)} />
+        <StatCard label="IPK Kumulatif" value={(() => {
+          const selesai = akT.rows.filter((r) => r.status === "selesai");
+          const tot = selesai.reduce((a, r) => a + Number(r.sks || 0), 0);
+          return tot ? (selesai.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
+        })()} />
+        <StatCard label="Mata Kuliah Selesai" value={`${akT.rows.filter((r) => r.status === "selesai").length} dari ${akT.rows.length}`} />
+      </div>
     </div>
   );
 }
@@ -1971,7 +2108,7 @@ export default function App() {
   function renderView() {
     if (view === "dashboard") return <Dashboard profile={profile} />;
     if (view === "santri" && ["admin","pimpinan"].includes(profile.role)) return <DataSantriPage profile={profile} />;
-    if (view === "akademik") return profile.role === "santri" ? <AkademikSantriPage /> : <AkademikStaffPage profile={profile} />;
+    if (view === "akademik") return profile.role === "santri" ? <AkademikSantriPage profile={profile} /> : <AkademikStaffPage profile={profile} />;
     if (view === "quran") return <QuranPage profile={profile} />;
     if (view === "ibadah") return <IbadahPage profile={profile} />;
     if (view === "catatan") return <CatatanPojokPage profile={profile} />;
