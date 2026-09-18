@@ -456,19 +456,31 @@ function StatCard({ label, value, sub, icon }) {
     </Card>
   );
 }
-function DokumenQR({ dokType, nim, ta, sem, pondok }) {
-  const kode = `${dokType || "DOK"}-${nim || "-"}-${(ta || "").replace("/", "")}${(sem || "").slice(0, 1).toUpperCase()}`;
-  const data = `${pondok || "SIAKAD"} | ${dokType} | NIM ${nim} | ${ta} Semester ${sem}`;
+function DokumenQR({ dokType, nim, nama, ta, sem, pondok }) {
+  const kode = `${(dokType || "DOK").toUpperCase()}-${nim || "X"}-${(ta || "").replace(/\//g, "")}${(sem || "").slice(0, 1).toUpperCase()}`;
+  const siap = !!(nim && ta && sem);
+
+  useEffect(() => {
+    if (!siap) return;
+    supabase.from("dokumen_terbit").upsert(
+      { kode, nim, nama: nama || "", jenis_dokumen: dokType, tahun_ajaran: ta, semester: sem, dicetak_at: new Date().toISOString() },
+      { onConflict: "kode" }
+    ).then(() => {});
+  }, [kode, siap]);
+
+  const link = `${window.location.origin}${window.location.pathname}?verifikasi=${encodeURIComponent(kode)}`;
+
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 18, paddingTop: 10, borderTop: "1px dashed #B8935A" }}>
       <img
-        src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(data)}`}
-        alt="QR dokumen"
+        src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(link)}`}
+        alt="QR verifikasi"
         style={{ width: 56, height: 56, flexShrink: 0 }}
       />
       <div style={{ fontSize: 8.5, color: "#6B7280", lineHeight: 1.5 }}>
         <div>No. Dokumen: {kode}</div>
         <div>Dicetak: {new Date().toLocaleString("id-ID")}</div>
+        <div>Pindai untuk verifikasi keaslian dokumen ini secara online</div>
       </div>
     </div>
   );
@@ -954,29 +966,29 @@ function AkademikStaffPage({ profile }) {
         </>
         )}
 
-        <table style={{ width: "100%", fontSize: 10.5, marginTop: 28 }}><tbody>
+        <table style={{ width: "100%", fontSize: 10.5, marginTop: 24 }}><tbody>
           <tr>
             <td style={{ width: "50%" }}>Menyetujui,<br/>Pembimbing</td>
             <td style={{ width: "50%", textAlign: "right" }}>{new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}<br/>Mahasantri ybs</td>
           </tr>
-          <tr><td colSpan={2} style={{ height: 38 }}></td></tr>
+          <tr><td colSpan={2} style={{ height: 10 }}></td></tr>
           <tr>
             <td><b>{pembimbing?.nama || "-"}</b><br/>NIP. {pembimbing?.nip || "-"}</td>
             <td style={{ textAlign: "right" }}><b>{santri?.nama}</b><br/>NIM. {santri?.nim}</td>
           </tr>
-          <tr><td colSpan={2} style={{ height: 18 }}></td></tr>
+          <tr><td colSpan={2} style={{ height: 14 }}></td></tr>
           <tr><td colSpan={2} style={{ textAlign: "center" }}>Mengetahui</td></tr>
           <tr>
             <td>Plt. Mudir</td>
             <td style={{ textAlign: "right" }}>Kabag. Akademik</td>
           </tr>
-          <tr><td colSpan={2} style={{ height: 38 }}></td></tr>
+          <tr><td colSpan={2} style={{ height: 10 }}></td></tr>
           <tr>
             <td><b>{brand.nama_mudir}</b><br/>NIP. {brand.nip_mudir || "-"}</td>
             <td style={{ textAlign: "right" }}><b>{brand.nama_kabag_akademik}</b><br/>NIP. {brand.nip_kabag_akademik || "-"}</td>
           </tr>
         </tbody></table>
-        <DokumenQR dokType={dokType} nim={santri?.nim} ta={semesterTerbaru?.tahun_ajaran} sem={semesterTerbaru?.semester} pondok={brand.nama_pondok} />
+        <DokumenQR dokType={dokType} nim={santri?.nim} nama={santri?.nama} ta={semesterTerbaru?.tahun_ajaran} sem={semesterTerbaru?.semester} pondok={brand.nama_pondok} />
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-5">
@@ -1165,29 +1177,29 @@ function AkademikSantriPage({ profile }) {
         </>
         )}
 
-        <table style={{ width: "100%", fontSize: 10.5, marginTop: 28 }}><tbody>
+        <table style={{ width: "100%", fontSize: 10.5, marginTop: 24 }}><tbody>
           <tr>
             <td style={{ width: "50%" }}>Menyetujui,<br/>Pembimbing</td>
             <td style={{ width: "50%", textAlign: "right" }}>{new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}<br/>Mahasantri ybs</td>
           </tr>
-          <tr><td colSpan={2} style={{ height: 38 }}></td></tr>
+          <tr><td colSpan={2} style={{ height: 10 }}></td></tr>
           <tr>
             <td><b>{pembimbing?.nama || "-"}</b><br/>NIP. {pembimbing?.nip || "-"}</td>
             <td style={{ textAlign: "right" }}><b>{santri?.nama}</b><br/>NIM. {santri?.nim}</td>
           </tr>
-          <tr><td colSpan={2} style={{ height: 18 }}></td></tr>
+          <tr><td colSpan={2} style={{ height: 14 }}></td></tr>
           <tr><td colSpan={2} style={{ textAlign: "center" }}>Mengetahui</td></tr>
           <tr>
             <td>Plt. Mudir</td>
             <td style={{ textAlign: "right" }}>Kabag. Akademik</td>
           </tr>
-          <tr><td colSpan={2} style={{ height: 38 }}></td></tr>
+          <tr><td colSpan={2} style={{ height: 10 }}></td></tr>
           <tr>
             <td><b>{brand.nama_mudir}</b><br/>NIP. {brand.nip_mudir || "-"}</td>
             <td style={{ textAlign: "right" }}><b>{brand.nama_kabag_akademik}</b><br/>NIP. {brand.nip_kabag_akademik || "-"}</td>
           </tr>
         </tbody></table>
-        <DokumenQR dokType={dokType} nim={santri?.nim} ta={ta} sem={sem} pondok={brand.nama_pondok} />
+        <DokumenQR dokType={dokType} nim={santri?.nim} nama={santri?.nama} ta={ta} sem={sem} pondok={brand.nama_pondok} />
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -2068,6 +2080,54 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
 /* ---------------------------------------------------------------------- */
 /* Root                                                                     */
 /* ---------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
+/* Halaman Verifikasi Dokumen (publik, tanpa login)                        */
+/* ---------------------------------------------------------------------- */
+function VerifikasiPage({ kode }) {
+  const [state, setState] = useState({ loading: true, data: null, notFound: false });
+
+  useEffect(() => {
+    let active = true;
+    supabase.from("dokumen_terbit").select("*").eq("kode", kode).maybeSingle()
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error || !data) setState({ loading: false, data: null, notFound: true });
+        else setState({ loading: false, data, notFound: false });
+      });
+    return () => { active = false; };
+  }, [kode]);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F4F2EA] p-5">
+      <div className="w-full max-w-md bg-white rounded-[28px] p-8 shadow-[0_30px_70px_-20px_rgba(10,30,20,.35)] text-center">
+        {state.loading ? (
+          <div className="text-stone-500 text-sm py-6">Memeriksa dokumen…</div>
+        ) : state.data ? (
+          <>
+            <div className="text-4xl mb-3">✅</div>
+            <h2 className="font-serif-dh text-lg font-bold text-[#0B3B36] mb-1">Dokumen Sah</h2>
+            <p className="text-sm text-stone-500 mb-5">Dokumen ini tercatat dan valid di sistem SIAKAD Darul Hikmah.</p>
+            <div className="text-left bg-stone-50 rounded-xl p-4 text-sm space-y-2.5">
+              <div><span className="text-[11px] text-stone-400 uppercase tracking-wide">Jenis Dokumen</span><div className="font-semibold text-[#0B3B36]">{state.data.jenis_dokumen}</div></div>
+              <div><span className="text-[11px] text-stone-400 uppercase tracking-wide">Nama</span><div className="font-semibold text-[#0B3B36]">{state.data.nama}</div></div>
+              <div><span className="text-[11px] text-stone-400 uppercase tracking-wide">NIM</span><div className="font-semibold text-[#0B3B36]">{state.data.nim}</div></div>
+              <div><span className="text-[11px] text-stone-400 uppercase tracking-wide">Semester</span><div className="font-semibold text-[#0B3B36]">{state.data.tahun_ajaran} · Semester {state.data.semester}</div></div>
+              <div><span className="text-[11px] text-stone-400 uppercase tracking-wide">Terakhir Dicetak</span><div className="font-semibold text-[#0B3B36]">{new Date(state.data.dicetak_at).toLocaleString("id-ID")}</div></div>
+            </div>
+            <div className="text-[11px] text-stone-400 mt-5">No. Dokumen: {state.data.kode}</div>
+          </>
+        ) : (
+          <>
+            <div className="text-4xl mb-3">❌</div>
+            <h2 className="font-serif-dh text-lg font-bold text-red-700 mb-1">Dokumen Tidak Ditemukan</h2>
+            <p className="text-sm text-stone-500">Kode dokumen ini tidak terdaftar di sistem. Dokumen kemungkinan tidak sah, atau sudah tidak berlaku.</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [session, setSession] = useState(undefined);
   const [profile, setProfile] = useState(null);
@@ -2099,6 +2159,9 @@ export default function App() {
     }
   }
   useEffect(loadProfile, [session]);
+
+  const verifKode = new URLSearchParams(window.location.search).get("verifikasi");
+  if (verifKode) return <VerifikasiPage kode={verifKode} />;
 
   if (recovery) return <BrandContext.Provider value={brand}><ResetPasswordScreen brand={brand} onDone={() => setRecovery(false)} /></BrandContext.Provider>;
   if (session === undefined) return <div className="min-h-screen flex items-center justify-center text-stone-500">Memuat…</div>;
