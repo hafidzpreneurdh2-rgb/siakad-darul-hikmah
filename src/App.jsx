@@ -55,15 +55,15 @@ const CAN_EDIT = {
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
 const MENUS = {
-  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
-  musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
-  musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
+  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
+  musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
+  musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
   keuangan: [["dashboard","Dashboard"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
   akademik: [["dashboard","Dashboard"],["akademik","Akademik"],["pengaturan","Pengaturan"]],
-  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
-  santri: [["dashboard","Dashboard"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
+  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
+  santri: [["dashboard","Dashboard"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", quran: "Capaian Al-Qur'an", ibadah: "Laporan Ibadah", catatan: "Catatan Pojok", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", catatan: "Catatan Pojok", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
@@ -1312,13 +1312,13 @@ function QuranPage({ profile }) {
             </div>
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3 whitespace-nowrap">Tgl</th><th className="p-3 whitespace-nowrap">Jenis</th><th className="p-3 whitespace-nowrap">Juz &amp; Hal.</th><th className="p-3 whitespace-nowrap">Kelancaran</th><th className="p-3 whitespace-nowrap">Catatan</th>{editable && isViewer && <th className="p-3 text-right whitespace-nowrap">Aksi</th>}</tr></thead>
+              <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3 whitespace-nowrap">Tgl</th><th className="p-3 whitespace-nowrap">Jenis</th><th className="p-3 whitespace-nowrap">Juz &amp; Hal.</th><th className="p-3 whitespace-nowrap">Penilaian</th><th className="p-3 whitespace-nowrap">Catatan</th>{editable && isViewer && <th className="p-3 text-right whitespace-nowrap">Aksi</th>}</tr></thead>
               <tbody>{filteredLogs.map((l) => (
                 <tr key={l.id} className="border-t border-stone-100 align-top">
                   <td className="p-3 whitespace-nowrap">{l.tanggal}</td>
                   <td className="p-3 whitespace-nowrap">{l.jenis}</td>
                   <td className="p-3 whitespace-nowrap">Juz {l.juz}{l.halaman_dari ? <div className="text-[11px] text-stone-400">hal. {l.halaman_dari}–{l.halaman_sampai}</div> : null}</td>
-                  <td className="p-3 whitespace-nowrap"><Badge tone={l.kelancaran === "Lancar" ? "green" : "gold"}>{l.kelancaran || "-"}</Badge></td>
+                  <td className="p-3 whitespace-nowrap"><Badge tone={["Lancar", "Sudah Baik", "Paham"].includes(l.kelancaran) ? "green" : "gold"}>{l.kelancaran || "-"}</Badge></td>
                   <td className="p-3 text-stone-500 max-w-[160px]">{l.catatan || "-"}</td>
                   {editable && isViewer && <td className="p-3 text-right whitespace-nowrap">
                     <button onClick={() => setEditingLog(l)} className="text-[#145048] text-xs font-bold mr-3">Edit</button>
@@ -1349,20 +1349,31 @@ function QuranPage({ profile }) {
     </div>
   );
 }
+const PENILAIAN_QURAN = {
+  Ziyadah: ["Lancar", "Kurang Lancar", "Mengulang"],
+  Murajaah: ["Lancar", "Kurang Lancar", "Mengulang"],
+  Tilawah: ["Lancar", "Kurang Lancar", "Tersendat"],
+  Tahsin: ["Sudah Baik", "Perlu Perbaikan Makhraj", "Perlu Perbaikan Tajwid"],
+  Talaqqi: ["Paham", "Perlu Pengulangan", "Belum Paham"],
+};
 function QuranForm({ initial, onCancel, onSubmit }) {
   const [f, setF] = useState(initial || { tanggal: new Date().toISOString().slice(0, 10), jenis: JENIS_SETORAN_QURAN[0], juz: 1, halaman_dari: 1, halaman_sampai: 1, kelancaran: "Lancar", catatan: "", tandai: false });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const setJenis = (e) => setF({ ...f, jenis: e.target.value, kelancaran: PENILAIAN_QURAN[e.target.value][0] });
   return (
     <Modal title={initial ? "Edit Setoran" : "Catat Setoran"} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Tanggal"><Input type="date" value={f.tanggal} onChange={set("tanggal")} /></Field>
-        <Field label="Jenis"><Select value={f.jenis} onChange={set("jenis")}>{JENIS_SETORAN_QURAN.map((j) => <option key={j}>{j}</option>)}</Select></Field>
+        <Field label="Jenis"><Select value={f.jenis} onChange={setJenis}>{JENIS_SETORAN_QURAN.map((j) => <option key={j}>{j}</option>)}</Select></Field>
         <Field label="Juz"><Input type="number" min={1} max={30} value={f.juz} onChange={set("juz")} /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Halaman Dari"><Input type="number" min={1} value={f.halaman_dari} onChange={set("halaman_dari")} /></Field>
           <Field label="Halaman Sampai"><Input type="number" min={1} value={f.halaman_sampai} onChange={set("halaman_sampai")} /></Field>
         </div>
-        <Field label="Kelancaran"><Select value={f.kelancaran} onChange={set("kelancaran")}><option>Lancar</option><option>Kurang Lancar</option><option>Mengulang</option></Select></Field>
+        <Field label="Penilaian">
+          <Input list="penilaian-opsi" value={f.kelancaran} onChange={set("kelancaran")} placeholder="Pilih dari daftar atau ketik sendiri" />
+          <datalist id="penilaian-opsi">{(PENILAIAN_QURAN[f.jenis] || []).map((p) => <option key={p} value={p} />)}</datalist>
+        </Field>
         <Field label="Musyrif/ah Penguji"><div className="text-sm text-stone-500 px-1">Otomatis tercatat sesuai akun Anda yang login.</div></Field>
         <Field label="Catatan (opsional)"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} placeholder="cth. Tajwid perlu diperbaiki di ayat 12" value={f.catatan} onChange={set("catatan")} /></Field>
         <label className="flex items-center gap-2 text-sm mb-2"><input type="checkbox" checked={f.tandai} onChange={(e) => setF({ ...f, tandai: e.target.checked })} /> Tandai juz ini selesai</label>
@@ -1373,7 +1384,7 @@ function QuranForm({ initial, onCancel, onSubmit }) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Laporan Ibadah — overview semua santri + drill-down                      */
+/* Ibadah — overview semua santri + drill-down                      */
 /* ---------------------------------------------------------------------- */
 function IbadahPage({ profile }) {
   const editable = canEdit(profile.role, "ibadah");
@@ -1417,7 +1428,7 @@ function IbadahPage({ profile }) {
 
     return (
       <div>
-        <PageHeader title="Laporan Ibadah" sub="Semua santri — klik salah satu untuk lihat detail." />
+        <PageHeader title="Ibadah" sub="Semua santri — klik salah satu untuk lihat detail." />
         <div className="grid grid-cols-2 gap-4 mb-5 max-w-xl">
           <StatCard label="Total Santri Dipantau" value={pickable.length} />
           <StatCard label="Perlu Perhatian" value={perluPerhatian} />
@@ -1450,7 +1461,7 @@ function IbadahPage({ profile }) {
   return (
     <div>
       {isViewer && <BackBar onBack={() => setNim("")} />}
-      <PageHeader title={isViewer ? (santri?.nama || "Laporan Ibadah") : "Laporan Ibadah"} sub="Catatan pembinaan ibadah harian santri."
+      <PageHeader title={isViewer ? (santri?.nama || "Ibadah") : "Ibadah"} sub="Catatan pembinaan ibadah harian santri."
         actions={<div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Catat Ibadah</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
       {(() => {
         const bulanIniLogs = logs.filter((l) => l.tanggal.slice(0, 7) === new Date().toISOString().slice(0, 7));
