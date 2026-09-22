@@ -792,7 +792,13 @@ function AkademikStaffPage({ profile }) {
   const records = akT.rows.filter((a) => a.nim === nim);
   const santri = santriT.rows.find((s) => s.nim === nim);
   const pembimbing = profilesT.rows.find((p) => p.username === santri?.musyrif_username);
-  const semesterTerbaru = [...records].sort((a, b) => (b.tahun_ajaran || "").localeCompare(a.tahun_ajaran || "") || (b.semester || "").localeCompare(a.semester || ""))[0];
+  const semesters = [...new Set(records.map((r) => `${r.tahun_ajaran}|${r.semester}`))].sort().reverse();
+  const [pilihan, setPilihan] = useState("");
+  useEffect(() => { setPilihan(""); }, [nim]);
+  useEffect(() => { if (!pilihan && semesters[0]) setPilihan(semesters[0]); }, [semesters.join(","), nim]);
+  const pilihanAktif = pilihan || semesters[0] || "";
+  const [taPilih, semPilih] = pilihanAktif ? pilihanAktif.split("|") : [null, null];
+  const semesterTerbaru = taPilih ? { tahun_ajaran: taPilih, semester: semPilih } : undefined;
   const recordsKRS = semesterTerbaru ? records.filter((r) => r.tahun_ajaran === semesterTerbaru.tahun_ajaran && r.semester === semesterTerbaru.semester) : [];
 
   const [editingRecord, setEditingRecord] = useState(null);
@@ -861,6 +867,12 @@ function AkademikStaffPage({ profile }) {
           .krs-print { position: absolute; top: 0; left: 0; width: 100%; padding: 24px 32px; box-shadow: none !important; border: none !important; }
         }
       `}</style>
+      <div className="mb-4 max-w-xs">
+        <Select value={pilihanAktif} onChange={(e) => setPilihan(e.target.value)}>
+          {semesters.length === 0 && <option value="">Belum ada data</option>}
+          {semesters.map((s) => { const [ta2, sem2] = s.split("|"); return <option key={s} value={s}>{ta2} · Semester {sem2}</option>; })}
+        </Select>
+      </div>
       <div className="flex items-center justify-between mb-2">
         <div className="inline-flex rounded-lg border border-stone-300 overflow-hidden">
           <button onClick={() => setDokType("KRS")} className={`px-4 py-1.5 text-xs font-bold ${dokType === "KRS" ? "bg-[#0B3B36] text-white" : "bg-white text-stone-500"}`}>KRS</button>
@@ -880,7 +892,7 @@ function AkademikStaffPage({ profile }) {
         </tr></tbody></table>
 
         <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15 }}>{dokType === "KRS" ? "KARTU RENCANA STUDI (KRS)" : "KARTU HASIL STUDI (KHS)"}</div>
-        <div style={{ textAlign: "center", fontSize: 11, borderBottom: "1px solid #B8935A", paddingBottom: 6, marginBottom: 16 }}>
+        <div style={{ textAlign: "center", fontSize: 11, paddingBottom: 6, marginBottom: 16 }}>
           Semester {semesterTerbaru?.semester || "-"} {semesterTerbaru?.tahun_ajaran || ""}
         </div>
 
@@ -909,7 +921,7 @@ function AkademikStaffPage({ profile }) {
             ))}
             <tr style={{ background: "#F3EEE1", fontWeight: 700 }}>
               <td colSpan={3} style={{ border: "1px solid #1F2937", padding: 5 }}>Total SKS</td>
-              <td colSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>{recordsKRS.reduce((a, r) => a + Number(r.sks || 0), 0)}</td>
+              <td colSpan={2} style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{recordsKRS.reduce((a, r) => a + Number(r.sks || 0), 0)}</td>
             </tr>
           </tbody>
         </table>
@@ -1092,7 +1104,7 @@ function AkademikSantriPage({ profile }) {
         </tr></tbody></table>
 
         <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15 }}>{dokType === "KRS" ? "KARTU RENCANA STUDI (KRS)" : "KARTU HASIL STUDI (KHS)"}</div>
-        <div style={{ textAlign: "center", fontSize: 11, borderBottom: "1px solid #B8935A", paddingBottom: 6, marginBottom: 16 }}>
+        <div style={{ textAlign: "center", fontSize: 11, paddingBottom: 6, marginBottom: 16 }}>
           Semester {sem || "-"} {ta || ""}
         </div>
 
