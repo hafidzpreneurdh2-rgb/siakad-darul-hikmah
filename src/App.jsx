@@ -456,31 +456,19 @@ function StatCard({ label, value, sub, icon }) {
     </Card>
   );
 }
-function DokumenQR({ dokType, nim, nama, ta, sem, pondok }) {
-  const kode = `${(dokType || "DOK").toUpperCase()}-${nim || "X"}-${(ta || "").replace(/\//g, "")}${(sem || "").slice(0, 1).toUpperCase()}`;
-  const siap = !!(nim && ta && sem);
-
-  useEffect(() => {
-    if (!siap) return;
-    supabase.from("dokumen_terbit").upsert(
-      { kode, nim, nama: nama || "", jenis_dokumen: dokType, tahun_ajaran: ta, semester: sem, dicetak_at: new Date().toISOString() },
-      { onConflict: "kode" }
-    ).then(() => {});
-  }, [kode, siap]);
-
-  const link = `${window.location.origin}${window.location.pathname}?verifikasi=${encodeURIComponent(kode)}`;
-
+function DokumenQR({ dokType, nim, ta, sem, pondok }) {
+  const kode = `${dokType || "DOK"}-${nim || "-"}-${(ta || "").replace("/", "")}${(sem || "").slice(0, 1).toUpperCase()}`;
+  const data = `${pondok || "SIAKAD"} | ${dokType} | NIM ${nim} | ${ta} Semester ${sem}`;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 18, paddingTop: 10, borderTop: "1px dashed #B8935A" }}>
       <img
-        src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(link)}`}
-        alt="QR verifikasi"
+        src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(data)}`}
+        alt="QR dokumen"
         style={{ width: 56, height: 56, flexShrink: 0 }}
       />
       <div style={{ fontSize: 8.5, color: "#6B7280", lineHeight: 1.5 }}>
         <div>No. Dokumen: {kode}</div>
         <div>Dicetak: {new Date().toLocaleString("id-ID")}</div>
-        <div>Pindai untuk verifikasi keaslian dokumen ini secara online</div>
       </div>
     </div>
   );
@@ -966,29 +954,27 @@ function AkademikStaffPage({ profile }) {
         </>
         )}
 
-        <table style={{ width: "100%", fontSize: 10.5, marginTop: 24 }}><tbody>
-          <tr>
-            <td style={{ width: "50%" }}>Menyetujui,<br/>Pembimbing</td>
-            <td style={{ width: "50%", textAlign: "right" }}>{new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}<br/>Mahasantri ybs</td>
-          </tr>
-          <tr><td colSpan={2} style={{ height: 10 }}></td></tr>
-          <tr>
-            <td><b>{pembimbing?.nama || "-"}</b><br/>NIP. {pembimbing?.nip || "-"}</td>
-            <td style={{ textAlign: "right" }}><b>{santri?.nama}</b><br/>NIM. {santri?.nim}</td>
-          </tr>
-          <tr><td colSpan={2} style={{ height: 14 }}></td></tr>
-          <tr><td colSpan={2} style={{ textAlign: "center" }}>Mengetahui</td></tr>
-          <tr>
-            <td>Plt. Mudir</td>
-            <td style={{ textAlign: "right" }}>Kabag. Akademik</td>
-          </tr>
-          <tr><td colSpan={2} style={{ height: 10 }}></td></tr>
-          <tr>
-            <td><b>{brand.nama_mudir}</b><br/>NIP. {brand.nip_mudir || "-"}</td>
-            <td style={{ textAlign: "right" }}><b>{brand.nama_kabag_akademik}</b><br/>NIP. {brand.nip_kabag_akademik || "-"}</td>
-          </tr>
-        </tbody></table>
-        <DokumenQR dokType={dokType} nim={santri?.nim} nama={santri?.nama} ta={semesterTerbaru?.tahun_ajaran} sem={semesterTerbaru?.semester} pondok={brand.nama_pondok} />
+        <div style={{ fontSize: 10.5, marginTop: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div>Menyetujui,<br/>Pembimbing</div>
+            <div style={{ textAlign: "right" }}>{new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}<br/>Mahasantri ybs</div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 42 }}>
+            <div><b>{pembimbing?.nama || "-"}</b><br/>NIP. {pembimbing?.nip || "-"}</div>
+            <div style={{ textAlign: "right" }}><b>{santri?.nama}</b><br/>NIM. {santri?.nim}</div>
+          </div>
+
+          <div style={{ textAlign: "center", marginTop: 26 }}>Mengetahui,</div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
+            <div>Plt. Mudir</div>
+            <div style={{ textAlign: "right" }}>Kabag. Akademik</div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 42 }}>
+            <div><b>{brand.nama_mudir}</b><br/>NIP. {brand.nip_mudir || "-"}</div>
+            <div style={{ textAlign: "right" }}><b>{brand.nama_kabag_akademik}</b><br/>NIP. {brand.nip_kabag_akademik || "-"}</div>
+          </div>
+        </div>
+        <DokumenQR dokType={dokType} nim={santri?.nim} ta={semesterTerbaru?.tahun_ajaran} sem={semesterTerbaru?.semester} pondok={brand.nama_pondok} />
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-5">
@@ -1177,29 +1163,27 @@ function AkademikSantriPage({ profile }) {
         </>
         )}
 
-        <table style={{ width: "100%", fontSize: 10.5, marginTop: 24 }}><tbody>
-          <tr>
-            <td style={{ width: "50%" }}>Menyetujui,<br/>Pembimbing</td>
-            <td style={{ width: "50%", textAlign: "right" }}>{new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}<br/>Mahasantri ybs</td>
-          </tr>
-          <tr><td colSpan={2} style={{ height: 10 }}></td></tr>
-          <tr>
-            <td><b>{pembimbing?.nama || "-"}</b><br/>NIP. {pembimbing?.nip || "-"}</td>
-            <td style={{ textAlign: "right" }}><b>{santri?.nama}</b><br/>NIM. {santri?.nim}</td>
-          </tr>
-          <tr><td colSpan={2} style={{ height: 14 }}></td></tr>
-          <tr><td colSpan={2} style={{ textAlign: "center" }}>Mengetahui</td></tr>
-          <tr>
-            <td>Plt. Mudir</td>
-            <td style={{ textAlign: "right" }}>Kabag. Akademik</td>
-          </tr>
-          <tr><td colSpan={2} style={{ height: 10 }}></td></tr>
-          <tr>
-            <td><b>{brand.nama_mudir}</b><br/>NIP. {brand.nip_mudir || "-"}</td>
-            <td style={{ textAlign: "right" }}><b>{brand.nama_kabag_akademik}</b><br/>NIP. {brand.nip_kabag_akademik || "-"}</td>
-          </tr>
-        </tbody></table>
-        <DokumenQR dokType={dokType} nim={santri?.nim} nama={santri?.nama} ta={ta} sem={sem} pondok={brand.nama_pondok} />
+        <div style={{ fontSize: 10.5, marginTop: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div>Menyetujui,<br/>Pembimbing</div>
+            <div style={{ textAlign: "right" }}>{new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}<br/>Mahasantri ybs</div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 42 }}>
+            <div><b>{pembimbing?.nama || "-"}</b><br/>NIP. {pembimbing?.nip || "-"}</div>
+            <div style={{ textAlign: "right" }}><b>{santri?.nama}</b><br/>NIM. {santri?.nim}</div>
+          </div>
+
+          <div style={{ textAlign: "center", marginTop: 26 }}>Mengetahui,</div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
+            <div>Plt. Mudir</div>
+            <div style={{ textAlign: "right" }}>Kabag. Akademik</div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 42 }}>
+            <div><b>{brand.nama_mudir}</b><br/>NIP. {brand.nip_mudir || "-"}</div>
+            <div style={{ textAlign: "right" }}><b>{brand.nama_kabag_akademik}</b><br/>NIP. {brand.nip_kabag_akademik || "-"}</div>
+          </div>
+        </div>
+        <DokumenQR dokType={dokType} nim={santri?.nim} ta={ta} sem={sem} pondok={brand.nama_pondok} />
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -1228,6 +1212,14 @@ function QuranPage({ profile }) {
   const santri = santriT.rows.find((s) => s.nim === nim);
   const logs = logT.rows.filter((l) => l.nim === nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
   const pickable = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || s.musyrif_username === profile.username);
+
+  const [catatan, setCatatan] = useState("");
+  useEffect(() => { setCatatan(santri?.catatan_quran || ""); }, [santri?.nim]);
+  async function saveCatatan() {
+    const { error } = await supabase.from("santri").update({ catatan_quran: catatan }).eq("nim", nim);
+    if (error) { alert(error.message); return; }
+    santriT.reload();
+  }
 
   const [editingLog, setEditingLog] = useState(null);
   async function saveLog(f) {
@@ -1287,24 +1279,23 @@ function QuranPage({ profile }) {
         actions={(!isViewer || editable) && <div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Catat Setoran</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
       {santri && (
         <>
-        <div className="grid grid-cols-3 gap-4 mb-5">
-          <StatCard label="Total Setoran" value={logs.length} />
-          <StatCard label="Juz Aktif Sekarang" value={santri.juz_dikuasai?.length ? Math.max(...santri.juz_dikuasai) + 1 : 1} />
-          <StatCard label="Juz Dikuasai" value={`${santri.juz_dikuasai?.length || 0} / 30`} />
+        <div className="grid grid-cols-5 gap-3 mb-5">
+          {JENIS_SETORAN_QURAN.map((j) => (
+            <StatCard key={j} label={j} value={logs.filter((l) => l.jenis === j).length} />
+          ))}
         </div>
         <div className="grid grid-cols-[0.85fr_1.3fr] gap-4 items-start">
           <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Peta Hafalan</h3><JuzTracker juz={santri.juz_dikuasai || []} /></Card>
           <Card className="p-0 overflow-hidden">
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3 whitespace-nowrap">Tgl</th><th className="p-3 whitespace-nowrap">Jenis</th><th className="p-3 whitespace-nowrap">Juz &amp; Hal.</th><th className="p-3 whitespace-nowrap">Kelancaran</th><th className="p-3 whitespace-nowrap">Musyrif</th><th className="p-3 whitespace-nowrap">Catatan</th>{editable && isViewer && <th className="p-3 text-right whitespace-nowrap">Aksi</th>}</tr></thead>
+              <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3 whitespace-nowrap">Tgl</th><th className="p-3 whitespace-nowrap">Jenis</th><th className="p-3 whitespace-nowrap">Juz &amp; Hal.</th><th className="p-3 whitespace-nowrap">Kelancaran</th><th className="p-3 whitespace-nowrap">Catatan</th>{editable && isViewer && <th className="p-3 text-right whitespace-nowrap">Aksi</th>}</tr></thead>
               <tbody>{logs.map((l) => (
                 <tr key={l.id} className="border-t border-stone-100 align-top">
                   <td className="p-3 whitespace-nowrap">{l.tanggal}</td>
                   <td className="p-3 whitespace-nowrap">{l.jenis}</td>
                   <td className="p-3 whitespace-nowrap">Juz {l.juz}{l.halaman_dari ? <div className="text-[11px] text-stone-400">hal. {l.halaman_dari}–{l.halaman_sampai}</div> : null}</td>
                   <td className="p-3 whitespace-nowrap"><Badge tone={l.kelancaran === "Lancar" ? "green" : "gold"}>{l.kelancaran || "-"}</Badge></td>
-                  <td className="p-3 text-stone-500 whitespace-nowrap">{l.musyrif}</td>
                   <td className="p-3 text-stone-500 max-w-[160px]">{l.catatan || "-"}</td>
                   {editable && isViewer && <td className="p-3 text-right whitespace-nowrap">
                     <button onClick={() => setEditingLog(l)} className="text-[#145048] text-xs font-bold mr-3">Edit</button>
@@ -1312,11 +1303,22 @@ function QuranPage({ profile }) {
                   </td>}
                 </tr>
               ))}
-                {logs.length === 0 && <tr><td colSpan={editable && isViewer ? 7 : 6}><Empty text="Belum ada catatan." /></td></tr>}</tbody>
+                {logs.length === 0 && <tr><td colSpan={editable && isViewer ? 6 : 5}><Empty text="Belum ada catatan." /></td></tr>}</tbody>
             </table>
             </div>
           </Card>
         </div>
+        <Card className="mt-4">
+          <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Catatan Musyrif/Musyrifah</h3>
+          {editable ? (
+            <>
+              <textarea className="w-full border border-stone-200 rounded-lg p-3 text-sm" rows={3} value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Tulis catatan perkembangan mahasantri di sini..." />
+              <div className="mt-2 text-right"><Btn onClick={saveCatatan}>Simpan Catatan</Btn></div>
+            </>
+          ) : (
+            <p className="text-sm text-stone-600 whitespace-pre-wrap">{santri.catatan_quran || "Belum ada catatan."}</p>
+          )}
+        </Card>
         </>
       )}
       {showForm && <QuranForm onCancel={() => setShowForm(false)} onSubmit={saveLog} />}
@@ -2080,54 +2082,6 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
 /* ---------------------------------------------------------------------- */
 /* Root                                                                     */
 /* ---------------------------------------------------------------------- */
-/* ---------------------------------------------------------------------- */
-/* Halaman Verifikasi Dokumen (publik, tanpa login)                        */
-/* ---------------------------------------------------------------------- */
-function VerifikasiPage({ kode }) {
-  const [state, setState] = useState({ loading: true, data: null, notFound: false });
-
-  useEffect(() => {
-    let active = true;
-    supabase.from("dokumen_terbit").select("*").eq("kode", kode).maybeSingle()
-      .then(({ data, error }) => {
-        if (!active) return;
-        if (error || !data) setState({ loading: false, data: null, notFound: true });
-        else setState({ loading: false, data, notFound: false });
-      });
-    return () => { active = false; };
-  }, [kode]);
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F4F2EA] p-5">
-      <div className="w-full max-w-md bg-white rounded-[28px] p-8 shadow-[0_30px_70px_-20px_rgba(10,30,20,.35)] text-center">
-        {state.loading ? (
-          <div className="text-stone-500 text-sm py-6">Memeriksa dokumen…</div>
-        ) : state.data ? (
-          <>
-            <div className="text-4xl mb-3">✅</div>
-            <h2 className="font-serif-dh text-lg font-bold text-[#0B3B36] mb-1">Dokumen Sah</h2>
-            <p className="text-sm text-stone-500 mb-5">Dokumen ini tercatat dan valid di sistem SIAKAD Darul Hikmah.</p>
-            <div className="text-left bg-stone-50 rounded-xl p-4 text-sm space-y-2.5">
-              <div><span className="text-[11px] text-stone-400 uppercase tracking-wide">Jenis Dokumen</span><div className="font-semibold text-[#0B3B36]">{state.data.jenis_dokumen}</div></div>
-              <div><span className="text-[11px] text-stone-400 uppercase tracking-wide">Nama</span><div className="font-semibold text-[#0B3B36]">{state.data.nama}</div></div>
-              <div><span className="text-[11px] text-stone-400 uppercase tracking-wide">NIM</span><div className="font-semibold text-[#0B3B36]">{state.data.nim}</div></div>
-              <div><span className="text-[11px] text-stone-400 uppercase tracking-wide">Semester</span><div className="font-semibold text-[#0B3B36]">{state.data.tahun_ajaran} · Semester {state.data.semester}</div></div>
-              <div><span className="text-[11px] text-stone-400 uppercase tracking-wide">Terakhir Dicetak</span><div className="font-semibold text-[#0B3B36]">{new Date(state.data.dicetak_at).toLocaleString("id-ID")}</div></div>
-            </div>
-            <div className="text-[11px] text-stone-400 mt-5">No. Dokumen: {state.data.kode}</div>
-          </>
-        ) : (
-          <>
-            <div className="text-4xl mb-3">❌</div>
-            <h2 className="font-serif-dh text-lg font-bold text-red-700 mb-1">Dokumen Tidak Ditemukan</h2>
-            <p className="text-sm text-stone-500">Kode dokumen ini tidak terdaftar di sistem. Dokumen kemungkinan tidak sah, atau sudah tidak berlaku.</p>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   const [session, setSession] = useState(undefined);
   const [profile, setProfile] = useState(null);
@@ -2159,9 +2113,6 @@ export default function App() {
     }
   }
   useEffect(loadProfile, [session]);
-
-  const verifKode = new URLSearchParams(window.location.search).get("verifikasi");
-  if (verifKode) return <VerifikasiPage kode={verifKode} />;
 
   if (recovery) return <BrandContext.Provider value={brand}><ResetPasswordScreen brand={brand} onDone={() => setRecovery(false)} /></BrandContext.Provider>;
   if (session === undefined) return <div className="min-h-screen flex items-center justify-center text-stone-500">Memuat…</div>;
