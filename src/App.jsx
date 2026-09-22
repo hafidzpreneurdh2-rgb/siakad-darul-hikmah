@@ -38,8 +38,8 @@ const FONT_OPTIONS = {
 };
 
 function formatRupiah(n) { return n == null ? "-" : "Rp " + Number(n).toLocaleString("id-ID"); }
-function nilaiHuruf(a) { if (a == null) return "-"; if (a >= 85) return "A"; if (a >= 75) return "B"; if (a >= 65) return "C"; if (a >= 50) return "D"; return "E"; }
-function bobot(h) { return { A: 4, B: 3, C: 2, D: 1, E: 0 }[h] ?? 0; }
+function nilaiHuruf(a) { if (a == null) return "-"; if (a >= 90) return "Mumtaz"; if (a >= 80) return "Jayyid Jiddan"; if (a >= 70) return "Jayyid"; if (a >= 60) return "Maqbul"; return "Rasib"; }
+function bobot(h) { return { "Mumtaz": 4, "Jayyid Jiddan": 3.5, "Jayyid": 3, "Maqbul": 2, "Rasib": 0 }[h] ?? 0; }
 function initials(name = "") { return name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase(); }
 function avatarColor(name = "") { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) % AVATAR_COLORS.length; return AVATAR_COLORS[h]; }
 function todayLong() { return new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
@@ -920,9 +920,9 @@ function AkademikStaffPage({ profile }) {
               </tr>
             ))}
             <tr style={{ background: "#F3EEE1", fontWeight: 700 }}>
-              <td colSpan={3} style={{ border: "1px solid #1F2937", padding: 5, textAlign: "right" }}>Total SKS</td>
-              <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{recordsKRS.reduce((a, r) => a + Number(r.sks || 0), 0)}</td>
-              <td style={{ border: "1px solid #1F2937", padding: 5 }}></td>
+              <td colSpan={3} style={{ border: "1px solid #1F2937", padding: "5px 10px 5px 5px", textAlign: "right" }}>Total SKS</td>
+              <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center", fontWeight: 700 }}>{recordsKRS.reduce((a, r) => a + Number(r.sks || 0), 0)}</td>
+              <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center", color: "#A8A29E" }}>–</td>
             </tr>
           </tbody>
         </table>
@@ -935,7 +935,7 @@ function AkademikStaffPage({ profile }) {
             <th style={{ border: "1px solid #1F2937", padding: 5 }}>Mata Kuliah</th>
             <th style={{ border: "1px solid #1F2937", padding: 5 }}>SKS</th>
             <th style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai Angka</th>
-            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai Huruf</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Predikat</th>
           </tr></thead>
           <tbody>
             {recordsKRS.map((r, i) => (
@@ -1144,7 +1144,7 @@ function AkademikSantriPage({ profile }) {
             <th style={{ border: "1px solid #1F2937", padding: 5 }}>Mata Kuliah</th>
             <th style={{ border: "1px solid #1F2937", padding: 5 }}>SKS</th>
             <th style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai Angka</th>
-            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai Huruf</th>
+            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Predikat</th>
           </tr></thead>
           <tbody>
             {recordsSemester.map((r, i) => (
