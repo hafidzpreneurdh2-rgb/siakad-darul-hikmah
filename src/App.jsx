@@ -55,15 +55,15 @@ const CAN_EDIT = {
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
 const MENUS = {
-  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
-  musyrif: [["dashboard","Dashboard"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
-  musyrifah: [["dashboard","Dashboard"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
+  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
+  musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
+  musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
   keuangan: [["dashboard","Dashboard"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
   akademik: [["dashboard","Dashboard"],["akademik","Akademik"],["pengaturan","Pengaturan"]],
-  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
-  santri: [["dashboard","Dashboard"],["akademik","Akademik"],["quran","Laporan Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
+  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
+  santri: [["dashboard","Dashboard"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Laporan Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", quran: "Laporan Capaian Al-Qur'an", ibadah: "Laporan Ibadah", catatan: "Catatan Pojok", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", quran: "Capaian Al-Qur'an", ibadah: "Laporan Ibadah", catatan: "Catatan Pojok", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
@@ -1200,7 +1200,7 @@ function AkademikSantriPage({ profile }) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Laporan Capaian Al-Qur'an — overview semua santri + drill-down          */
+/* Capaian Al-Qur'an — overview semua santri + drill-down          */
 /* ---------------------------------------------------------------------- */
 function QuranPage({ profile }) {
   const editable = canEdit(profile.role, "quran");
@@ -1212,6 +1212,17 @@ function QuranPage({ profile }) {
   const santri = santriT.rows.find((s) => s.nim === nim);
   const logs = logT.rows.filter((l) => l.nim === nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
   const pickable = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || s.musyrif_username === profile.username);
+
+  const [filterTahun, setFilterTahun] = useState("");
+  const [filterBulan, setFilterBulan] = useState("");
+  const tahunTersedia = [...new Set(logs.map((l) => l.tanggal?.slice(0, 4)).filter(Boolean))].sort((a, b) => b.localeCompare(a));
+  const filteredLogs = logs.filter((l) => {
+    if (!l.tanggal) return true;
+    const [y, m] = l.tanggal.split("-");
+    if (filterTahun && y !== filterTahun) return false;
+    if (filterBulan && m !== filterBulan) return false;
+    return true;
+  });
 
   const [catatan, setCatatan] = useState("");
   useEffect(() => { setCatatan(santri?.catatan_quran || ""); }, [santri?.nim]);
@@ -1249,7 +1260,7 @@ function QuranPage({ profile }) {
   if (isViewer && !nim) {
     return (
       <div>
-        <PageHeader title="Laporan Capaian Al-Qur'an" sub="Semua santri — klik salah satu untuk lihat detail." />
+        <PageHeader title="Capaian Al-Qur'an" sub="Semua santri — klik salah satu untuk lihat detail." />
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Juz Dikuasai</th><th className="p-3.5">Setoran Terakhir</th></tr></thead>
@@ -1275,7 +1286,7 @@ function QuranPage({ profile }) {
   return (
     <div>
       {isViewer && <BackBar onBack={() => setNim("")} />}
-      <PageHeader title={isViewer ? (santri?.nama || "Laporan Capaian Al-Qur'an") : "Laporan Capaian Al-Qur'an"}
+      <PageHeader title={isViewer ? (santri?.nama || "Capaian Al-Qur'an") : "Capaian Al-Qur'an"}
         actions={(!isViewer || editable) && <div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Catat Setoran</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
       {santri && (
         <>
@@ -1287,10 +1298,22 @@ function QuranPage({ profile }) {
         <div className="grid grid-cols-[0.85fr_1.3fr] gap-4 items-start">
           <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Peta Hafalan</h3><JuzTracker juz={santri.juz_dikuasai || []} /></Card>
           <Card className="p-0 overflow-hidden">
+            <div className="flex items-center gap-2 p-3 border-b border-stone-100">
+              <span className="text-xs text-stone-500 mr-1">Filter:</span>
+              <Select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="!w-auto py-1.5 text-xs">
+                <option value="">Semua Bulan</option>
+                {BULAN.map((b, i) => <option key={b} value={String(i + 1).padStart(2, "0")}>{b}</option>)}
+              </Select>
+              <Select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="!w-auto py-1.5 text-xs">
+                <option value="">Semua Tahun</option>
+                {tahunTersedia.map((t) => <option key={t} value={t}>{t}</option>)}
+              </Select>
+              {(filterBulan || filterTahun) && <button onClick={() => { setFilterBulan(""); setFilterTahun(""); }} className="text-xs text-stone-400 hover:text-stone-600">Reset</button>}
+            </div>
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3 whitespace-nowrap">Tgl</th><th className="p-3 whitespace-nowrap">Jenis</th><th className="p-3 whitespace-nowrap">Juz &amp; Hal.</th><th className="p-3 whitespace-nowrap">Kelancaran</th><th className="p-3 whitespace-nowrap">Catatan</th>{editable && isViewer && <th className="p-3 text-right whitespace-nowrap">Aksi</th>}</tr></thead>
-              <tbody>{logs.map((l) => (
+              <tbody>{filteredLogs.map((l) => (
                 <tr key={l.id} className="border-t border-stone-100 align-top">
                   <td className="p-3 whitespace-nowrap">{l.tanggal}</td>
                   <td className="p-3 whitespace-nowrap">{l.jenis}</td>
@@ -1303,7 +1326,7 @@ function QuranPage({ profile }) {
                   </td>}
                 </tr>
               ))}
-                {logs.length === 0 && <tr><td colSpan={editable && isViewer ? 6 : 5}><Empty text="Belum ada catatan." /></td></tr>}</tbody>
+                {filteredLogs.length === 0 && <tr><td colSpan={editable && isViewer ? 6 : 5}><Empty text="Belum ada catatan." /></td></tr>}</tbody>
             </table>
             </div>
           </Card>
