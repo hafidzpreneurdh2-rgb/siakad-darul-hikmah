@@ -920,8 +920,9 @@ function AkademikStaffPage({ profile }) {
               </tr>
             ))}
             <tr style={{ background: "#F3EEE1", fontWeight: 700 }}>
-              <td colSpan={3} style={{ border: "1px solid #1F2937", padding: 5 }}>Total SKS</td>
-              <td colSpan={2} style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{recordsKRS.reduce((a, r) => a + Number(r.sks || 0), 0)}</td>
+              <td colSpan={3} style={{ border: "1px solid #1F2937", padding: 5, textAlign: "right" }}>Total SKS</td>
+              <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{recordsKRS.reduce((a, r) => a + Number(r.sks || 0), 0)}</td>
+              <td style={{ border: "1px solid #1F2937", padding: 5 }}></td>
             </tr>
           </tbody>
         </table>
