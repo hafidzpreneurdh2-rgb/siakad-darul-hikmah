@@ -865,7 +865,7 @@ function AkademikStaffPage({ profile }) {
       <style>{`
         @media print {
           body * { visibility: hidden; }
-          .krs-print, .krs-print * { visibility: visible; }
+          .krs-print, .krs-print * { visibility: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
           .krs-print { position: absolute; top: 0; left: 0; width: 100%; padding: 24px 32px; box-shadow: none !important; border: none !important; }
         }
       `}</style>
@@ -942,9 +942,9 @@ function AkademikStaffPage({ profile }) {
               <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Ket</th>
             </tr>
             <tr style={{ background: "#0B3B36", color: "#fff" }}>
-              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Angka</th>
-              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Predikat</th>
-              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Bobot</th>
+              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 700 }}>Angka</th>
+              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 700 }}>Predikat</th>
+              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 700 }}>Bobot</th>
             </tr>
           </thead>
           <tbody>
@@ -1127,7 +1127,7 @@ function AkademikSantriPage({ profile }) {
       <style>{`
         @media print {
           body * { visibility: hidden; }
-          .krs-print, .krs-print * { visibility: visible; }
+          .krs-print, .krs-print * { visibility: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
           .krs-print { position: absolute; top: 0; left: 0; width: 100%; padding: 24px 32px; box-shadow: none !important; border: none !important; }
         }
       `}</style>
@@ -1195,9 +1195,9 @@ function AkademikSantriPage({ profile }) {
               <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Ket</th>
             </tr>
             <tr style={{ background: "#0B3B36", color: "#fff" }}>
-              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Angka</th>
-              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Predikat</th>
-              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Bobot</th>
+              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 700 }}>Angka</th>
+              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 700 }}>Predikat</th>
+              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 700 }}>Bobot</th>
             </tr>
           </thead>
           <tbody>
