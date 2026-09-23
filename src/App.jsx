@@ -928,42 +928,73 @@ function AkademikStaffPage({ profile }) {
         </table>
         ) : (
         <>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 8 }}>
-          <thead><tr style={{ background: "#0B3B36", color: "#fff" }}>
-            <th style={{ border: "1px solid #1F2937", padding: 5 }}>No</th>
-            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Kode MK</th>
-            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Mata Kuliah</th>
-            <th style={{ border: "1px solid #1F2937", padding: 5 }}>SKS</th>
-            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai Angka</th>
-            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Predikat</th>
-          </tr></thead>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 0 }}>
+          <thead>
+            <tr style={{ background: "#0B3B36", color: "#fff" }}>
+              <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>No</th>
+              <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Kode MK</th>
+              <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Mata Kuliah</th>
+              <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>SKS</th>
+              <th colSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai</th>
+              <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Total<br/>Bobot</th>
+              <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Ket</th>
+            </tr>
+            <tr style={{ background: "#0B3B36", color: "#fff" }}>
+              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Angka</th>
+              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Predikat / Bobot</th>
+            </tr>
+          </thead>
           <tbody>
-            {recordsKRS.map((r, i) => (
+            {recordsKRS.map((r, i) => {
+              const ada = r.nilai_angka != null;
+              const b = ada ? bobot(nilaiHuruf(r.nilai_angka)) : 0;
+              return (
               <tr key={r.id}>
                 <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{i + 1}</td>
                 <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.kode_mk || "-"}</td>
                 <td style={{ border: "1px solid #1F2937", padding: 5 }}>{r.mata_kuliah}</td>
                 <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.sks}</td>
-                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.nilai_angka ?? "-"}</td>
-                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.nilai_angka != null ? nilaiHuruf(r.nilai_angka) : "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? r.nilai_angka : "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? `${nilaiHuruf(r.nilai_angka)} (${b})` : "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? (b * Number(r.sks || 0)).toFixed(2) : "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>-</td>
               </tr>
-            ))}
+              );
+            })}
+            <tr style={{ background: "#F3EEE1", fontWeight: 700 }}>
+              <td colSpan={3} style={{ border: "1px solid #1F2937", padding: "5px 10px 5px 5px", textAlign: "right" }}>JUMLAH</td>
+              <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{recordsKRS.reduce((a, r) => a + Number(r.sks || 0), 0)}</td>
+              <td colSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}></td>
+              <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{recordsKRS.reduce((a, r) => a + (r.nilai_angka != null ? bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0) : 0), 0).toFixed(2)}</td>
+              <td style={{ border: "1px solid #1F2937", padding: 5 }}></td>
+            </tr>
           </tbody>
         </table>
-        <table style={{ width: "100%", fontSize: 10.5, marginBottom: 16 }}><tbody>
+        <table style={{ width: "100%", fontSize: 10.5, marginTop: 6, marginBottom: 16 }}><tbody>
           <tr>
-            <td>IP Semester ini: <b>{(() => {
-              const sel = recordsKRS.filter((r) => r.status === "selesai");
-              const tot = sel.reduce((a, r) => a + Number(r.sks || 0), 0);
-              return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
-            })()}</b></td>
-            <td style={{ textAlign: "right" }}>IPK Kumulatif: <b>{(() => {
-              const sel = records.filter((r) => r.status === "selesai");
-              const tot = sel.reduce((a, r) => a + Number(r.sks || 0), 0);
-              return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
-            })()}</b></td>
+            <td style={{ verticalAlign: "top" }}>
+              <div>Indeks Prestasi (IP) : <b>{(() => {
+                const sel = recordsKRS.filter((r) => r.status === "selesai");
+                const tot = sel.reduce((a, r) => a + Number(r.sks || 0), 0);
+                return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
+              })()}</b></div>
+              <div>Indeks Prestasi Kumulatif (IPK) : <b>{(() => {
+                const sel = records.filter((r) => r.status === "selesai");
+                const tot = sel.reduce((a, r) => a + Number(r.sks || 0), 0);
+                return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
+              })()}</b></div>
+            </td>
+            <td style={{ textAlign: "right", verticalAlign: "top", fontSize: 9.5, color: "#44544D" }}>
+              Keterangan Bobot:<br/>
+              Mumtaz = 4.00 &nbsp;&nbsp; Jayyid Jiddan = 3.50<br/>
+              Jayyid = 3.00 &nbsp;&nbsp; Maqbul = 2.00<br/>
+              Rasib = 0.00
+            </td>
           </tr>
         </tbody></table>
+        <div style={{ border: "1px solid #E7DFCB", background: "#FBF8F1", borderRadius: 6, padding: "8px 12px", fontSize: 10.5, marginBottom: 16 }}>
+          <b>Progres Hafalan Al-Qur'an (s.d. saat ini):</b> {santri?.juz_dikuasai?.length || 0} dari 30 Juz
+        </div>
         </>
         )}
 
@@ -1137,42 +1168,73 @@ function AkademikSantriPage({ profile }) {
         </table>
         ) : (
         <>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 8 }}>
-          <thead><tr style={{ background: "#0B3B36", color: "#fff" }}>
-            <th style={{ border: "1px solid #1F2937", padding: 5 }}>No</th>
-            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Kode MK</th>
-            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Mata Kuliah</th>
-            <th style={{ border: "1px solid #1F2937", padding: 5 }}>SKS</th>
-            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai Angka</th>
-            <th style={{ border: "1px solid #1F2937", padding: 5 }}>Predikat</th>
-          </tr></thead>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 0 }}>
+          <thead>
+            <tr style={{ background: "#0B3B36", color: "#fff" }}>
+              <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>No</th>
+              <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Kode MK</th>
+              <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Mata Kuliah</th>
+              <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>SKS</th>
+              <th colSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai</th>
+              <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Total<br/>Bobot</th>
+              <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Ket</th>
+            </tr>
+            <tr style={{ background: "#0B3B36", color: "#fff" }}>
+              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Angka</th>
+              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Predikat / Bobot</th>
+            </tr>
+          </thead>
           <tbody>
-            {recordsSemester.map((r, i) => (
+            {recordsSemester.map((r, i) => {
+              const ada = r.nilai_angka != null;
+              const b = ada ? bobot(nilaiHuruf(r.nilai_angka)) : 0;
+              return (
               <tr key={r.id}>
                 <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{i + 1}</td>
                 <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.kode_mk || "-"}</td>
                 <td style={{ border: "1px solid #1F2937", padding: 5 }}>{r.mata_kuliah}</td>
                 <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.sks}</td>
-                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.nilai_angka ?? "-"}</td>
-                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.nilai_angka != null ? nilaiHuruf(r.nilai_angka) : "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? r.nilai_angka : "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? `${nilaiHuruf(r.nilai_angka)} (${b})` : "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? (b * Number(r.sks || 0)).toFixed(2) : "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>-</td>
               </tr>
-            ))}
+              );
+            })}
+            <tr style={{ background: "#F3EEE1", fontWeight: 700 }}>
+              <td colSpan={3} style={{ border: "1px solid #1F2937", padding: "5px 10px 5px 5px", textAlign: "right" }}>JUMLAH</td>
+              <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{recordsSemester.reduce((a, r) => a + Number(r.sks || 0), 0)}</td>
+              <td colSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}></td>
+              <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{recordsSemester.reduce((a, r) => a + (r.nilai_angka != null ? bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0) : 0), 0).toFixed(2)}</td>
+              <td style={{ border: "1px solid #1F2937", padding: 5 }}></td>
+            </tr>
           </tbody>
         </table>
-        <table style={{ width: "100%", fontSize: 10.5, marginBottom: 16 }}><tbody>
+        <table style={{ width: "100%", fontSize: 10.5, marginTop: 6, marginBottom: 16 }}><tbody>
           <tr>
-            <td>IP Semester ini: <b>{(() => {
-              const sel = recordsSemester.filter((r) => r.status === "selesai");
-              const tot = sel.reduce((a, r) => a + Number(r.sks || 0), 0);
-              return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
-            })()}</b></td>
-            <td style={{ textAlign: "right" }}>IPK Kumulatif: <b>{(() => {
-              const sel = akT.rows.filter((r) => r.status === "selesai");
-              const tot = sel.reduce((a, r) => a + Number(r.sks || 0), 0);
-              return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
-            })()}</b></td>
+            <td style={{ verticalAlign: "top" }}>
+              <div>Indeks Prestasi (IP) : <b>{(() => {
+                const sel = recordsSemester.filter((r) => r.status === "selesai");
+                const tot = sel.reduce((a, r) => a + Number(r.sks || 0), 0);
+                return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
+              })()}</b></div>
+              <div>Indeks Prestasi Kumulatif (IPK) : <b>{(() => {
+                const sel = akT.rows.filter((r) => r.status === "selesai");
+                const tot = sel.reduce((a, r) => a + Number(r.sks || 0), 0);
+                return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
+              })()}</b></div>
+            </td>
+            <td style={{ textAlign: "right", verticalAlign: "top", fontSize: 9.5, color: "#44544D" }}>
+              Keterangan Bobot:<br/>
+              Mumtaz = 4.00 &nbsp;&nbsp; Jayyid Jiddan = 3.50<br/>
+              Jayyid = 3.00 &nbsp;&nbsp; Maqbul = 2.00<br/>
+              Rasib = 0.00
+            </td>
           </tr>
         </tbody></table>
+        <div style={{ border: "1px solid #E7DFCB", background: "#FBF8F1", borderRadius: 6, padding: "8px 12px", fontSize: 10.5, marginBottom: 16 }}>
+          <b>Progres Hafalan Al-Qur'an (s.d. saat ini):</b> {santri?.juz_dikuasai?.length || 0} dari 30 Juz
+        </div>
         </>
         )}
 
