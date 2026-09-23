@@ -456,20 +456,12 @@ function StatCard({ label, value, sub, icon }) {
     </Card>
   );
 }
-function DokumenQR({ dokType, nim, ta, sem, pondok }) {
+function DokumenQR({ dokType, nim, ta, sem }) {
   const kode = `${dokType || "DOK"}-${nim || "-"}-${(ta || "").replace("/", "")}${(sem || "").slice(0, 1).toUpperCase()}`;
-  const data = `${pondok || "SIAKAD"} | ${dokType} | NIM ${nim} | ${ta} Semester ${sem}`;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 18, paddingTop: 10, borderTop: "1px dashed #B8935A" }}>
-      <img
-        src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(data)}`}
-        alt="QR dokumen"
-        style={{ width: 56, height: 56, flexShrink: 0 }}
-      />
-      <div style={{ fontSize: 8.5, color: "#6B7280", lineHeight: 1.5 }}>
-        <div>No. Dokumen: {kode}</div>
-        <div>Dicetak: {new Date().toLocaleString("id-ID")}</div>
-      </div>
+    <div style={{ fontSize: 8.5, color: "#6B7280", lineHeight: 1.5, marginTop: 18, paddingTop: 10, borderTop: "1px dashed #B8935A" }}>
+      <div>No. Dokumen: {kode}</div>
+      <div>Dicetak: {new Date().toLocaleString("id-ID")}</div>
     </div>
   );
 }
@@ -1017,7 +1009,13 @@ function AkademikStaffPage({ profile }) {
         <div style={{ fontSize: 10.5, marginTop: 24, textAlign: "right" }}>
           <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
           <div>Pimpinan</div>
-          <div style={{ height: 50 }}></div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, marginBottom: 6 }}>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | ${dokType} | NIM ${santri?.nim} | ${semesterTerbaru?.tahun_ajaran} Semester ${semesterTerbaru?.semester}`)}`}
+              alt="QR verifikasi tanda tangan"
+              style={{ width: 56, height: 56 }}
+            />
+          </div>
           <div><b>{brand.nama_mudir}</b></div>
           <div>NIP. {brand.nip_mudir || "-"}</div>
         </div>
@@ -1260,7 +1258,13 @@ function AkademikSantriPage({ profile }) {
         <div style={{ fontSize: 10.5, marginTop: 24, textAlign: "right" }}>
           <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
           <div>Pimpinan</div>
-          <div style={{ height: 50 }}></div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, marginBottom: 6 }}>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | ${dokType} | NIM ${santri?.nim} | ${ta} Semester ${sem}`)}`}
+              alt="QR verifikasi tanda tangan"
+              style={{ width: 56, height: 56 }}
+            />
+          </div>
           <div><b>{brand.nama_mudir}</b></div>
           <div>NIP. {brand.nip_mudir || "-"}</div>
         </div>
