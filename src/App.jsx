@@ -785,11 +785,13 @@ function AkademikStaffPage({ profile }) {
   const brand = useContext(BrandContext);
   const santriT = useTable("santri");
   const akT = useTable("akademik");
+  const quranLogT = useTable("quran_log");
   const profilesT = useTable("profiles");
   const [nim, setNim] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [dokType, setDokType] = useState("KRS");
   const records = akT.rows.filter((a) => a.nim === nim);
+  const quranLogs = quranLogT.rows.filter((l) => l.nim === nim);
   const santri = santriT.rows.find((s) => s.nim === nim);
   const pembimbing = profilesT.rows.find((p) => p.username === santri?.musyrif_username);
   const semesters = [...new Set(records.map((r) => `${r.tahun_ajaran}|${r.semester}`))].sort().reverse();
@@ -935,13 +937,14 @@ function AkademikStaffPage({ profile }) {
               <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Kode MK</th>
               <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Mata Kuliah</th>
               <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>SKS</th>
-              <th colSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai</th>
+              <th colSpan={3} style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai</th>
               <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Total<br/>Bobot</th>
               <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Ket</th>
             </tr>
             <tr style={{ background: "#0B3B36", color: "#fff" }}>
               <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Angka</th>
-              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Predikat / Bobot</th>
+              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Predikat</th>
+              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Bobot</th>
             </tr>
           </thead>
           <tbody>
@@ -955,7 +958,8 @@ function AkademikStaffPage({ profile }) {
                 <td style={{ border: "1px solid #1F2937", padding: 5 }}>{r.mata_kuliah}</td>
                 <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.sks}</td>
                 <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? r.nilai_angka : "-"}</td>
-                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? `${nilaiHuruf(r.nilai_angka)} (${b})` : "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? nilaiHuruf(r.nilai_angka) : "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? b.toFixed(2) : "-"}</td>
                 <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? (b * Number(r.sks || 0)).toFixed(2) : "-"}</td>
                 <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>-</td>
               </tr>
@@ -964,7 +968,7 @@ function AkademikStaffPage({ profile }) {
             <tr style={{ background: "#F3EEE1", fontWeight: 700 }}>
               <td colSpan={3} style={{ border: "1px solid #1F2937", padding: "5px 10px 5px 5px", textAlign: "right" }}>JUMLAH</td>
               <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{recordsKRS.reduce((a, r) => a + Number(r.sks || 0), 0)}</td>
-              <td colSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}></td>
+              <td colSpan={3} style={{ border: "1px solid #1F2937", padding: 5 }}></td>
               <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{recordsKRS.reduce((a, r) => a + (r.nilai_angka != null ? bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0) : 0), 0).toFixed(2)}</td>
               <td style={{ border: "1px solid #1F2937", padding: 5 }}></td>
             </tr>
@@ -992,8 +996,17 @@ function AkademikStaffPage({ profile }) {
             </td>
           </tr>
         </tbody></table>
-        <div style={{ border: "1px solid #E7DFCB", background: "#FBF8F1", borderRadius: 6, padding: "8px 12px", fontSize: 10.5, marginBottom: 16 }}>
-          <b>Progres Hafalan Al-Qur'an (s.d. saat ini):</b> {santri?.juz_dikuasai?.length || 0} dari 30 Juz
+        <div style={{ border: "1px solid #E7DFCB", background: "#FBF8F1", borderRadius: 6, padding: "10px 14px", marginBottom: 16 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#0B3B36", marginBottom: 6 }}>Rekapitulasi Capaian Al-Qur'an (s.d. saat ini)</div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+            <thead><tr style={{ color: "#44544D" }}>
+              {JENIS_SETORAN_QURAN.map((j) => <th key={j} style={{ borderBottom: "1px solid #E7DFCB", padding: "2px 4px", fontWeight: 600 }}>{j}</th>)}
+            </tr></thead>
+            <tbody><tr>
+              {JENIS_SETORAN_QURAN.map((j) => <td key={j} style={{ padding: "2px 4px", textAlign: "center" }}>{quranLogs.filter((l) => l.jenis === j).length}x</td>)}
+            </tr></tbody>
+          </table>
+          <div style={{ fontSize: 10.5, marginTop: 8, borderTop: "1px solid #E7DFCB", paddingTop: 6 }}><b>Total Hafalan Dikuasai:</b> {santri?.juz_dikuasai?.length || 0} dari 30 Juz</div>
         </div>
         </>
         )}
@@ -1086,8 +1099,10 @@ function AkademikSantriPage({ profile }) {
   const brand = useContext(BrandContext);
   const akT = useTable("akademik");
   const santriT = useTable("santri");
+  const quranLogT = useTable("quran_log");
   const profilesT = useTable("profiles");
   const santri = santriT.rows.find((s) => s.nim === profile.nim);
+  const quranLogs = quranLogT.rows.filter((l) => l.nim === profile.nim);
   const pembimbing = profilesT.rows.find((p) => p.username === santri?.musyrif_username);
 
   const semesters = [...new Set(akT.rows.map((r) => `${r.tahun_ajaran}|${r.semester}`))].sort().reverse();
@@ -1175,13 +1190,14 @@ function AkademikSantriPage({ profile }) {
               <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Kode MK</th>
               <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Mata Kuliah</th>
               <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>SKS</th>
-              <th colSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai</th>
+              <th colSpan={3} style={{ border: "1px solid #1F2937", padding: 5 }}>Nilai</th>
               <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Total<br/>Bobot</th>
               <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}>Ket</th>
             </tr>
             <tr style={{ background: "#0B3B36", color: "#fff" }}>
               <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Angka</th>
-              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Predikat / Bobot</th>
+              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Predikat</th>
+              <th style={{ border: "1px solid #1F2937", padding: "2px 5px", fontWeight: 400 }}>Bobot</th>
             </tr>
           </thead>
           <tbody>
@@ -1195,7 +1211,8 @@ function AkademikSantriPage({ profile }) {
                 <td style={{ border: "1px solid #1F2937", padding: 5 }}>{r.mata_kuliah}</td>
                 <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{r.sks}</td>
                 <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? r.nilai_angka : "-"}</td>
-                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? `${nilaiHuruf(r.nilai_angka)} (${b})` : "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? nilaiHuruf(r.nilai_angka) : "-"}</td>
+                <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? b.toFixed(2) : "-"}</td>
                 <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{ada ? (b * Number(r.sks || 0)).toFixed(2) : "-"}</td>
                 <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>-</td>
               </tr>
@@ -1204,7 +1221,7 @@ function AkademikSantriPage({ profile }) {
             <tr style={{ background: "#F3EEE1", fontWeight: 700 }}>
               <td colSpan={3} style={{ border: "1px solid #1F2937", padding: "5px 10px 5px 5px", textAlign: "right" }}>JUMLAH</td>
               <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{recordsSemester.reduce((a, r) => a + Number(r.sks || 0), 0)}</td>
-              <td colSpan={2} style={{ border: "1px solid #1F2937", padding: 5 }}></td>
+              <td colSpan={3} style={{ border: "1px solid #1F2937", padding: 5 }}></td>
               <td style={{ border: "1px solid #1F2937", padding: 5, textAlign: "center" }}>{recordsSemester.reduce((a, r) => a + (r.nilai_angka != null ? bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0) : 0), 0).toFixed(2)}</td>
               <td style={{ border: "1px solid #1F2937", padding: 5 }}></td>
             </tr>
@@ -1232,8 +1249,17 @@ function AkademikSantriPage({ profile }) {
             </td>
           </tr>
         </tbody></table>
-        <div style={{ border: "1px solid #E7DFCB", background: "#FBF8F1", borderRadius: 6, padding: "8px 12px", fontSize: 10.5, marginBottom: 16 }}>
-          <b>Progres Hafalan Al-Qur'an (s.d. saat ini):</b> {santri?.juz_dikuasai?.length || 0} dari 30 Juz
+        <div style={{ border: "1px solid #E7DFCB", background: "#FBF8F1", borderRadius: 6, padding: "10px 14px", marginBottom: 16 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#0B3B36", marginBottom: 6 }}>Rekapitulasi Capaian Al-Qur'an (s.d. saat ini)</div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+            <thead><tr style={{ color: "#44544D" }}>
+              {JENIS_SETORAN_QURAN.map((j) => <th key={j} style={{ borderBottom: "1px solid #E7DFCB", padding: "2px 4px", fontWeight: 600 }}>{j}</th>)}
+            </tr></thead>
+            <tbody><tr>
+              {JENIS_SETORAN_QURAN.map((j) => <td key={j} style={{ padding: "2px 4px", textAlign: "center" }}>{quranLogs.filter((l) => l.jenis === j).length}x</td>)}
+            </tr></tbody>
+          </table>
+          <div style={{ fontSize: 10.5, marginTop: 8, borderTop: "1px solid #E7DFCB", paddingTop: 6 }}><b>Total Hafalan Dikuasai:</b> {santri?.juz_dikuasai?.length || 0} dari 30 Juz</div>
         </div>
         </>
         )}
