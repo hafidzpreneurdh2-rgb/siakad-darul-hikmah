@@ -900,7 +900,7 @@ function AkademikStaffPage({ profile }) {
 
         <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>Nama Mahasantri</span><span>: {santri?.nama}</span></div>
         <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>NIM</span><span>: {santri?.nim}</span></div>
-        <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Angkatan</span><span>: {santri?.kelas}</span></div>
+        <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Semester</span><span>: {semesterTerbaru?.semester || "-"} {semesterTerbaru?.tahun_ajaran || ""}</span></div>
 
         {dokType === "KRS" ? (
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 8 }}>
@@ -1003,7 +1003,10 @@ function AkademikStaffPage({ profile }) {
               {JENIS_SETORAN_QURAN.map((j) => <th key={j} style={{ borderBottom: "1px solid #E7DFCB", padding: "2px 4px", fontWeight: 600 }}>{j}</th>)}
             </tr></thead>
             <tbody><tr>
-              {JENIS_SETORAN_QURAN.map((j) => <td key={j} style={{ padding: "2px 4px", textAlign: "center" }}>{quranLogs.filter((l) => l.jenis === j).length}x</td>)}
+              {JENIS_SETORAN_QURAN.map((j) => {
+                const hal = quranLogs.filter((l) => l.jenis === j).reduce((a, l) => a + (l.halaman_dari && l.halaman_sampai ? Math.max(0, Number(l.halaman_sampai) - Number(l.halaman_dari) + 1) : 0), 0);
+                return <td key={j} style={{ padding: "2px 4px", textAlign: "center" }}>{hal} hal<div style={{ fontSize: 8.5, color: "#8A8A8A" }}>(~{(hal / 20).toFixed(1)} juz)</div></td>;
+              })}
             </tr></tbody>
           </table>
           <div style={{ fontSize: 10.5, marginTop: 8, borderTop: "1px solid #E7DFCB", paddingTop: 6 }}><b>Total Hafalan Dikuasai:</b> {santri?.juz_dikuasai?.length || 0} dari 30 Juz</div>
@@ -1011,25 +1014,12 @@ function AkademikStaffPage({ profile }) {
         </>
         )}
 
-        <div style={{ fontSize: 10.5, marginTop: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <div>Menyetujui,<br/>Pembimbing</div>
-            <div style={{ textAlign: "right" }}>{new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}<br/>Mahasantri ybs</div>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 42 }}>
-            <div><b>{pembimbing?.nama || "-"}</b><br/>NIP. {pembimbing?.nip || "-"}</div>
-            <div style={{ textAlign: "right" }}><b>{santri?.nama}</b><br/>NIM. {santri?.nim}</div>
-          </div>
-
-          <div style={{ textAlign: "center", marginTop: 26 }}>Mengetahui,</div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
-            <div>Plt. Mudir</div>
-            <div style={{ textAlign: "right" }}>Kabag. Akademik</div>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 42 }}>
-            <div><b>{brand.nama_mudir}</b><br/>NIP. {brand.nip_mudir || "-"}</div>
-            <div style={{ textAlign: "right" }}><b>{brand.nama_kabag_akademik}</b><br/>NIP. {brand.nip_kabag_akademik || "-"}</div>
-          </div>
+        <div style={{ fontSize: 10.5, marginTop: 24, textAlign: "right" }}>
+          <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
+          <div>Pimpinan</div>
+          <div style={{ height: 50 }}></div>
+          <div><b>{brand.nama_mudir}</b></div>
+          <div>NIP. {brand.nip_mudir || "-"}</div>
         </div>
         <DokumenQR dokType={dokType} nim={santri?.nim} ta={semesterTerbaru?.tahun_ajaran} sem={semesterTerbaru?.semester} pondok={brand.nama_pondok} />
       </div>
@@ -1157,7 +1147,7 @@ function AkademikSantriPage({ profile }) {
 
         <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>Nama Mahasantri</span><span>: {santri?.nama}</span></div>
         <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>NIM</span><span>: {santri?.nim}</span></div>
-        <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Angkatan</span><span>: {santri?.kelas}</span></div>
+        <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Semester</span><span>: {sem || "-"} {ta || ""}</span></div>
 
         {dokType === "KRS" ? (
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 8 }}>
@@ -1256,7 +1246,10 @@ function AkademikSantriPage({ profile }) {
               {JENIS_SETORAN_QURAN.map((j) => <th key={j} style={{ borderBottom: "1px solid #E7DFCB", padding: "2px 4px", fontWeight: 600 }}>{j}</th>)}
             </tr></thead>
             <tbody><tr>
-              {JENIS_SETORAN_QURAN.map((j) => <td key={j} style={{ padding: "2px 4px", textAlign: "center" }}>{quranLogs.filter((l) => l.jenis === j).length}x</td>)}
+              {JENIS_SETORAN_QURAN.map((j) => {
+                const hal = quranLogs.filter((l) => l.jenis === j).reduce((a, l) => a + (l.halaman_dari && l.halaman_sampai ? Math.max(0, Number(l.halaman_sampai) - Number(l.halaman_dari) + 1) : 0), 0);
+                return <td key={j} style={{ padding: "2px 4px", textAlign: "center" }}>{hal} hal<div style={{ fontSize: 8.5, color: "#8A8A8A" }}>(~{(hal / 20).toFixed(1)} juz)</div></td>;
+              })}
             </tr></tbody>
           </table>
           <div style={{ fontSize: 10.5, marginTop: 8, borderTop: "1px solid #E7DFCB", paddingTop: 6 }}><b>Total Hafalan Dikuasai:</b> {santri?.juz_dikuasai?.length || 0} dari 30 Juz</div>
@@ -1264,25 +1257,12 @@ function AkademikSantriPage({ profile }) {
         </>
         )}
 
-        <div style={{ fontSize: 10.5, marginTop: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <div>Menyetujui,<br/>Pembimbing</div>
-            <div style={{ textAlign: "right" }}>{new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}<br/>Mahasantri ybs</div>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 42 }}>
-            <div><b>{pembimbing?.nama || "-"}</b><br/>NIP. {pembimbing?.nip || "-"}</div>
-            <div style={{ textAlign: "right" }}><b>{santri?.nama}</b><br/>NIM. {santri?.nim}</div>
-          </div>
-
-          <div style={{ textAlign: "center", marginTop: 26 }}>Mengetahui,</div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
-            <div>Plt. Mudir</div>
-            <div style={{ textAlign: "right" }}>Kabag. Akademik</div>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 42 }}>
-            <div><b>{brand.nama_mudir}</b><br/>NIP. {brand.nip_mudir || "-"}</div>
-            <div style={{ textAlign: "right" }}><b>{brand.nama_kabag_akademik}</b><br/>NIP. {brand.nip_kabag_akademik || "-"}</div>
-          </div>
+        <div style={{ fontSize: 10.5, marginTop: 24, textAlign: "right" }}>
+          <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
+          <div>Pimpinan</div>
+          <div style={{ height: 50 }}></div>
+          <div><b>{brand.nama_mudir}</b></div>
+          <div>NIP. {brand.nip_mudir || "-"}</div>
         </div>
         <DokumenQR dokType={dokType} nim={santri?.nim} ta={ta} sem={sem} pondok={brand.nama_pondok} />
       </div>
