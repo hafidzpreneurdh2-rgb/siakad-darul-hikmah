@@ -38,8 +38,8 @@ const FONT_OPTIONS = {
 };
 
 function formatRupiah(n) { return n == null ? "-" : "Rp " + Number(n).toLocaleString("id-ID"); }
-function nilaiHuruf(a) { if (a == null) return "-"; if (a >= 90) return "Mumtaz"; if (a >= 80) return "Jayyid Jiddan"; if (a >= 70) return "Jayyid"; if (a >= 60) return "Maqbul"; return "Rasib"; }
-function bobot(h) { return { "Mumtaz": 4, "Jayyid Jiddan": 3.5, "Jayyid": 3, "Maqbul": 2, "Rasib": 0 }[h] ?? 0; }
+function nilaiHuruf(a) { if (a == null) return "-"; if (a >= 85) return "A"; if (a >= 75) return "B"; if (a >= 65) return "C"; if (a >= 50) return "D"; return "E"; }
+function bobot(h) { return { A: 4, B: 3, C: 2, D: 1, E: 0 }[h] ?? 0; }
 function initials(name = "") { return name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase(); }
 function avatarColor(name = "") { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) % AVATAR_COLORS.length; return AVATAR_COLORS[h]; }
 function todayLong() { return new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
@@ -982,26 +982,15 @@ function AkademikStaffPage({ profile }) {
             </td>
             <td style={{ textAlign: "right", verticalAlign: "top", fontSize: 9.5, color: "#44544D" }}>
               Keterangan Bobot:<br/>
-              Mumtaz = 4.00 &nbsp;&nbsp; Jayyid Jiddan = 3.50<br/>
-              Jayyid = 3.00 &nbsp;&nbsp; Maqbul = 2.00<br/>
-              Rasib = 0.00
+              A = 4.00 &nbsp;&nbsp; B = 3.00<br/>
+              C = 2.00 &nbsp;&nbsp; D = 1.00<br/>
+              E = 0.00
             </td>
           </tr>
         </tbody></table>
         <div style={{ border: "1px solid #E7DFCB", background: "#FBF8F1", borderRadius: 6, padding: "10px 14px", marginBottom: 16 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#0B3B36", marginBottom: 6 }}>Rekapitulasi Capaian Al-Qur'an (s.d. saat ini)</div>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
-            <thead><tr style={{ color: "#44544D" }}>
-              {JENIS_SETORAN_QURAN.map((j) => <th key={j} style={{ borderBottom: "1px solid #E7DFCB", padding: "2px 4px", fontWeight: 600 }}>{j}</th>)}
-            </tr></thead>
-            <tbody><tr>
-              {JENIS_SETORAN_QURAN.map((j) => {
-                const hal = quranLogs.filter((l) => l.jenis === j).reduce((a, l) => a + (l.halaman_dari && l.halaman_sampai ? Math.max(0, Number(l.halaman_sampai) - Number(l.halaman_dari) + 1) : 0), 0);
-                return <td key={j} style={{ padding: "2px 4px", textAlign: "center" }}>{hal} hal<div style={{ fontSize: 8.5, color: "#8A8A8A" }}>(~{(hal / 20).toFixed(1)} juz)</div></td>;
-              })}
-            </tr></tbody>
-          </table>
-          <div style={{ fontSize: 10.5, marginTop: 8, borderTop: "1px solid #E7DFCB", paddingTop: 6 }}><b>Total Hafalan Dikuasai:</b> {santri?.juz_dikuasai?.length || 0} dari 30 Juz</div>
+          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#0B3B36", marginBottom: 4 }}>Rekapitulasi Capaian Al-Qur'an</div>
+          <div style={{ fontSize: 10.5 }}><b>Total Hafalan Dikuasai:</b> {santri?.juz_dikuasai?.length || 0} dari 30 Juz</div>
         </div>
         </>
         )}
@@ -1231,26 +1220,15 @@ function AkademikSantriPage({ profile }) {
             </td>
             <td style={{ textAlign: "right", verticalAlign: "top", fontSize: 9.5, color: "#44544D" }}>
               Keterangan Bobot:<br/>
-              Mumtaz = 4.00 &nbsp;&nbsp; Jayyid Jiddan = 3.50<br/>
-              Jayyid = 3.00 &nbsp;&nbsp; Maqbul = 2.00<br/>
-              Rasib = 0.00
+              A = 4.00 &nbsp;&nbsp; B = 3.00<br/>
+              C = 2.00 &nbsp;&nbsp; D = 1.00<br/>
+              E = 0.00
             </td>
           </tr>
         </tbody></table>
         <div style={{ border: "1px solid #E7DFCB", background: "#FBF8F1", borderRadius: 6, padding: "10px 14px", marginBottom: 16 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#0B3B36", marginBottom: 6 }}>Rekapitulasi Capaian Al-Qur'an (s.d. saat ini)</div>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
-            <thead><tr style={{ color: "#44544D" }}>
-              {JENIS_SETORAN_QURAN.map((j) => <th key={j} style={{ borderBottom: "1px solid #E7DFCB", padding: "2px 4px", fontWeight: 600 }}>{j}</th>)}
-            </tr></thead>
-            <tbody><tr>
-              {JENIS_SETORAN_QURAN.map((j) => {
-                const hal = quranLogs.filter((l) => l.jenis === j).reduce((a, l) => a + (l.halaman_dari && l.halaman_sampai ? Math.max(0, Number(l.halaman_sampai) - Number(l.halaman_dari) + 1) : 0), 0);
-                return <td key={j} style={{ padding: "2px 4px", textAlign: "center" }}>{hal} hal<div style={{ fontSize: 8.5, color: "#8A8A8A" }}>(~{(hal / 20).toFixed(1)} juz)</div></td>;
-              })}
-            </tr></tbody>
-          </table>
-          <div style={{ fontSize: 10.5, marginTop: 8, borderTop: "1px solid #E7DFCB", paddingTop: 6 }}><b>Total Hafalan Dikuasai:</b> {santri?.juz_dikuasai?.length || 0} dari 30 Juz</div>
+          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#0B3B36", marginBottom: 4 }}>Rekapitulasi Capaian Al-Qur'an</div>
+          <div style={{ fontSize: 10.5 }}><b>Total Hafalan Dikuasai:</b> {santri?.juz_dikuasai?.length || 0} dari 30 Juz</div>
         </div>
         </>
         )}
