@@ -64,14 +64,15 @@ const CAN_EDIT = {
 };
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
+const AKADEMIK_GROUP = { label: "Akademik", items: [["akademik","KRS & KHS"],["kurikulum","Kurikulum"],["kalender","Kalender Akademik"]] };
 const MENUS = {
-  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["kurikulum","Kurikulum"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
+  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
   musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   keuangan: [["dashboard","Dashboard"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
-  akademik: [["dashboard","Dashboard"],["akademik","Akademik"],["kurikulum","Kurikulum"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
-  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["kurikulum","Kurikulum"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
-  santri: [["dashboard","Dashboard"],["akademik","Akademik"],["kurikulum","Kurikulum"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  akademik: [["dashboard","Dashboard"], AKADEMIK_GROUP, ["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
+  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
+  santri: [["dashboard","Dashboard"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
 };
 const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", catatan: "Catatan Pojok", spp: "Tagihan SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
@@ -372,6 +373,8 @@ function ResetPasswordScreen({ brand, onDone }) {
 /* ---------------------------------------------------------------------- */
 function Shell({ profile, view, setView, brand, children }) {
   const menu = MENUS[profile.role] || [];
+  const groupOf = (v) => menu.find((m) => m.items && m.items.some(([k]) => k === v));
+  const [openGroup, setOpenGroup] = useState(() => groupOf(view)?.label || null);
   return (
     <div className="min-h-screen bg-[#F4F2EA] flex">
       <aside className="w-64 text-white p-4 flex flex-col relative overflow-hidden" style={{ background: `linear-gradient(180deg, ${brand.warna_utama}, #04100a)` }}>
@@ -385,13 +388,41 @@ function Shell({ profile, view, setView, brand, children }) {
         </div>
         <div className="relative text-[10px] font-extrabold text-white/35 tracking-[0.15em] px-3 mb-2">MENU UTAMA</div>
         <nav className="relative flex-1 space-y-1">
-          {menu.map(([key, label]) => (
-            <div key={key} onClick={() => setView(key)}
-              className={`relative px-3.5 py-2.5 rounded-xl text-[13.5px] font-semibold cursor-pointer transition ${view === key ? "bg-white/10 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
-              {view === key && <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r" style={{ backgroundColor: brand.warna_aksen }} />}
-              {label}
-            </div>
-          ))}
+          {menu.map((entry) => {
+            if (entry.items) {
+              const isOpen = openGroup === entry.label;
+              const activeInside = entry.items.some(([k]) => k === view);
+              return (
+                <div key={entry.label}>
+                  <div onClick={() => setOpenGroup(isOpen ? null : entry.label)}
+                    className={`relative px-3.5 py-2.5 rounded-xl text-[13.5px] font-semibold cursor-pointer transition flex items-center justify-between ${activeInside ? "bg-white/10 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
+                    {activeInside && <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r" style={{ backgroundColor: brand.warna_aksen }} />}
+                    <span>{entry.label}</span>
+                    <span className={`text-[10px] transition-transform ${isOpen ? "rotate-180" : ""}`}>▾</span>
+                  </div>
+                  {isOpen && (
+                    <div className="pl-3 mt-1 space-y-1">
+                      {entry.items.map(([key, label]) => (
+                        <div key={key} onClick={() => setView(key)}
+                          className={`relative px-3.5 py-2 rounded-lg text-[12.5px] font-medium cursor-pointer transition ${view === key ? "bg-white/10 text-white" : "text-white/55 hover:bg-white/5 hover:text-white"}`}>
+                          {view === key && <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-4 rounded-r" style={{ backgroundColor: brand.warna_aksen }} />}
+                          {label}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            const [key, label] = entry;
+            return (
+              <div key={key} onClick={() => setView(key)}
+                className={`relative px-3.5 py-2.5 rounded-xl text-[13.5px] font-semibold cursor-pointer transition ${view === key ? "bg-white/10 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
+                {view === key && <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r" style={{ backgroundColor: brand.warna_aksen }} />}
+                {label}
+              </div>
+            );
+          })}
         </nav>
         <div className="relative border-t border-white/10 pt-4 mt-3 flex items-center gap-3">
           <Avatar name={profile.nama} url={profile.avatar_url} />
