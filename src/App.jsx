@@ -60,20 +60,20 @@ function todayLong() { return new Date().toLocaleDateString("id-ID", { weekday: 
 const CAN_EDIT = {
   santri: ["admin"], akademik: ["admin", "akademik"], kurikulum: ["admin", "akademik"],
   quran: ["admin", "musyrif", "musyrifah"], ibadah: ["admin", "musyrif", "musyrifah"],
-  spp: ["admin", "keuangan"],
+  spp: ["admin", "keuangan"], pengumuman: ["admin", "pimpinan"], kalender: ["admin", "akademik", "pimpinan"],
 };
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
 const MENUS = {
-  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["kurikulum","Kurikulum"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
-  musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
-  musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
-  keuangan: [["dashboard","Dashboard"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
-  akademik: [["dashboard","Dashboard"],["akademik","Akademik"],["kurikulum","Kurikulum"],["pengaturan","Pengaturan"]],
-  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["kurikulum","Kurikulum"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
-  santri: [["dashboard","Dashboard"],["akademik","Akademik"],["kurikulum","Kurikulum"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
+  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["kurikulum","Kurikulum"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
+  musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  keuangan: [["dashboard","Dashboard"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  akademik: [["dashboard","Dashboard"],["akademik","Akademik"],["kurikulum","Kurikulum"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["kurikulum","Kurikulum"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  santri: [["dashboard","Dashboard"],["akademik","Akademik"],["kurikulum","Kurikulum"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", catatan: "Catatan Pojok", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", catatan: "Catatan Pojok", spp: "Tagihan SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
@@ -1236,6 +1236,149 @@ function KurikulumForm({ initial, onCancel, onSubmit }) {
 }
 
 /* ---------------------------------------------------------------------- */
+/* Pengumuman                                                               */
+/* ---------------------------------------------------------------------- */
+function PengumumanPage({ profile }) {
+  const editable = canEdit(profile.role, "pengumuman");
+  const pengT = useTable("pengumuman");
+  const [showForm, setShowForm] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const sorted = [...pengT.rows].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+
+  async function saveItem(f) {
+    const { error } = f.id
+      ? await supabase.from("pengumuman").update(f).eq("id", f.id)
+      : await supabase.from("pengumuman").insert({ ...f, dibuat_oleh: profile.username, created_at: new Date().toISOString() });
+    if (error) { alert(error.message); return; }
+    setShowForm(false); setEditingItem(null); pengT.reload();
+  }
+  async function removeItem(id) {
+    if (!confirm("Hapus pengumuman ini?")) return;
+    const { error } = await supabase.from("pengumuman").delete().eq("id", id);
+    if (error) alert(error.message); else pengT.reload();
+  }
+
+  return (
+    <div>
+      <PageHeader title="Pengumuman" sub="Informasi &amp; agenda pondok." actions={
+        editable && <Btn onClick={() => setShowForm(true)}>+ Buat Pengumuman</Btn>
+      } />
+      {sorted.length === 0 && <Empty text="Belum ada pengumuman." />}
+      <div className="space-y-3">
+        {sorted.map((p) => (
+          <Card key={p.id}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="font-bold text-[#0B3B36] text-base mb-1">{p.judul}</div>
+                <div className="text-[11px] text-stone-400 mb-2">{p.created_at ? new Date(p.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""} — {p.dibuat_oleh}</div>
+                <div className="text-sm text-stone-700 whitespace-pre-wrap">{p.isi}</div>
+              </div>
+              {editable && <div className="flex gap-3 shrink-0">
+                <button onClick={() => setEditingItem(p)} className="text-[#145048] text-xs font-bold">Edit</button>
+                <button onClick={() => removeItem(p.id)} className="text-red-600 text-xs font-bold">Hapus</button>
+              </div>}
+            </div>
+          </Card>
+        ))}
+      </div>
+      {(showForm || editingItem) && <PengumumanForm initial={editingItem} onCancel={() => { setShowForm(false); setEditingItem(null); }} onSubmit={saveItem} />}
+    </div>
+  );
+}
+function PengumumanForm({ initial, onCancel, onSubmit }) {
+  const [f, setF] = useState(initial || { judul: "", isi: "" });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title={initial ? "Edit Pengumuman" : "Buat Pengumuman"} onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <Field label="Judul"><Input value={f.judul} onChange={set("judul")} placeholder="cth. Libur Semester Ganjil" /></Field>
+        <Field label="Isi"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={5} value={f.isi} onChange={set("isi")} /></Field>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Kalender Akademik                                                        */
+/* ---------------------------------------------------------------------- */
+function KalenderPage({ profile }) {
+  const editable = canEdit(profile.role, "kalender");
+  const kalT = useTable("kalender_akademik");
+  const [showForm, setShowForm] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const today = new Date().toISOString().slice(0, 10);
+  const sorted = [...kalT.rows].sort((a, b) => (a.tanggal_mulai || "").localeCompare(b.tanggal_mulai || ""));
+  const akanDatang = sorted.filter((k) => (k.tanggal_selesai || k.tanggal_mulai) >= today);
+  const sudahLewat = sorted.filter((k) => (k.tanggal_selesai || k.tanggal_mulai) < today);
+
+  async function saveItem(f) {
+    const { error } = f.id
+      ? await supabase.from("kalender_akademik").update(f).eq("id", f.id)
+      : await supabase.from("kalender_akademik").insert(f);
+    if (error) { alert(error.message); return; }
+    setShowForm(false); setEditingItem(null); kalT.reload();
+  }
+  async function removeItem(id) {
+    if (!confirm("Hapus agenda ini?")) return;
+    const { error } = await supabase.from("kalender_akademik").delete().eq("id", id);
+    if (error) alert(error.message); else kalT.reload();
+  }
+  const fmt = (d) => d ? new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-";
+
+  const Baris = ({ k }) => (
+    <tr className="border-t border-stone-100">
+      <td className="p-3.5 whitespace-nowrap text-stone-500">{fmt(k.tanggal_mulai)}{k.tanggal_selesai && k.tanggal_selesai !== k.tanggal_mulai ? ` – ${fmt(k.tanggal_selesai)}` : ""}</td>
+      <td className="p-3.5 font-semibold">{k.judul_kegiatan}</td>
+      <td className="p-3.5 text-stone-500">{k.keterangan || "-"}</td>
+      {editable && <td className="p-3.5 text-right whitespace-nowrap">
+        <button onClick={() => setEditingItem(k)} className="text-[#145048] text-xs font-bold mr-3">Edit</button>
+        <button onClick={() => removeItem(k.id)} className="text-red-600 text-xs font-bold">Hapus</button>
+      </td>}
+    </tr>
+  );
+
+  return (
+    <div>
+      <PageHeader title="Kalender Akademik" sub="Agenda &amp; tanggal penting pondok." actions={
+        editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Agenda</Btn>
+      } />
+      <Card className="p-0 overflow-hidden mb-4">
+        <div className="px-4 py-3 bg-stone-50 border-b border-stone-100 font-bold text-sm text-[#0B3B36]">Akan Datang</div>
+        <table className="w-full text-sm">
+          <thead><tr className="text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Tanggal</th><th className="p-3.5">Kegiatan</th><th className="p-3.5">Keterangan</th>{editable && <th className="p-3.5"></th>}</tr></thead>
+          <tbody>{akanDatang.map((k) => <Baris key={k.id} k={k} />)}{akanDatang.length === 0 && <tr><td colSpan={editable ? 4 : 3}><Empty text="Tidak ada agenda mendatang." /></td></tr>}</tbody>
+        </table>
+      </Card>
+      {sudahLewat.length > 0 && (
+        <Card className="p-0 overflow-hidden opacity-70">
+          <div className="px-4 py-3 bg-stone-50 border-b border-stone-100 font-bold text-sm text-stone-500">Sudah Lewat</div>
+          <table className="w-full text-sm">
+            <tbody>{sudahLewat.map((k) => <Baris key={k.id} k={k} />)}</tbody>
+          </table>
+        </Card>
+      )}
+      {(showForm || editingItem) && <KalenderForm initial={editingItem} onCancel={() => { setShowForm(false); setEditingItem(null); }} onSubmit={saveItem} />}
+    </div>
+  );
+}
+function KalenderForm({ initial, onCancel, onSubmit }) {
+  const [f, setF] = useState(initial || { judul_kegiatan: "", tanggal_mulai: new Date().toISOString().slice(0, 10), tanggal_selesai: "", keterangan: "" });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title={initial ? "Edit Agenda" : "Tambah Agenda"} onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <Field label="Nama Kegiatan"><Input value={f.judul_kegiatan} onChange={set("judul_kegiatan")} placeholder="cth. Ujian Akhir Semester" /></Field>
+        <Field label="Tanggal Mulai"><Input type="date" value={f.tanggal_mulai} onChange={set("tanggal_mulai")} /></Field>
+        <Field label="Tanggal Selesai (opsional)"><Input type="date" value={f.tanggal_selesai} onChange={set("tanggal_selesai")} /></Field>
+        <Field label="Keterangan (opsional)"><Input value={f.keterangan} onChange={set("keterangan")} /></Field>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
 /* Akademik santri — gabungan KRS + KHS                                    */
 /* ---------------------------------------------------------------------- */
 function AkademikSantriPage({ profile }) {
@@ -2387,6 +2530,8 @@ export default function App() {
     if (view === "santri" && ["admin","pimpinan"].includes(profile.role)) return <DataSantriPage profile={profile} />;
     if (view === "akademik") return profile.role === "santri" ? <AkademikSantriPage profile={profile} /> : <AkademikStaffPage profile={profile} />;
     if (view === "kurikulum") return <KurikulumPage profile={profile} />;
+    if (view === "pengumuman") return <PengumumanPage profile={profile} />;
+    if (view === "kalender") return <KalenderPage profile={profile} />;
     if (view === "quran") return <QuranPage profile={profile} />;
     if (view === "ibadah") return <IbadahPage profile={profile} />;
     if (view === "catatan") return <CatatanPojokPage profile={profile} />;
