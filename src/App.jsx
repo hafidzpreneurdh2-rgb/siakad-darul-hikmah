@@ -4,7 +4,8 @@ import { supabase } from "./supabaseClient.js";
 const BrandContext = createContext({ warna_utama: "#0B3B36", warna_aksen: "#B8935A" });
 
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"];
+const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing","Sidang Bisnis","Sidang Munaqasyah Matan Jazary"];
+const BIDANG_BISNIS = ["Bakery", "Fashion", "Kuliner", "Kerajinan", "Digital/Online", "Lainnya"];
 const JENIS_IBADAH = ["Sholat 5 Waktu Berjamaah","Sholat Sunnah Rawatib (Qabliyah/Ba'diyah)","Puasa Sunnah","Tilawah Harian","Dzikir Pagi-Petang","Qiyamullail"];
 const JENIS_SETORAN_QURAN = ["Ziyadah", "Murajaah", "Tilawah", "Tahsin", "Talaqqi"];
 const JENIS_SETORAN_QURAN_COLOR = { Ziyadah: "#0B4D30", Murajaah: "#B8935A", Tilawah: "#3F6C8A", Tahsin: "#8A4A3A", Talaqqi: "#5C4A8A" };
@@ -40,6 +41,15 @@ const FONT_OPTIONS = {
 function formatRupiah(n) { return n == null ? "-" : "Rp " + Number(n).toLocaleString("id-ID"); }
 function nilaiHuruf(a) { if (a == null) return "-"; if (a >= 85) return "A"; if (a >= 75) return "B"; if (a >= 65) return "C"; if (a >= 50) return "D"; return "E"; }
 function bobot(h) { return { A: 4, B: 3, C: 2, D: 1, E: 0 }[h] ?? 0; }
+function bestPerKode(rows) {
+  const map = {};
+  rows.forEach((r) => {
+    const key = r.kode_mk || `_${r.id}`;
+    const cur = map[key];
+    if (!cur || Number(r.nilai_angka || 0) > Number(cur.nilai_angka || 0)) map[key] = r;
+  });
+  return Object.values(map);
+}
 function initials(name = "") { return name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase(); }
 function avatarColor(name = "") { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) % AVATAR_COLORS.length; return AVATAR_COLORS[h]; }
 function todayLong() { return new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
@@ -48,22 +58,22 @@ function todayLong() { return new Date().toLocaleDateString("id-ID", { weekday: 
 /* Permission map                                                           */
 /* ---------------------------------------------------------------------- */
 const CAN_EDIT = {
-  santri: ["admin"], akademik: ["admin", "akademik"],
+  santri: ["admin"], akademik: ["admin", "akademik"], kurikulum: ["admin", "akademik"],
   quran: ["admin", "musyrif", "musyrifah"], ibadah: ["admin", "musyrif", "musyrifah"],
   spp: ["admin", "keuangan"],
 };
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
 const MENUS = {
-  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
+  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["kurikulum","Kurikulum"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
   musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
   musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["pengaturan","Pengaturan"]],
   keuangan: [["dashboard","Dashboard"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
-  akademik: [["dashboard","Dashboard"],["akademik","Akademik"],["pengaturan","Pengaturan"]],
-  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
-  santri: [["dashboard","Dashboard"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
+  akademik: [["dashboard","Dashboard"],["akademik","Akademik"],["kurikulum","Kurikulum"],["pengaturan","Pengaturan"]],
+  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["kurikulum","Kurikulum"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
+  santri: [["dashboard","Dashboard"],["akademik","Akademik"],["kurikulum","Kurikulum"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", catatan: "Catatan Pojok", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", catatan: "Catatan Pojok", spp: "Tagihan SPP", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
@@ -86,7 +96,7 @@ function useBrand() {
 /* UI primitives                                                            */
 /* ---------------------------------------------------------------------- */
 function Badge({ tone = "grey", children }) {
-  const map = { green: "bg-[#E9F1EE] text-[#0F4A44]", gold: "bg-[#FBF3DF] text-[#8A6A2A]", red: "bg-red-50 text-red-700", grey: "bg-stone-100 text-stone-600" };
+  const map = { green: "bg-[#E9F1EE] text-[#0F4A44]", gold: "bg-[#FBF3DF] text-[#8A6A2A]", red: "bg-red-50 text-red-700", blue: "bg-blue-50 text-blue-700", grey: "bg-stone-100 text-stone-600" };
   return <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${map[tone]}`}><span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />{children}</span>;
 }
 function Card({ children, className = "" }) {
@@ -826,7 +836,7 @@ function AkademikStaffPage({ profile }) {
             <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">IPK</th><th className="p-3.5">Matkul Selesai</th></tr></thead>
             <tbody>
               {santriT.rows.map((s) => {
-                const sel = akT.rows.filter((a) => a.nim === s.nim && a.status === "selesai");
+                const sel = bestPerKode(akT.rows.filter((a) => a.nim === s.nim && a.status === "selesai"));
                 const tot = sel.reduce((a, r) => a + r.sks, 0);
                 const ipk = tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * r.sks, 0) / tot).toFixed(2) : "-";
                 return (
@@ -975,7 +985,7 @@ function AkademikStaffPage({ profile }) {
                 return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
               })()}</b></div>
               <div>Indeks Prestasi Kumulatif (IPK) : <b>{(() => {
-                const sel = records.filter((r) => r.status === "selesai");
+                const sel = bestPerKode(records.filter((r) => r.status === "selesai"));
                 const tot = sel.reduce((a, r) => a + Number(r.sks || 0), 0);
                 return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
               })()}</b></div>
@@ -997,7 +1007,7 @@ function AkademikStaffPage({ profile }) {
 
         <div style={{ fontSize: 10.5, marginTop: 24, textAlign: "right" }}>
           <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-          <div>Pimpinan</div>
+          <div>Mudir Pondok Tahfidz Qur'an dan Entrepreneur<br/>Darul Hikmah</div>
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, marginBottom: 6 }}>
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | ${dokType} | NIM ${santri?.nim} | ${semesterTerbaru?.tahun_ajaran} Semester ${semesterTerbaru?.semester}`)}`}
@@ -1027,7 +1037,17 @@ function AkademikStaffPage({ profile }) {
             {records.map((r) => (
               <tr key={r.id} className="border-t border-stone-100">
                 <td className="p-3.5 text-stone-400">{r.kode_mk || "-"}</td>
-                <td className="p-3.5 font-semibold">{r.mata_kuliah}</td>
+                <td className="p-3.5 font-semibold">
+                  {r.mata_kuliah}
+                  {r.mengulang && <span className="ml-2 inline-block text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">🔁 Mengulang</span>}
+                  {r.mata_kuliah === "Sidang Bisnis" && r.nama_brand && (
+                    <div className="text-[11px] font-normal text-stone-500 mt-0.5">
+                      Brand: {r.nama_brand} ({r.bidang_bisnis || "-"})
+                      {r.logo_url && <a href={r.logo_url} target="_blank" rel="noreferrer" className="ml-2 text-[#145048] font-bold underline">Logo</a>}
+                      {r.foto_produk_url && <a href={r.foto_produk_url} target="_blank" rel="noreferrer" className="ml-2 text-[#145048] font-bold underline">Foto Produk</a>}
+                    </div>
+                  )}
+                </td>
                 <td className="p-3.5 text-stone-500">{r.tahun_ajaran} · {r.semester}</td>
                 <td className="p-3.5 text-stone-500">{r.pengajar || "-"}</td>
                 <td className="p-3.5">{r.sks}</td>
@@ -1043,14 +1063,29 @@ function AkademikStaffPage({ profile }) {
           </tbody>
         </table>
       </Card>
-      {showForm && <AkademikForm onCancel={() => setShowForm(false)} onSubmit={saveRecord} />}
-      {editingRecord && <AkademikForm initial={editingRecord} onCancel={() => setEditingRecord(null)} onSubmit={saveRecord} />}
+      {showForm && <AkademikForm nim={nim} onCancel={() => setShowForm(false)} onSubmit={saveRecord} />}
+      {editingRecord && <AkademikForm nim={nim} initial={editingRecord} onCancel={() => setEditingRecord(null)} onSubmit={saveRecord} />}
     </div>
   );
 }
-function AkademikForm({ initial, onCancel, onSubmit }) {
-  const [f, setF] = useState(initial || { tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_kuliah: MATA_KULIAH[0], sks: 2, status: "aktif", pengajar: "", kode_mk: "" });
+function AkademikForm({ initial, nim, onCancel, onSubmit }) {
+  const [f, setF] = useState(initial || { tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_kuliah: MATA_KULIAH[0], sks: 2, status: "aktif", pengajar: "", kode_mk: "", mengulang: false, bidang_bisnis: "", nama_brand: "", deskripsi_produk: "", logo_url: "", foto_produk_url: "" });
+  const [uploading, setUploading] = useState("");
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  async function uploadFile(field) {
+    return async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setUploading(field);
+      const path = `${nim || f.nim || "umum"}/sidang-${field}-${Date.now()}.${file.name.split(".").pop()}`;
+      const { error: upErr } = await supabase.storage.from("dokumen-santri").upload(path, file, { upsert: true });
+      if (upErr) { alert(upErr.message); setUploading(""); return; }
+      const { data } = supabase.storage.from("dokumen-santri").getPublicUrl(path);
+      setF((prev) => ({ ...prev, [field]: data.publicUrl }));
+      setUploading("");
+    };
+  }
+  const isSidangBisnis = f.mata_kuliah === "Sidang Bisnis";
   return (
     <Modal title={initial ? "Edit Mata Kuliah" : "Tambah Mata Kuliah"} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
@@ -1062,6 +1097,137 @@ function AkademikForm({ initial, onCancel, onSubmit }) {
           <datalist id="mataKuliahSuggestions">{MATA_KULIAH.map((m) => <option key={m} value={m} />)}</datalist>
         </Field>
         <Field label="Pengajar"><Input value={f.pengajar} onChange={set("pengajar")} placeholder="Nama ustadz/ustadzah pengampu" /></Field>
+        <Field label="SKS"><Input type="number" value={f.sks} onChange={set("sks")} /></Field>
+
+        {isSidangBisnis && (
+          <div className="border border-stone-200 rounded-xl p-3 mb-3 bg-stone-50/60">
+            <div className="text-xs font-bold text-[#0B3B36] mb-2 uppercase tracking-wide">Data Sidang Bisnis</div>
+            <Field label="Bidang Usaha"><Select value={f.bidang_bisnis} onChange={set("bidang_bisnis")}><option value="">Pilih bidang…</option>{BIDANG_BISNIS.map((b) => <option key={b}>{b}</option>)}</Select></Field>
+            <Field label="Nama Brand"><Input value={f.nama_brand} onChange={set("nama_brand")} placeholder="cth. Roti Berkah" /></Field>
+            <Field label="Deskripsi Produk"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={f.deskripsi_produk} onChange={set("deskripsi_produk")} /></Field>
+            <div className="flex items-center justify-between border border-dashed border-stone-300 rounded-xl px-3.5 py-2.5 mb-2.5 text-sm bg-white">
+              <span className="text-stone-600">Logo Brand{f.logo_url && <a href={f.logo_url} target="_blank" rel="noreferrer" className="ml-2 text-[10px] font-bold text-[#145048] underline">Lihat file</a>}</span>
+              <label className="text-xs font-bold text-[#0B3B36] border border-stone-300 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-stone-50">
+                {uploading === "logo_url" ? "Mengunggah…" : f.logo_url ? "Ganti" : "Unggah"}
+                <input type="file" accept="image/*" className="hidden" onChange={uploadFile("logo_url")} disabled={uploading === "logo_url"} />
+              </label>
+            </div>
+            <div className="flex items-center justify-between border border-dashed border-stone-300 rounded-xl px-3.5 py-2.5 text-sm bg-white">
+              <span className="text-stone-600">Foto Produk{f.foto_produk_url && <a href={f.foto_produk_url} target="_blank" rel="noreferrer" className="ml-2 text-[10px] font-bold text-[#145048] underline">Lihat file</a>}</span>
+              <label className="text-xs font-bold text-[#0B3B36] border border-stone-300 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-stone-50">
+                {uploading === "foto_produk_url" ? "Mengunggah…" : f.foto_produk_url ? "Ganti" : "Unggah"}
+                <input type="file" accept="image/*" className="hidden" onChange={uploadFile("foto_produk_url")} disabled={uploading === "foto_produk_url"} />
+              </label>
+            </div>
+          </div>
+        )}
+        <label className="flex items-center gap-2 text-sm mb-3">
+          <input type="checkbox" checked={!!f.mengulang} onChange={(e) => setF({ ...f, mengulang: e.target.checked })} />
+          Mengulang mata kuliah ini (nilai sebelumnya kurang)
+        </label>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Kurikulum Mahasantri                                                    */
+/* ---------------------------------------------------------------------- */
+function KurikulumPage({ profile }) {
+  const editable = canEdit(profile.role, "kurikulum");
+  const kurT = useTable("kurikulum");
+  const akT = useTable("akademik");
+  const santriT = useTable("santri");
+  const isViewer = profile.role !== "santri";
+  const [nim, setNim] = useState(isViewer ? "" : profile.nim);
+  const [showForm, setShowForm] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+
+  const bySemester = {};
+  kurT.rows.forEach((k) => { (bySemester[k.semester_ke] = bySemester[k.semester_ke] || []).push(k); });
+  const semesterKeys = Object.keys(bySemester).map(Number).sort((a, b) => a - b);
+
+  const santriRecords = nim ? akT.rows.filter((a) => a.nim === nim) : [];
+  const kodeSudahDiambil = new Set(santriRecords.map((r) => r.kode_mk).filter(Boolean));
+
+  async function saveItem(f) {
+    const payload = { ...f, semester_ke: Number(f.semester_ke), sks: Number(f.sks) };
+    const { error } = payload.id
+      ? await supabase.from("kurikulum").update(payload).eq("id", payload.id)
+      : await supabase.from("kurikulum").insert(payload);
+    if (error) { alert(error.message); return; }
+    setShowForm(false); setEditingItem(null); kurT.reload();
+  }
+  async function removeItem(id) {
+    if (!confirm("Hapus mata kuliah kurikulum ini?")) return;
+    const { error } = await supabase.from("kurikulum").delete().eq("id", id);
+    if (error) alert(error.message); else kurT.reload();
+  }
+
+  const totalItem = kurT.rows.length;
+  const totalDiambil = kurT.rows.filter((k) => kodeSudahDiambil.has(k.kode_mk)).length;
+
+  return (
+    <div>
+      <PageHeader title="Kurikulum Mahasantri" sub="Daftar mata kuliah wajib per semester." actions={
+        editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Mata Kuliah Kurikulum</Btn>
+      } />
+
+      {!isViewer ? null : (
+        <div className="mb-4 max-w-sm">
+          <Select value={nim} onChange={(e) => setNim(e.target.value)}>
+            <option value="">Pilih santri untuk lihat progres…</option>
+            {santriT.rows.map((s) => <option key={s.nim} value={s.nim}>{s.nama} — {s.nim}</option>)}
+          </Select>
+        </div>
+      )}
+
+      {nim && (
+        <Card className="mb-4">
+          <div className="text-sm text-stone-600">Progres Kurikulum: <b className="text-[#0B3B36]">{totalDiambil} dari {totalItem}</b> mata kuliah wajib sudah diambil</div>
+          <div className="h-2 bg-stone-100 rounded-full mt-2 overflow-hidden"><div className="h-full bg-[#0B3B36] rounded-full" style={{ width: `${totalItem ? (totalDiambil / totalItem) * 100 : 0}%` }}></div></div>
+        </Card>
+      )}
+
+      {semesterKeys.length === 0 && <Empty text="Belum ada data kurikulum." />}
+      {semesterKeys.map((sk) => (
+        <Card key={sk} className="p-0 overflow-hidden mb-4">
+          <div className="px-4 py-3 bg-stone-50 border-b border-stone-100 font-bold text-sm text-[#0B3B36]">Semester {sk}</div>
+          <table className="w-full text-sm">
+            <thead><tr className="text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3">Kode MK</th><th className="p-3">Mata Kuliah</th><th className="p-3">SKS</th>{nim && <th className="p-3">Status</th>}{editable && <th className="p-3"></th>}</tr></thead>
+            <tbody>
+              {bySemester[sk].map((k) => (
+                <tr key={k.id} className="border-t border-stone-100">
+                  <td className="p-3 text-stone-400">{k.kode_mk || "-"}</td>
+                  <td className="p-3 font-semibold">{k.mata_kuliah}</td>
+                  <td className="p-3">{k.sks}</td>
+                  {nim && <td className="p-3">{kodeSudahDiambil.has(k.kode_mk) ? <Badge tone="green">✓ Sudah</Badge> : <Badge tone="gold">Belum</Badge>}</td>}
+                  {editable && <td className="p-3 text-right whitespace-nowrap">
+                    <button onClick={() => setEditingItem(k)} className="text-[#145048] text-xs font-bold mr-3">Edit</button>
+                    <button onClick={() => removeItem(k.id)} className="text-red-600 text-xs font-bold">Hapus</button>
+                  </td>}
+                </tr>
+              ))}
+            </tbody>
+            <tfoot><tr className="border-t border-stone-200 bg-stone-50 font-bold"><td className="p-3" colSpan={2}>Total SKS Semester {sk}</td><td className="p-3">{bySemester[sk].reduce((a, k) => a + Number(k.sks || 0), 0)}</td>{nim && <td></td>}{editable && <td></td>}</tr></tfoot>
+          </table>
+        </Card>
+      ))}
+
+      {(showForm || editingItem) && <KurikulumForm initial={editingItem} onCancel={() => { setShowForm(false); setEditingItem(null); }} onSubmit={saveItem} />}
+    </div>
+  );
+}
+function KurikulumForm({ initial, onCancel, onSubmit }) {
+  const [f, setF] = useState(initial || { semester_ke: 1, kode_mk: "", mata_kuliah: "", sks: 2 });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title={initial ? "Edit Kurikulum" : "Tambah Mata Kuliah Kurikulum"} onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <Field label="Semester ke-"><Input type="number" min={1} max={14} value={f.semester_ke} onChange={set("semester_ke")} /></Field>
+        <Field label="Kode MK"><Input value={f.kode_mk} onChange={set("kode_mk")} placeholder="cth. MKQ 1.1.1" /></Field>
+        <Field label="Mata Kuliah"><Input value={f.mata_kuliah} onChange={set("mata_kuliah")} /></Field>
         <Field label="SKS"><Input type="number" value={f.sks} onChange={set("sks")} /></Field>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
       </form>
@@ -1213,7 +1379,7 @@ function AkademikSantriPage({ profile }) {
                 return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
               })()}</b></div>
               <div>Indeks Prestasi Kumulatif (IPK) : <b>{(() => {
-                const sel = akT.rows.filter((r) => r.status === "selesai");
+                const sel = bestPerKode(akT.rows.filter((r) => r.status === "selesai"));
                 const tot = sel.reduce((a, r) => a + Number(r.sks || 0), 0);
                 return tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
               })()}</b></div>
@@ -1235,7 +1401,7 @@ function AkademikSantriPage({ profile }) {
 
         <div style={{ fontSize: 10.5, marginTop: 24, textAlign: "right" }}>
           <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-          <div>Pimpinan</div>
+          <div>Mudir Pondok Tahfidz Qur'an dan Entrepreneur<br/>Darul Hikmah</div>
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, marginBottom: 6 }}>
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | ${dokType} | NIM ${santri?.nim} | ${ta} Semester ${sem}`)}`}
@@ -1252,7 +1418,7 @@ function AkademikSantriPage({ profile }) {
       <div className="grid grid-cols-3 gap-4">
         <StatCard label="Total SKS Diambil" value={akT.rows.reduce((a, r) => a + Number(r.sks || 0), 0)} />
         <StatCard label="IPK Kumulatif" value={(() => {
-          const selesai = akT.rows.filter((r) => r.status === "selesai");
+          const selesai = bestPerKode(akT.rows.filter((r) => r.status === "selesai"));
           const tot = selesai.reduce((a, r) => a + Number(r.sks || 0), 0);
           return tot ? (selesai.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * Number(r.sks || 0), 0) / tot).toFixed(2) : "-";
         })()} />
@@ -2220,6 +2386,7 @@ export default function App() {
     if (view === "dashboard") return <Dashboard profile={profile} />;
     if (view === "santri" && ["admin","pimpinan"].includes(profile.role)) return <DataSantriPage profile={profile} />;
     if (view === "akademik") return profile.role === "santri" ? <AkademikSantriPage profile={profile} /> : <AkademikStaffPage profile={profile} />;
+    if (view === "kurikulum") return <KurikulumPage profile={profile} />;
     if (view === "quran") return <QuranPage profile={profile} />;
     if (view === "ibadah") return <IbadahPage profile={profile} />;
     if (view === "catatan") return <CatatanPojokPage profile={profile} />;
