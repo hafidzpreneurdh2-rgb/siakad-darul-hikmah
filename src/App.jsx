@@ -1694,9 +1694,10 @@ function QuranPage({ profile }) {
       {santri && (
         <>
         <div className="grid grid-cols-5 gap-3 mb-5">
-          {JENIS_SETORAN_QURAN.map((j) => (
-            <StatCard key={j} label={j} value={logs.filter((l) => l.jenis === j).length} />
-          ))}
+          {JENIS_SETORAN_QURAN.map((j) => {
+            const hal = logs.filter((l) => l.jenis === j).reduce((a, l) => a + (l.halaman_dari && l.halaman_sampai ? Math.max(0, Number(l.halaman_sampai) - Number(l.halaman_dari) + 1) : 0), 0);
+            return <StatCard key={j} label={j} value={`${hal} hal`} sub={`~${(hal / 20).toFixed(1)} juz`} />;
+          })}
         </div>
         <div className="grid grid-cols-[0.85fr_1.3fr] gap-4 items-start">
           <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Peta Hafalan</h3><JuzTracker juz={santri.juz_dikuasai || []} /></Card>
