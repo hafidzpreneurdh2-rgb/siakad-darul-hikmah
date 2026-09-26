@@ -6,18 +6,18 @@ const BrandContext = createContext({ warna_utama: "#0B3B36", warna_aksen: "#B893
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing","Sidang Bisnis","Sidang Munaqasyah Matan Jazary"];
 const BIDANG_BISNIS = ["Bakery", "Fashion", "Kuliner", "Kerajinan", "Digital/Online", "Lainnya"];
-const JENIS_IBADAH = ["Sholat 5 Waktu Berjamaah","Sholat Sunnah Rawatib (Qabliyah/Ba'diyah)","Puasa Sunnah","Tilawah Harian","Dzikir Pagi-Petang","Qiyamullail"];
+const JENIS_IBADAH = ["Sholat Berjamaah", "Sholat Dhuha", "Al-Ma'tsurat", "Membaca Al-Kahfi", "Puasa Sunnah", "Qiyamullail"];
 const JENIS_SETORAN_QURAN = ["Ziyadah", "Murajaah", "Tilawah", "Tahsin", "Talaqqi"];
 const JENIS_SETORAN_QURAN_COLOR = { Ziyadah: "#0B4D30", Murajaah: "#B8935A", Tilawah: "#3F6C8A", Tahsin: "#8A4A3A", Talaqqi: "#5C4A8A" };
 const CAPAIAN_OPTIONS = {
-  "Sholat 5 Waktu Berjamaah": ["Berjamaah", "Sendiri", "Tidak Sholat"],
-  "Sholat Sunnah Rawatib (Qabliyah/Ba'diyah)": ["Lengkap", "Sebagian", "Tidak Dikerjakan"],
+  "Sholat Berjamaah": ["Berjamaah", "Sendiri", "Tidak Sholat"],
+  "Sholat Dhuha": ["Dikerjakan", "Tidak Dikerjakan"],
+  "Al-Ma'tsurat": ["Lengkap", "Tidak Lengkap"],
+  "Membaca Al-Kahfi": ["Dikerjakan", "Tidak Dikerjakan"],
   "Puasa Sunnah": ["Puasa Penuh", "Tidak Puasa"],
-  "Tilawah Harian": ["Selesai", "Tidak Selesai"],
-  "Dzikir Pagi-Petang": ["Lengkap", "Tidak Lengkap"],
   "Qiyamullail": ["Dikerjakan", "Tidak Dikerjakan"],
 };
-const CAPAIAN_NEGATIF = ["Tidak Sholat", "Tidak Puasa", "Tidak Selesai", "Tidak Lengkap", "Tidak Dikerjakan"];
+const CAPAIAN_NEGATIF = ["Tidak Sholat", "Tidak Puasa", "Tidak Lengkap", "Tidak Dikerjakan"];
 const CAPAIAN_NETRAL = ["Sendiri", "Sebagian"];
 function capaianTone(capaian) {
   if (CAPAIAN_NEGATIF.includes(capaian)) return "red";
@@ -66,15 +66,15 @@ function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
 const AKADEMIK_GROUP = { label: "Akademik", items: [["akademik","KRS & KHS"],["kurikulum","Kurikulum"],["kalender","Kalender Akademik"]] };
 const MENUS = {
-  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
-  musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
-  musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
+  musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   keuangan: [["dashboard","Dashboard"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   akademik: [["dashboard","Dashboard"], AKADEMIK_GROUP, ["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
-  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
-  santri: [["dashboard","Dashboard"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["catatan","Catatan Pojok"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
+  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
+  santri: [["dashboard","Dashboard"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", catatan: "Catatan Pojok", spp: "Tagihan SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Tagihan SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
@@ -836,6 +836,14 @@ function AkademikStaffPage({ profile }) {
   const semesterTerbaru = taPilih ? { tahun_ajaran: taPilih, semester: semPilih } : undefined;
   const recordsKRS = semesterTerbaru ? records.filter((r) => r.tahun_ajaran === semesterTerbaru.tahun_ajaran && r.semester === semesterTerbaru.semester) : [];
 
+  const [catatanAkademik, setCatatanAkademik] = useState("");
+  useEffect(() => { setCatatanAkademik(santri?.catatan_akademik || ""); }, [santri?.nim]);
+  async function saveCatatanAkademik() {
+    const { error } = await supabase.from("santri").update({ catatan_akademik: catatanAkademik }).eq("nim", nim);
+    if (error) { alert(error.message); return; }
+    santriT.reload();
+  }
+
   const [editingRecord, setEditingRecord] = useState(null);
   async function saveRecord(f) {
     const payload = { ...f, sks: Number(f.sks) };
@@ -1094,6 +1102,19 @@ function AkademikStaffPage({ profile }) {
           </tbody>
         </table>
       </Card>
+      {nim && (
+        <Card className="mt-4">
+          <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Catatan Akademik</h3>
+          {editable ? (
+            <>
+              <textarea className="w-full border border-stone-200 rounded-lg p-3 text-sm" rows={3} value={catatanAkademik} onChange={(e) => setCatatanAkademik(e.target.value)} placeholder="Tulis catatan akademik mahasantri di sini..." />
+              <div className="mt-2 text-right"><Btn onClick={saveCatatanAkademik}>Simpan Catatan</Btn></div>
+            </>
+          ) : (
+            <p className="text-sm text-stone-600 whitespace-pre-wrap">{santri?.catatan_akademik || "Belum ada catatan."}</p>
+          )}
+        </Card>
+      )}
       {showForm && <AkademikForm nim={nim} onCancel={() => setShowForm(false)} onSubmit={saveRecord} />}
       {editingRecord && <AkademikForm nim={nim} initial={editingRecord} onCancel={() => setEditingRecord(null)} onSubmit={saveRecord} />}
     </div>
@@ -1801,6 +1822,14 @@ function IbadahPage({ profile }) {
   const logs = logT.rows.filter((l) => l.nim === nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
   const pickable = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || s.musyrif_username === profile.username);
 
+  const [catatanIbadah, setCatatanIbadah] = useState("");
+  useEffect(() => { setCatatanIbadah(santri?.catatan_ibadah || ""); }, [santri?.nim]);
+  async function saveCatatanIbadah() {
+    const { error } = await supabase.from("santri").update({ catatan_ibadah: catatanIbadah }).eq("nim", nim);
+    if (error) { alert(error.message); return; }
+    santriT.reload();
+  }
+
   const [editingLog, setEditingLog] = useState(null);
   async function saveLog(f) {
     if (editingLog) {
@@ -1869,13 +1898,13 @@ function IbadahPage({ profile }) {
         actions={<div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Catat Ibadah</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
       {(() => {
         const bulanIniLogs = logs.filter((l) => l.tanggal.slice(0, 7) === new Date().toISOString().slice(0, 7));
-        const baik = bulanIniLogs.filter((l) => !CAPAIAN_NEGATIF.includes(l.capaian) && !CAPAIAN_NETRAL.includes(l.capaian)).length;
-        const perluPerhatianBulanIni = bulanIniLogs.filter((l) => CAPAIAN_NEGATIF.includes(l.capaian)).length;
         return (
-          <div className="grid grid-cols-3 gap-4 mb-5">
-            <StatCard label="Catatan Bulan Ini" value={bulanIniLogs.length} />
-            <StatCard label="Capaian Baik" value={baik} />
-            <StatCard label="Perlu Perhatian" value={perluPerhatianBulanIni} />
+          <div className="grid grid-cols-3 gap-3 mb-5">
+            {JENIS_IBADAH.map((j) => {
+              const entries = bulanIniLogs.filter((l) => l.jenis === j);
+              const positif = entries.filter((l) => !CAPAIAN_NEGATIF.includes(l.capaian)).length;
+              return <StatCard key={j} label={j} value={`${positif}/${entries.length}`} sub="bulan ini" />;
+            })}
           </div>
         );
       })()}
@@ -1898,6 +1927,17 @@ function IbadahPage({ profile }) {
           </tbody>
         </table>
       </Card>
+      <Card className="mt-4">
+        <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Catatan Musyrif/Musyrifah</h3>
+        {editable ? (
+          <>
+            <textarea className="w-full border border-stone-200 rounded-lg p-3 text-sm" rows={3} value={catatanIbadah} onChange={(e) => setCatatanIbadah(e.target.value)} placeholder="Tulis catatan pembinaan ibadah mahasantri di sini..." />
+            <div className="mt-2 text-right"><Btn onClick={saveCatatanIbadah}>Simpan Catatan</Btn></div>
+          </>
+        ) : (
+          <p className="text-sm text-stone-600 whitespace-pre-wrap">{santri?.catatan_ibadah || "Belum ada catatan."}</p>
+        )}
+      </Card>
       {showForm && <IbadahForm onCancel={() => setShowForm(false)} onSubmit={saveLog} />}
       {editingLog && <IbadahForm initial={editingLog} onCancel={() => setEditingLog(null)} onSubmit={saveLog} />}
     </div>
@@ -1914,92 +1954,6 @@ function IbadahForm({ initial, onCancel, onSubmit }) {
         <Field label="Jenis Ibadah"><Select value={f.jenis} onChange={setJenis}>{JENIS_IBADAH.map((j) => <option key={j}>{j}</option>)}</Select></Field>
         <Field label="Capaian"><Select value={f.capaian} onChange={set("capaian")}>{CAPAIAN_OPTIONS[f.jenis].map((c) => <option key={c}>{c}</option>)}</Select></Field>
         <Field label="Catatan"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={3} value={f.catatan} onChange={set("catatan")} /></Field>
-        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
-      </form>
-    </Modal>
-  );
-}
-
-/* ---------------------------------------------------------------------- */
-/* Catatan Pojok — catatan pribadi musyrif untuk santri, privat            */
-/* ---------------------------------------------------------------------- */
-function CatatanPojokPage({ profile }) {
-  const isViewer = profile.role !== "santri";
-  const canView = ["admin", "musyrif", "musyrifah", "pimpinan"].includes(profile.role);
-  const santriT = useTable("santri");
-  const catT = useTable("catatan_pojok");
-  const [nim, setNim] = useState(isViewer ? "" : profile.nim);
-  const [showForm, setShowForm] = useState(false);
-  const santri = santriT.rows.find((s) => s.nim === nim);
-  const catatan = catT.rows.filter((c) => c.nim === nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-  const pickable = canView ? santriT.rows : [];
-  const canAddForThis = profile.role === "admin" || (["musyrif", "musyrifah"].includes(profile.role) && santri?.musyrif_username === profile.username);
-
-  async function addCatatan(f) {
-    const { error } = await supabase.from("catatan_pojok").insert({ ...f, nim, musyrif: profile.nama });
-    if (error) alert(error.message); else { setShowForm(false); catT.reload(); }
-  }
-  async function removeCatatan(id) {
-    if (!confirm("Hapus catatan ini?")) return;
-    const { error } = await supabase.from("catatan_pojok").delete().eq("id", id);
-    if (!error) catT.reload();
-  }
-
-  const [q, setQ] = useState("");
-
-  if (isViewer && !nim) {
-    const filtered = pickable.filter((s) => !q || s.nama.toLowerCase().includes(q.toLowerCase()) || s.nim.includes(q));
-    return (
-      <div>
-        <PageHeader title="Catatan Pojok" sub="Catatan pribadi untuk mahasantri binaan — hanya terlihat oleh mahasantri/wali yang bersangkutan." />
-        <div className="mb-4 max-w-xs"><Input placeholder="Cari nama atau NIM..." value={q} onChange={(e) => setQ(e.target.value)} /></div>
-        <Card className="p-0 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Jumlah Catatan</th></tr></thead>
-            <tbody>
-              {filtered.map((s) => (
-                <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
-                  <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
-                  <td className="p-3.5">{catT.rows.filter((c) => c.nim === s.nim).length} catatan</td>
-                </tr>
-              ))}
-              {filtered.length === 0 && <tr><td colSpan={2}><Empty text="Tidak ada santri yang cocok." /></td></tr>}
-            </tbody>
-          </table>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      {isViewer && <BackBar onBack={() => setNim("")} />}
-      <PageHeader title={isViewer ? (santri?.nama || "Catatan Pojok") : "Catatan Pojok"} sub={!isViewer ? "Catatan pribadi dari musyrif — hanya Anda yang bisa melihat ini." : undefined}
-        actions={canAddForThis && isViewer && <Btn onClick={() => setShowForm(true)}>+ Tambah Catatan</Btn>} />
-      <div className="space-y-3">
-        {catatan.map((c) => (
-          <Card key={c.id}>
-            <div className="flex justify-between items-start mb-2">
-              <div className="text-xs font-bold text-stone-500">{c.tanggal} · {c.musyrif}</div>
-              {canAddForThis && isViewer && <button onClick={() => removeCatatan(c.id)} className="text-red-600 text-xs font-bold">Hapus</button>}
-            </div>
-            <div className="text-sm text-stone-700 whitespace-pre-line">{c.isi_catatan}</div>
-          </Card>
-        ))}
-        {catatan.length === 0 && <Empty text="Belum ada catatan." />}
-      </div>
-      {showForm && <CatatanPojokForm onCancel={() => setShowForm(false)} onSubmit={addCatatan} />}
-    </div>
-  );
-}
-function CatatanPojokForm({ onCancel, onSubmit }) {
-  const [f, setF] = useState({ tanggal: new Date().toISOString().slice(0, 10), isi_catatan: "" });
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-  return (
-    <Modal title="Tambah Catatan Pojok" onClose={onCancel}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
-        <Field label="Tanggal"><Input type="date" value={f.tanggal} onChange={set("tanggal")} /></Field>
-        <Field label="Isi Catatan"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={5} value={f.isi_catatan} onChange={set("isi_catatan")} placeholder="Tulis catatan pribadi untuk santri ini..." required /></Field>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
       </form>
     </Modal>
@@ -2566,7 +2520,6 @@ export default function App() {
     if (view === "kalender") return <KalenderPage profile={profile} />;
     if (view === "quran") return <QuranPage profile={profile} />;
     if (view === "ibadah") return <IbadahPage profile={profile} />;
-    if (view === "catatan") return <CatatanPojokPage profile={profile} />;
     if (view === "spp") return <SppPage profile={profile} />;
     if (view === "akun" && profile.role === "admin") return <KelolaAkunPage />;
     if (view === "pengaturan") return <PengaturanPage profile={profile} onProfileUpdated={loadProfile} brand={brand} onBrandUpdated={reloadBrand} />;
