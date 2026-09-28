@@ -68,15 +68,15 @@ function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
 const AKADEMIK_GROUP = { label: "Akademik", items: [["akademik","KRS & KHS"],["kurikulum","Kurikulum"],["kalender","Kalender Akademik"]] };
 const MENUS = {
-  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
+  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
   musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
-  keuangan: [["dashboard","Dashboard"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  keuangan: [["dashboard","Dashboard"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   akademik: [["dashboard","Dashboard"], AKADEMIK_GROUP, ["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
-  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
-  santri: [["dashboard","Dashboard"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Tagihan SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
+  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
+  santri: [["dashboard","Dashboard"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Tagihan SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
@@ -560,10 +560,32 @@ function monthsBack(n) {
   }
   return arr;
 }
+function PengumumanTerbaru({ rows, onLihat }) {
+  const top = [...rows].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")).slice(0, 3);
+  return (
+    <Card className="mt-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold">Pengumuman Terbaru</h3>
+        {onLihat && <button onClick={onLihat} className="text-xs font-bold text-[#145048]">Lihat semua →</button>}
+      </div>
+      {top.length === 0 && <div className="text-sm text-stone-400">Belum ada pengumuman.</div>}
+      <div className="space-y-3">
+        {top.map((p) => (
+          <div key={p.id} className="border-t border-stone-100 pt-3 first:border-t-0 first:pt-0">
+            <div className="text-sm font-bold text-stone-800">{p.judul}</div>
+            <div className="text-[11px] text-stone-400 mb-1">{p.created_at ? new Date(p.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""}</div>
+            <div className="text-sm text-stone-600 line-clamp-2 whitespace-pre-wrap">{p.isi}</div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
 function Dashboard({ profile }) {
   const santriT = useTable("santri");
   const sppT = useTable("spp");
   const quranT = useTable("quran_log");
+  const pengT = useTable("pengumuman");
 
   if (profile.role === "santri") {
     const s = santriT.rows.find((x) => x.nim === profile.nim);
@@ -578,6 +600,7 @@ function Dashboard({ profile }) {
           <StatCard label="Setoran Bulan Ini" value={setoranBulanIni} icon="🕋" />
           <StatCard label="Status SPP Bulan Ini" value={sppBulanIni?.status || "Belum Ada Data"} icon="💳" />
         </div>
+        <PengumumanTerbaru rows={pengT.rows} />
       </div>
     );
   }
@@ -595,6 +618,11 @@ function Dashboard({ profile }) {
     return { label, lunas, belum: Math.max(0, totalSantri - lunas) };
   });
 
+  const sppBulanIniRows = sppT.rows.filter((r) => r.bulan === bulanIni && r.tahun === nowYear);
+  const lunasBulanIni = sppBulanIniRows.filter((r) => r.status === "Lunas");
+  const nominalTerkumpul = lunasBulanIni.reduce((a, r) => a + Number(r.nominal || 0), 0);
+  const nominalBelum = sppBulanIniRows.filter((r) => r.status !== "Lunas").reduce((a, r) => a + Number(r.nominal || 0), 0);
+
   const showQuranChart = true;
   const showSppChart = true;
 
@@ -605,6 +633,11 @@ function Dashboard({ profile }) {
         <StatCard label="Total Santri" value={santriT.rows.length} icon="👥" />
         <StatCard label="Tunggakan Bulan Ini" value={belumLunas} icon="💳" />
         <StatCard label="Rata-rata Juz" value={santriT.rows.length ? (santriT.rows.reduce((a, s) => a + (s.juz_dikuasai?.length || 0), 0) / santriT.rows.length).toFixed(1) : 0} icon="📖" />
+      </div>
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <StatCard label={`Iuran Lunas (${bulanIni})`} value={`${lunasBulanIni.length} / ${sppBulanIniRows.length}`} sub="santri yang sudah bayar" icon="✅" />
+        <StatCard label="Iuran Terkumpul" value={formatRupiah(nominalTerkumpul)} sub="bulan ini" icon="💰" />
+        <StatCard label="Iuran Belum Terbayar" value={formatRupiah(nominalBelum)} sub="bulan ini" icon="⏳" />
       </div>
       {(showQuranChart || showSppChart) && (
         <div className={`grid gap-4 ${showQuranChart && showSppChart ? "grid-cols-2" : "grid-cols-1"}`}>
@@ -627,6 +660,7 @@ function Dashboard({ profile }) {
           )}
         </div>
       )}
+      <PengumumanTerbaru rows={pengT.rows} />
     </div>
   );
 }
@@ -1969,7 +2003,7 @@ function IbadahForm({ initial, onCancel, onSubmit }) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Tagihan SPP — overview semua santri + drill-down                        */
+/* Iuran SPP — overview semua santri + drill-down                        */
 /* ---------------------------------------------------------------------- */
 function SppPage({ profile }) {
   const editable = canEdit(profile.role, "spp");
@@ -2004,7 +2038,7 @@ function SppPage({ profile }) {
 
     return (
       <div>
-        <PageHeader title="Tagihan SPP" sub={`Status pembayaran bulan ${bulanIni} — klik santri untuk kelola.`} />
+        <PageHeader title="Iuran SPP" sub={`Status pembayaran bulan ${bulanIni} — klik santri untuk kelola.`} />
         <div className="grid grid-cols-3 gap-4 mb-5">
           <StatCard label={`Lunas Bulan ${bulanIni}`} value={lunas} />
           <StatCard label="Belum Lunas" value={belumLunas} />
@@ -2018,7 +2052,7 @@ function SppPage({ profile }) {
               {withStatus.map(({ s, row }) => (
                 <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
                   <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
-                  <td className="p-3.5">{row ? <Badge tone={row.status === "Lunas" ? "green" : "red"}>{row.status}</Badge> : <Badge tone="grey">Belum ada tagihan</Badge>}</td>
+                  <td className="p-3.5">{row ? <Badge tone={row.status === "Lunas" ? "green" : "red"}>{row.status}</Badge> : <Badge tone="grey">Belum ada iuran</Badge>}</td>
                 </tr>
               ))}
               {withStatus.length === 0 && <tr><td colSpan={2}><Empty text="Tidak ada santri yang cocok." /></td></tr>}
@@ -2032,8 +2066,8 @@ function SppPage({ profile }) {
   return (
     <div>
       {isViewer && <BackBar onBack={() => setNim("")} />}
-      <PageHeader title={isViewer ? (santri?.nama || "Tagihan SPP") : "Tagihan SPP"}
-        actions={<div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Tambah Tagihan</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
+      <PageHeader title={isViewer ? (santri?.nama || "Iuran SPP") : "Iuran SPP"}
+        actions={<div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Tambah Iuran</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
       <div className="grid grid-cols-2 gap-4 mb-5 max-w-lg">
         <StatCard label="Total Tunggakan" value={formatRupiah(rows.filter((r) => r.status !== "Lunas").reduce((a, r) => a + Number(r.nominal || 0), 0))} />
         <StatCard label="Bulan Belum Lunas" value={rows.filter((r) => r.status !== "Lunas").length} />
@@ -2060,7 +2094,7 @@ function SppForm({ onCancel, onSubmit }) {
   const [f, setF] = useState({ bulan: BULAN[new Date().getMonth()], tahun: nowYear, nominal: 500000, status: "Belum Lunas" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
-    <Modal title="Tambah Tagihan SPP" onClose={onCancel}>
+    <Modal title="Tambah Iuran SPP" onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Bulan"><Select value={f.bulan} onChange={set("bulan")}>{BULAN.map((b) => <option key={b}>{b}</option>)}</Select></Field>
         <Field label="Tahun"><Input type="number" value={f.tahun} onChange={set("tahun")} /></Field>
