@@ -2014,14 +2014,39 @@ function SppPage({ profile }) {
   const [showForm, setShowForm] = useState(false);
   const brand = useContext(BrandContext);
   const [kuitansi, setKuitansi] = useState(null);
+  const [editingRow, setEditingRow] = useState(null);
+  const [showBulk, setShowBulk] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
   const santri = santriT.rows.find((s) => s.nim === nim);
   const rows = sppT.rows.filter((r) => r.nim === nim).sort((a, b) => b.tahun - a.tahun || BULAN.indexOf(b.bulan) - BULAN.indexOf(a.bulan));
   const bulanIni = BULAN[new Date().getMonth()];
 
   async function addRecord(f) {
-    const { error } = await supabase.from("spp").insert({ ...f, nim, nominal: Number(f.nominal), tahun: Number(f.tahun) });
+    const today = new Date().toISOString().slice(0, 10);
+    if (f.id) {
+      const { error } = await supabase.from("spp").update({ bulan: f.bulan, tahun: Number(f.tahun), nominal: Number(f.nominal), status: f.status, tanggal_bayar: f.status === "Lunas" ? (f.tanggal_bayar || today) : null }).eq("id", f.id);
+      if (error) alert(error.message); else { setEditingRow(null); sppT.reload(); }
+      return;
+    }
+    const dobel = sppT.rows.find((r) => r.nim === nim && r.bulan === f.bulan && Number(r.tahun) === Number(f.tahun));
+    if (dobel && !confirm(`Iuran ${f.bulan} ${f.tahun} untuk santri ini sudah ada. Tetap tambahkan?`)) return;
+    const { error } = await supabase.from("spp").insert({ ...f, nim, nominal: Number(f.nominal), tahun: Number(f.tahun), tanggal_bayar: f.status === "Lunas" ? today : null });
     if (error) alert(error.message); else { setShowForm(false); sppT.reload(); }
+  }
+  async function hapusIuran(r) {
+    if (!confirm(`Hapus iuran ${r.bulan} ${r.tahun} (${formatRupiah(r.nominal)})?`)) return;
+    const { error } = await supabase.from("spp").delete().eq("id", r.id);
+    if (error) alert(error.message); else sppT.reload();
+  }
+  async function buatIuranBulanan(f) {
+    const tahun = Number(f.tahun);
+    const sudahAda = new Set(sppT.rows.filter((r) => r.bulan === f.bulan && Number(r.tahun) === tahun).map((r) => r.nim));
+    const baru = santriT.rows.filter((s) => !sudahAda.has(s.nim)).map((s) => ({ nim: s.nim, bulan: f.bulan, tahun, nominal: Number(f.nominal), status: "Belum Lunas", tanggal_bayar: null }));
+    if (baru.length === 0) { alert("Semua santri sudah punya iuran untuk bulan itu."); setShowBulk(false); return; }
+    const { error } = await supabase.from("spp").insert(baru);
+    if (error) { alert(error.message); return; }
+    setShowBulk(false); sppT.reload();
+    alert(`${baru.length} iuran berhasil dibuat untuk ${f.bulan} ${tahun}.`);
   }
   async function toggle(r) {
     const { error } = await supabase.from("spp").update({ status: r.status === "Lunas" ? "Belum Lunas" : "Lunas", tanggal_bayar: r.status === "Lunas" ? null : new Date().toISOString().slice(0, 10) }).eq("id", r.id);
@@ -2053,7 +2078,7 @@ function SppPage({ profile }) {
 
     return (
       <div>
-        <PageHeader title="Iuran SPP" sub={`Status pembayaran bulan ${bulanIni} — klik santri untuk kelola.`} />
+        <PageHeader title="Iuran SPP" sub={`Status pembayaran bulan ${bulanIni} — klik santri untuk kelola.`} actions={editable && <Btn onClick={() => setShowBulk(true)}>+ Buat Iuran Bulan Ini</Btn>} />
         <div className="grid grid-cols-3 gap-4 mb-5">
           <StatCard label={`Lunas Bulan ${bulanIni}`} value={lunas} />
           <StatCard label="Belum Lunas" value={belumLunas} />
@@ -2074,6 +2099,7 @@ function SppPage({ profile }) {
             </tbody>
           </table>
         </Card>
+        {showBulk && <BuatIuranBulanan onCancel={() => setShowBulk(false)} onSubmit={buatIuranBulanan} jumlah={santriT.rows.length} />}
       </div>
     );
   }
@@ -2089,7 +2115,7 @@ function SppPage({ profile }) {
       </div>
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Bulan</th><th className="p-3">Tahun</th><th className="p-3">Nominal</th><th className="p-3">Status</th><th className="p-3">Bukti Bayar</th></tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Bulan</th><th className="p-3">Tahun</th><th className="p-3">Nominal</th><th className="p-3">Status</th><th className="p-3">Bukti Bayar</th>{editable && <th className="p-3 text-right">Aksi</th>}</tr></thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-t border-stone-100">
@@ -2111,13 +2137,18 @@ function SppPage({ profile }) {
                     </div>
                   )}
                 </td>
+                {editable && <td className="p-3 text-right whitespace-nowrap">
+                  <button onClick={() => setEditingRow(r)} className="text-[#145048] text-xs font-bold mr-3">Edit</button>
+                  <button onClick={() => hapusIuran(r)} className="text-red-600 text-xs font-bold">Hapus</button>
+                </td>}
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={5}><Empty text="Belum ada data." /></td></tr>}
+            {rows.length === 0 && <tr><td colSpan={editable ? 6 : 5}><Empty text="Belum ada data." /></td></tr>}
           </tbody>
         </table>
       </Card>
       {showForm && <SppForm onCancel={() => setShowForm(false)} onSubmit={addRecord} />}
+      {editingRow && <SppForm initial={editingRow} onCancel={() => setEditingRow(null)} onSubmit={addRecord} />}
       {kuitansi && <KuitansiSpp row={kuitansi} santri={santri} brand={brand} onClose={() => setKuitansi(null)} />}
     </div>
   );
@@ -2178,15 +2209,37 @@ function KuitansiSpp({ row, santri, brand, onClose }) {
     </Modal>
   );
 }
-function SppForm({ onCancel, onSubmit }) {
-  const [f, setF] = useState({ bulan: BULAN[new Date().getMonth()], tahun: nowYear, nominal: 500000, status: "Belum Lunas" });
+function BuatIuranBulanan({ onCancel, onSubmit, jumlah }) {
+  const [f, setF] = useState({ bulan: BULAN[new Date().getMonth()], tahun: nowYear, nominal: 500000 });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
-    <Modal title="Tambah Iuran SPP" onClose={onCancel}>
+    <Modal title="Buat Iuran Bulanan" onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <Field label="Bulan"><Select value={f.bulan} onChange={set("bulan")}>{BULAN.map((b) => <option key={b}>{b}</option>)}</Select></Field>
+        <Field label="Tahun"><Input type="number" value={f.tahun} onChange={set("tahun")} /></Field>
+        <Field label="Nominal per Santri"><Input type="number" value={f.nominal} onChange={set("nominal")} /></Field>
+        <div className="text-xs text-stone-500 mb-1">Sistem membuat iuran berstatus "Belum Lunas" untuk semua santri ({jumlah} santri) yang belum punya iuran bulan itu. Yang sudah ada dilewati. Nominal santri tertentu bisa diedit setelahnya.</div>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Buat Iuran</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+function SppForm({ initial, onCancel, onSubmit }) {
+  const [f, setF] = useState(initial || { bulan: BULAN[new Date().getMonth()], tahun: nowYear, nominal: 500000, status: "Belum Lunas" });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title={initial ? "Edit Iuran SPP" : "Tambah Iuran SPP"} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Bulan"><Select value={f.bulan} onChange={set("bulan")}>{BULAN.map((b) => <option key={b}>{b}</option>)}</Select></Field>
         <Field label="Tahun"><Input type="number" value={f.tahun} onChange={set("tahun")} /></Field>
         <Field label="Nominal"><Input type="number" value={f.nominal} onChange={set("nominal")} /></Field>
+        <Field label="Status Pembayaran">
+          <Select value={f.status} onChange={set("status")}>
+            <option>Belum Lunas</option>
+            <option>Lunas</option>
+          </Select>
+        </Field>
+        <div className="text-xs text-stone-400 mb-1">Pilih "Lunas" jika uangnya sudah diterima. Status juga bisa diubah nanti dengan mengklik badge di tabel.</div>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
       </form>
     </Modal>
