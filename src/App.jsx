@@ -1946,13 +1946,19 @@ function IbadahPage({ profile }) {
 function IbadahForm({ initial, onCancel, onSubmit }) {
   const [f, setF] = useState(initial || { tanggal: new Date().toISOString().slice(0, 10), jenis: JENIS_IBADAH[0], capaian: CAPAIAN_OPTIONS[JENIS_IBADAH[0]][0], catatan: "" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-  const setJenis = (e) => setF({ ...f, jenis: e.target.value, capaian: CAPAIAN_OPTIONS[e.target.value][0] });
+  const setJenis = (e) => setF({ ...f, jenis: e.target.value, capaian: CAPAIAN_OPTIONS[e.target.value]?.[0] || "" });
   return (
     <Modal title={initial ? "Edit Catatan Ibadah" : "Catat Ibadah"} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Tanggal"><Input type="date" value={f.tanggal} onChange={set("tanggal")} /></Field>
-        <Field label="Jenis Ibadah"><Select value={f.jenis} onChange={setJenis}>{JENIS_IBADAH.map((j) => <option key={j}>{j}</option>)}</Select></Field>
-        <Field label="Capaian"><Select value={f.capaian} onChange={set("capaian")}>{CAPAIAN_OPTIONS[f.jenis].map((c) => <option key={c}>{c}</option>)}</Select></Field>
+        <Field label="Jenis Ibadah">
+          <Input list="jenisIbadahOpsi" value={f.jenis} onChange={setJenis} placeholder="Pilih dari daftar atau ketik sendiri" />
+          <datalist id="jenisIbadahOpsi">{JENIS_IBADAH.map((j) => <option key={j} value={j} />)}</datalist>
+        </Field>
+        <Field label="Capaian">
+          <Input list="capaianOpsi" value={f.capaian} onChange={set("capaian")} placeholder="Pilih dari daftar atau ketik sendiri" />
+          <datalist id="capaianOpsi">{(CAPAIAN_OPTIONS[f.jenis] || []).map((c) => <option key={c} value={c} />)}</datalist>
+        </Field>
         <Field label="Catatan"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={3} value={f.catatan} onChange={set("catatan")} /></Field>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
       </form>
