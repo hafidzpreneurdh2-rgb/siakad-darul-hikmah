@@ -2012,6 +2012,9 @@ function SppPage({ profile }) {
   const sppT = useTable("spp");
   const [nim, setNim] = useState(isViewer ? "" : profile.nim);
   const [showForm, setShowForm] = useState(false);
+  const brand = useContext(BrandContext);
+  const [kuitansi, setKuitansi] = useState(null);
+  const [uploadingId, setUploadingId] = useState(null);
   const santri = santriT.rows.find((s) => s.nim === nim);
   const rows = sppT.rows.filter((r) => r.nim === nim).sort((a, b) => b.tahun - a.tahun || BULAN.indexOf(b.bulan) - BULAN.indexOf(a.bulan));
   const bulanIni = BULAN[new Date().getMonth()];
@@ -2023,6 +2026,18 @@ function SppPage({ profile }) {
   async function toggle(r) {
     const { error } = await supabase.from("spp").update({ status: r.status === "Lunas" ? "Belum Lunas" : "Lunas", tanggal_bayar: r.status === "Lunas" ? null : new Date().toISOString().slice(0, 10) }).eq("id", r.id);
     if (!error) sppT.reload();
+  }
+
+  async function unggahBukti(r, file) {
+    if (!file) return;
+    setUploadingId(r.id);
+    const path = `${r.nim}/spp-${r.id}-${Date.now()}.${file.name.split(".").pop()}`;
+    const { error: upErr } = await supabase.storage.from("dokumen-santri").upload(path, file, { upsert: true });
+    if (upErr) { alert(upErr.message); setUploadingId(null); return; }
+    const { data } = supabase.storage.from("dokumen-santri").getPublicUrl(path);
+    const { error } = await supabase.from("spp").update({ bukti_url: data.publicUrl }).eq("id", r.id);
+    setUploadingId(null);
+    if (error) alert(error.message); else sppT.reload();
   }
 
   const [q, setQ] = useState("");
@@ -2074,20 +2089,93 @@ function SppPage({ profile }) {
       </div>
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Bulan</th><th className="p-3">Tahun</th><th className="p-3">Nominal</th><th className="p-3">Status</th></tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Bulan</th><th className="p-3">Tahun</th><th className="p-3">Nominal</th><th className="p-3">Status</th><th className="p-3">Bukti Bayar</th></tr></thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-t border-stone-100">
                 <td className="p-3">{r.bulan}</td><td className="p-3">{r.tahun}</td><td className="p-3">{formatRupiah(r.nominal)}</td>
                 <td className="p-3">{editable ? <button onClick={() => toggle(r)}><Badge tone={r.status === "Lunas" ? "green" : "red"}>{r.status}</Badge></button> : <Badge tone={r.status === "Lunas" ? "green" : "red"}>{r.status}</Badge>}</td>
+                <td className="p-3 whitespace-nowrap">
+                  {r.status === "Lunas" ? (
+                    <button onClick={() => setKuitansi(r)} className="text-[#145048] text-xs font-bold">🧾 Cetak Bukti Bayar</button>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      {r.bukti_url && <a href={r.bukti_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-green-700 underline">Bukti terkirim ✓</a>}
+                      {!isViewer && (
+                        <label className="text-xs font-bold text-[#0B3B36] border border-stone-300 rounded-lg px-2.5 py-1 cursor-pointer hover:bg-stone-50">
+                          {uploadingId === r.id ? "Mengunggah…" : r.bukti_url ? "Ganti" : "Unggah Bukti"}
+                          <input type="file" accept="image/*,application/pdf" className="hidden" disabled={uploadingId === r.id} onChange={(e) => unggahBukti(r, e.target.files?.[0])} />
+                        </label>
+                      )}
+                      {isViewer && !r.bukti_url && <span className="text-xs text-stone-400">-</span>}
+                    </div>
+                  )}
+                </td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada data." /></td></tr>}
+            {rows.length === 0 && <tr><td colSpan={5}><Empty text="Belum ada data." /></td></tr>}
           </tbody>
         </table>
       </Card>
       {showForm && <SppForm onCancel={() => setShowForm(false)} onSubmit={addRecord} />}
+      {kuitansi && <KuitansiSpp row={kuitansi} santri={santri} brand={brand} onClose={() => setKuitansi(null)} />}
     </div>
+  );
+}
+function terbilang(n) {
+  const s = ["", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas"];
+  n = Math.floor(Number(n) || 0);
+  if (n === 0) return "nol";
+  if (n < 12) return s[n];
+  if (n < 20) return terbilang(n - 10) + " belas";
+  if (n < 100) return terbilang(Math.floor(n / 10)) + " puluh" + (n % 10 ? " " + terbilang(n % 10) : "");
+  if (n < 200) return "seratus" + (n - 100 ? " " + terbilang(n - 100) : "");
+  if (n < 1000) return terbilang(Math.floor(n / 100)) + " ratus" + (n % 100 ? " " + terbilang(n % 100) : "");
+  if (n < 2000) return "seribu" + (n - 1000 ? " " + terbilang(n - 1000) : "");
+  if (n < 1e6) return terbilang(Math.floor(n / 1e3)) + " ribu" + (n % 1000 ? " " + terbilang(n % 1000) : "");
+  if (n < 1e9) return terbilang(Math.floor(n / 1e6)) + " juta" + (n % 1e6 ? " " + terbilang(n % 1e6) : "");
+  return String(n);
+}
+function KuitansiSpp({ row, santri, brand, onClose }) {
+  const tglBayar = row.tanggal_bayar ? new Date(row.tanggal_bayar) : new Date();
+  const noKuitansi = `BKT-${row.nim}-${row.tahun}${String(BULAN.indexOf(row.bulan) + 1).padStart(2, "0")}`;
+  return (
+    <Modal title="Bukti Pembayaran Iuran SPP" onClose={onClose}>
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .kuitansi-print, .kuitansi-print * { visibility: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .kuitansi-print { position: absolute; top: 0; left: 0; width: 100%; padding: 24px 32px; }
+        }
+      `}</style>
+      <div className="kuitansi-print" style={{ fontSize: 12, color: "#111" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, borderBottom: "2px solid #0B3B36", paddingBottom: 10, marginBottom: 14 }}>
+          {brand.logo_url && <img src={brand.logo_url} alt="" style={{ width: 52, height: 52, objectFit: "contain" }} />}
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13 }}>{brand.nama_pondok}</div>
+            <div style={{ fontSize: 10, color: "#555" }}>Dicetak dari SIAKAD</div>
+          </div>
+        </div>
+        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 14, marginBottom: 2 }}>BUKTI PEMBAYARAN IURAN SPP</div>
+        <div style={{ textAlign: "center", fontSize: 10, color: "#555", marginBottom: 14 }}>No. {noKuitansi}</div>
+        <table style={{ width: "100%", fontSize: 12, lineHeight: 1.7 }}><tbody>
+          <tr><td style={{ width: 130 }}>Telah terima dari</td><td>: {santri?.nama || row.nim} (NIM {row.nim})</td></tr>
+          <tr><td>Untuk pembayaran</td><td>: Iuran SPP bulan {row.bulan} {row.tahun}</td></tr>
+          <tr><td>Uang sejumlah</td><td>: <b>{formatRupiah(row.nominal)}</b></td></tr>
+          <tr><td>Terbilang</td><td>: <i style={{ textTransform: "capitalize" }}>{terbilang(row.nominal)} rupiah</i></td></tr>
+        </tbody></table>
+        <div style={{ textAlign: "right", marginTop: 26, fontSize: 12 }}>
+          <div>{tglBayar.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
+          <div>Bendahara</div>
+          <div style={{ height: 54 }}></div>
+          <div>( ............................ )</div>
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 mt-5">
+        <Btn tone="ghost" onClick={onClose}>Tutup</Btn>
+        <Btn onClick={() => window.print()}>🖨 Cetak</Btn>
+      </div>
+    </Modal>
   );
 }
 function SppForm({ onCancel, onSubmit }) {
