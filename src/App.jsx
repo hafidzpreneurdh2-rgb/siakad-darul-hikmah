@@ -2101,13 +2101,13 @@ function SppPage({ profile }) {
                   ) : (
                     <div className="flex items-center gap-3">
                       {r.bukti_url && <a href={r.bukti_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-green-700 underline">Bukti terkirim ✓</a>}
-                      {!isViewer && (
+                      {(!isViewer || editable) && (
                         <label className="text-xs font-bold text-[#0B3B36] border border-stone-300 rounded-lg px-2.5 py-1 cursor-pointer hover:bg-stone-50">
                           {uploadingId === r.id ? "Mengunggah…" : r.bukti_url ? "Ganti" : "Unggah Bukti"}
                           <input type="file" accept="image/*,application/pdf" className="hidden" disabled={uploadingId === r.id} onChange={(e) => unggahBukti(r, e.target.files?.[0])} />
                         </label>
                       )}
-                      {isViewer && !r.bukti_url && <span className="text-xs text-stone-400">-</span>}
+                      {isViewer && !editable && !r.bukti_url && <span className="text-xs text-stone-400">-</span>}
                     </div>
                   )}
                 </td>
