@@ -6,12 +6,14 @@ const BrandContext = createContext({ warna_utama: "#0B3B36", warna_aksen: "#B893
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing","Sidang Bisnis","Sidang Munaqasyah Matan Jazary"];
 const BIDANG_BISNIS = ["Bakery", "Fashion", "Kuliner", "Kerajinan", "Digital/Online", "Lainnya"];
-const JENIS_IBADAH = ["Sholat Berjamaah", "Sholat Dhuha", "Al-Ma'tsurat", "Membaca Al-Kahfi", "Puasa Sunnah", "Qiyamullail"];
+const JENIS_IBADAH = ["Sholat Berjamaah", "Sholat Rawatib", "Sholat Dhuha", "Sholat Tahajud", "Al-Ma'tsurat", "Membaca Al-Kahfi", "Puasa Sunnah"];
 const JENIS_SETORAN_QURAN = ["Ziyadah", "Murajaah", "Tilawah", "Tahsin", "Talaqqi"];
 const JENIS_SETORAN_QURAN_COLOR = { Ziyadah: "#0B4D30", Murajaah: "#B8935A", Tilawah: "#3F6C8A", Tahsin: "#8A4A3A", Talaqqi: "#5C4A8A" };
 const CAPAIAN_OPTIONS = {
   "Sholat Berjamaah": ["Berjamaah", "Sendiri", "Tidak Sholat"],
+  "Sholat Rawatib": ["Lengkap", "Sebagian", "Tidak Dikerjakan"],
   "Sholat Dhuha": ["Dikerjakan", "Tidak Dikerjakan"],
+  "Sholat Tahajud": ["Dikerjakan", "Tidak Dikerjakan"],
   "Al-Ma'tsurat": ["Lengkap", "Tidak Lengkap"],
   "Membaca Al-Kahfi": ["Dikerjakan", "Tidak Dikerjakan"],
   "Puasa Sunnah": ["Puasa Penuh", "Tidak Puasa"],
@@ -1900,7 +1902,7 @@ function IbadahPage({ profile }) {
         const bulanIniLogs = logs.filter((l) => l.tanggal.slice(0, 7) === new Date().toISOString().slice(0, 7));
         return (
           <div className="grid grid-cols-3 gap-3 mb-5">
-            {JENIS_IBADAH.map((j) => {
+            {[...JENIS_IBADAH, ...new Set(bulanIniLogs.map((l) => l.jenis).filter((j) => j && !JENIS_IBADAH.includes(j)))].map((j) => {
               const entries = bulanIniLogs.filter((l) => l.jenis === j);
               const positif = entries.filter((l) => !CAPAIAN_NEGATIF.includes(l.capaian)).length;
               return <StatCard key={j} label={j} value={`${positif}/${entries.length}`} sub="bulan ini" />;
