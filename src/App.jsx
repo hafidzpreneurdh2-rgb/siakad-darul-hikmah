@@ -2211,6 +2211,14 @@ function KuitansiSpp({ row, santri, brand, onClose }) {
           )}
           {row.dicatat_oleh && <div style={{ fontSize: 9, color: "#888", marginTop: 2 }}>Ditandatangani secara digital di SIAKAD</div>}
         </div>
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 20 }}>
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(noKuitansi + " | " + (santri?.nama || row.nim) + " | " + formatRupiah(row.nominal))}`}
+            alt="QR verifikasi"
+            style={{ width: 64, height: 64 }}
+          />
+        </div>
+        <div style={{ textAlign: "center", fontSize: 8.5, color: "#888", marginTop: 4 }}>No. {noKuitansi} — Dicetak {new Date().toLocaleString("id-ID")}</div>
       </div>
       <div className="flex justify-end gap-2 mt-5">
         <Btn tone="ghost" onClick={onClose}>Tutup</Btn>
