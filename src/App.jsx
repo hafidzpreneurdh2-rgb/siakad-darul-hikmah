@@ -1393,12 +1393,35 @@ function PengumumanForm({ initial, onCancel, onSubmit }) {
 function KalenderPage({ profile }) {
   const editable = canEdit(profile.role, "kalender");
   const kalT = useTable("kalender_akademik");
+  const dokT = useTable("kalender_dokumen");
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const sorted = [...kalT.rows].sort((a, b) => (a.tanggal_mulai || "").localeCompare(b.tanggal_mulai || ""));
   const akanDatang = sorted.filter((k) => (k.tanggal_selesai || k.tanggal_mulai) >= today);
   const sudahLewat = sorted.filter((k) => (k.tanggal_selesai || k.tanggal_mulai) < today);
+  const dokumen = [...dokT.rows].sort((a, b) => (b.uploaded_at || "").localeCompare(a.uploaded_at || ""));
+
+  async function uploadDokumen(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const judul = prompt("Judul dokumen (cth. Kalender Akademik Semester Ganjil 2026/2027):", file.name.replace(/\.[^.]+$/, ""));
+    if (!judul) { setUploading(false); return; }
+    const path = `kalender/${Date.now()}-${file.name}`;
+    const { error: upErr } = await supabase.storage.from("dokumen-santri").upload(path, file, { upsert: true });
+    if (upErr) { alert(upErr.message); setUploading(false); return; }
+    const { data } = supabase.storage.from("dokumen-santri").getPublicUrl(path);
+    const { error } = await supabase.from("kalender_dokumen").insert({ judul, url: data.publicUrl, uploaded_at: new Date().toISOString() });
+    setUploading(false);
+    if (error) alert(error.message); else dokT.reload();
+  }
+  async function hapusDokumen(id) {
+    if (!confirm("Hapus dokumen kalender ini?")) return;
+    const { error } = await supabase.from("kalender_dokumen").delete().eq("id", id);
+    if (error) alert(error.message); else dokT.reload();
+  }
 
   async function saveItem(f) {
     const { error } = f.id
@@ -1431,6 +1454,31 @@ function KalenderPage({ profile }) {
       <PageHeader title="Kalender Akademik" sub="Agenda &amp; tanggal penting pondok." actions={
         editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Agenda</Btn>
       } />
+
+      <Card className="mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold">Dokumen Kalender Akademik</h3>
+          {editable && (
+            <label className="text-xs font-bold text-[#0B3B36] border border-stone-300 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-stone-50">
+              {uploading ? "Mengunggah…" : "+ Unggah Dokumen"}
+              <input type="file" accept="image/*,application/pdf" className="hidden" onChange={uploadDokumen} disabled={uploading} />
+            </label>
+          )}
+        </div>
+        {dokumen.length === 0 && <div className="text-sm text-stone-400">Belum ada dokumen kalender yang diunggah. Bisa unggah PDF atau gambar kalender akademik yang sudah dibuat pondok.</div>}
+        <div className="space-y-2">
+          {dokumen.map((d) => (
+            <div key={d.id} className="flex items-center justify-between border border-stone-100 rounded-lg px-3.5 py-2.5">
+              <a href={d.url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[#145048] underline">📄 {d.judul}</a>
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] text-stone-400">{d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""}</span>
+                {editable && <button onClick={() => hapusDokumen(d.id)} className="text-red-600 text-xs font-bold">Hapus</button>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
       <Card className="p-0 overflow-hidden mb-4">
         <div className="px-4 py-3 bg-stone-50 border-b border-stone-100 font-bold text-sm text-[#0B3B36]">Akan Datang</div>
         <table className="w-full text-sm">
