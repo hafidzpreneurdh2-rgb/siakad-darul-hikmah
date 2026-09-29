@@ -2023,14 +2023,15 @@ function SppPage({ profile }) {
 
   async function addRecord(f) {
     const today = new Date().toISOString().slice(0, 10);
+    const pencatat = profile.nama || profile.username;
     if (f.id) {
-      const { error } = await supabase.from("spp").update({ bulan: f.bulan, tahun: Number(f.tahun), nominal: Number(f.nominal), status: f.status, tanggal_bayar: f.status === "Lunas" ? (f.tanggal_bayar || today) : null }).eq("id", f.id);
+      const { error } = await supabase.from("spp").update({ bulan: f.bulan, tahun: Number(f.tahun), nominal: Number(f.nominal), status: f.status, metode_bayar: f.metode_bayar, tanggal_bayar: f.status === "Lunas" ? (f.tanggal_bayar || today) : null, dicatat_oleh: f.status === "Lunas" ? pencatat : null }).eq("id", f.id);
       if (error) alert(error.message); else { setEditingRow(null); sppT.reload(); }
       return;
     }
     const dobel = sppT.rows.find((r) => r.nim === nim && r.bulan === f.bulan && Number(r.tahun) === Number(f.tahun));
     if (dobel && !confirm(`Iuran ${f.bulan} ${f.tahun} untuk santri ini sudah ada. Tetap tambahkan?`)) return;
-    const { error } = await supabase.from("spp").insert({ ...f, nim, nominal: Number(f.nominal), tahun: Number(f.tahun), tanggal_bayar: f.status === "Lunas" ? today : null });
+    const { error } = await supabase.from("spp").insert({ ...f, nim, nominal: Number(f.nominal), tahun: Number(f.tahun), tanggal_bayar: f.status === "Lunas" ? today : null, dicatat_oleh: f.status === "Lunas" ? pencatat : null });
     if (error) alert(error.message); else { setShowForm(false); sppT.reload(); }
   }
   async function hapusIuran(r) {
@@ -2049,7 +2050,8 @@ function SppPage({ profile }) {
     alert(`${baru.length} iuran berhasil dibuat untuk ${f.bulan} ${tahun}.`);
   }
   async function toggle(r) {
-    const { error } = await supabase.from("spp").update({ status: r.status === "Lunas" ? "Belum Lunas" : "Lunas", tanggal_bayar: r.status === "Lunas" ? null : new Date().toISOString().slice(0, 10) }).eq("id", r.id);
+    const jadiLunas = r.status !== "Lunas";
+    const { error } = await supabase.from("spp").update({ status: jadiLunas ? "Lunas" : "Belum Lunas", tanggal_bayar: jadiLunas ? new Date().toISOString().slice(0, 10) : null, dicatat_oleh: jadiLunas ? (profile.nama || profile.username) : null }).eq("id", r.id);
     if (!error) sppT.reload();
   }
 
@@ -2196,12 +2198,18 @@ function KuitansiSpp({ row, santri, brand, onClose }) {
           <tr><td>Untuk pembayaran</td><td>: Iuran SPP bulan {row.bulan} {row.tahun}</td></tr>
           <tr><td>Uang sejumlah</td><td>: <b>{formatRupiah(row.nominal)}</b></td></tr>
           <tr><td>Terbilang</td><td>: <i style={{ textTransform: "capitalize" }}>{terbilang(row.nominal)} rupiah</i></td></tr>
+          <tr><td>Metode Pembayaran</td><td>: {row.metode_bayar || "-"}</td></tr>
         </tbody></table>
         <div style={{ textAlign: "right", marginTop: 26, fontSize: 12 }}>
           <div>{tglBayar.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
           <div>Bendahara</div>
-          <div style={{ height: 54 }}></div>
-          <div>( ............................ )</div>
+          <div style={{ height: 44 }}></div>
+          {row.dicatat_oleh ? (
+            <div style={{ fontFamily: "cursive", fontSize: 20, color: "#0B3B36", borderBottom: "1px solid #999", display: "inline-block", paddingBottom: 2 }}>{row.dicatat_oleh}</div>
+          ) : (
+            <div>( ............................ )</div>
+          )}
+          {row.dicatat_oleh && <div style={{ fontSize: 9, color: "#888", marginTop: 2 }}>Ditandatangani secara digital di SIAKAD</div>}
         </div>
       </div>
       <div className="flex justify-end gap-2 mt-5">
@@ -2227,7 +2235,7 @@ function BuatIuranBulanan({ onCancel, onSubmit, jumlah }) {
   );
 }
 function SppForm({ initial, onCancel, onSubmit }) {
-  const [f, setF] = useState(initial || { bulan: BULAN[new Date().getMonth()], tahun: nowYear, nominal: 500000, status: "Belum Lunas" });
+  const [f, setF] = useState(initial || { bulan: BULAN[new Date().getMonth()], tahun: nowYear, nominal: 500000, status: "Belum Lunas", metode_bayar: "Transfer Bank" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
     <Modal title={initial ? "Edit Iuran SPP" : "Tambah Iuran SPP"} onClose={onCancel}>
@@ -2241,6 +2249,14 @@ function SppForm({ initial, onCancel, onSubmit }) {
             <option>Lunas</option>
           </Select>
         </Field>
+        {f.status === "Lunas" && (
+          <Field label="Metode Pembayaran">
+            <Select value={f.metode_bayar || "Transfer Bank"} onChange={set("metode_bayar")}>
+              <option>Transfer Bank</option>
+              <option>Tunai</option>
+            </Select>
+          </Field>
+        )}
         <div className="text-xs text-stone-400 mb-1">Pilih "Lunas" jika uangnya sudah diterima. Status juga bisa diubah nanti dengan mengklik badge di tabel.</div>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
       </form>
