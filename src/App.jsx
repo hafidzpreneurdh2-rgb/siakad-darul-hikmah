@@ -2180,13 +2180,15 @@ function KuitansiSpp({ row, santri, brand, onClose }) {
         }
       `}</style>
       <div className="kuitansi-print" style={{ fontSize: 12, color: "#111" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, borderBottom: "2px solid #0B3B36", paddingBottom: 10, marginBottom: 14 }}>
-          {brand.logo_url && <img src={brand.logo_url} alt="" style={{ width: 52, height: 52, objectFit: "contain" }} />}
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13 }}>{brand.nama_pondok}</div>
-            <div style={{ fontSize: 10, color: "#555" }}>Dicetak dari SIAKAD</div>
-          </div>
-        </div>
+        <table style={{ width: "100%", marginBottom: 14, borderBottom: "2px solid #0B3B36", paddingBottom: 10 }}><tbody><tr>
+          <td style={{ width: 70, verticalAlign: "middle" }}>{(brand.logo_dokumen_url || brand.logo_url) && <img src={brand.logo_dokumen_url || brand.logo_url} alt="logo" style={{ width: 60 }} />}</td>
+          <td style={{ verticalAlign: "middle" }}>
+            <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36" }}>{brand.yayasan_nama}</div>
+            <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36" }}>PONDOK TAHFIDZ QURAN DAN ENTREPRENEUR {brand.nama_pondok?.toUpperCase()}</div>
+            <div style={{ fontSize: 9.5, color: "#44544D" }}>{brand.alamat_pondok}</div>
+            <div style={{ fontSize: 9.5, color: "#44544D", fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
+          </td>
+        </tr></tbody></table>
         <div style={{ textAlign: "center", fontWeight: 700, fontSize: 14, marginBottom: 2 }}>BUKTI PEMBAYARAN IURAN SPP</div>
         <div style={{ textAlign: "center", fontSize: 10, color: "#555", marginBottom: 14 }}>No. {noKuitansi}</div>
         <table style={{ width: "100%", fontSize: 12, lineHeight: 1.7 }}><tbody>
