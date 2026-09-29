@@ -2010,6 +2010,7 @@ function SppPage({ profile }) {
   const isViewer = profile.role !== "santri";
   const santriT = useTable("santri");
   const sppT = useTable("spp");
+  const profilesT = useTable("profiles");
   const [nim, setNim] = useState(isViewer ? "" : profile.nim);
   const [showForm, setShowForm] = useState(false);
   const brand = useContext(BrandContext);
@@ -2025,13 +2026,13 @@ function SppPage({ profile }) {
     const today = new Date().toISOString().slice(0, 10);
     const pencatat = profile.nama || profile.username;
     if (f.id) {
-      const { error } = await supabase.from("spp").update({ bulan: f.bulan, tahun: Number(f.tahun), nominal: Number(f.nominal), status: f.status, metode_bayar: f.metode_bayar, tanggal_bayar: f.status === "Lunas" ? (f.tanggal_bayar || today) : null, dicatat_oleh: f.status === "Lunas" ? pencatat : null }).eq("id", f.id);
+      const { error } = await supabase.from("spp").update({ bulan: f.bulan, tahun: Number(f.tahun), nominal: Number(f.nominal), status: f.status, metode_bayar: f.metode_bayar, tanggal_bayar: f.status === "Lunas" ? (f.tanggal_bayar || today) : null, dicatat_oleh: f.status === "Lunas" ? pencatat : null, dicatat_oleh_username: f.status === "Lunas" ? profile.username : null }).eq("id", f.id);
       if (error) alert(error.message); else { setEditingRow(null); sppT.reload(); }
       return;
     }
     const dobel = sppT.rows.find((r) => r.nim === nim && r.bulan === f.bulan && Number(r.tahun) === Number(f.tahun));
     if (dobel && !confirm(`Iuran ${f.bulan} ${f.tahun} untuk santri ini sudah ada. Tetap tambahkan?`)) return;
-    const { error } = await supabase.from("spp").insert({ ...f, nim, nominal: Number(f.nominal), tahun: Number(f.tahun), tanggal_bayar: f.status === "Lunas" ? today : null, dicatat_oleh: f.status === "Lunas" ? pencatat : null });
+    const { error } = await supabase.from("spp").insert({ ...f, nim, nominal: Number(f.nominal), tahun: Number(f.tahun), tanggal_bayar: f.status === "Lunas" ? today : null, dicatat_oleh: f.status === "Lunas" ? pencatat : null, dicatat_oleh_username: f.status === "Lunas" ? profile.username : null });
     if (error) alert(error.message); else { setShowForm(false); sppT.reload(); }
   }
   async function hapusIuran(r) {
@@ -2051,7 +2052,7 @@ function SppPage({ profile }) {
   }
   async function toggle(r) {
     const jadiLunas = r.status !== "Lunas";
-    const { error } = await supabase.from("spp").update({ status: jadiLunas ? "Lunas" : "Belum Lunas", tanggal_bayar: jadiLunas ? new Date().toISOString().slice(0, 10) : null, dicatat_oleh: jadiLunas ? (profile.nama || profile.username) : null }).eq("id", r.id);
+    const { error } = await supabase.from("spp").update({ status: jadiLunas ? "Lunas" : "Belum Lunas", tanggal_bayar: jadiLunas ? new Date().toISOString().slice(0, 10) : null, dicatat_oleh: jadiLunas ? (profile.nama || profile.username) : null, dicatat_oleh_username: jadiLunas ? profile.username : null }).eq("id", r.id);
     if (!error) sppT.reload();
   }
 
@@ -2151,7 +2152,7 @@ function SppPage({ profile }) {
       </Card>
       {showForm && <SppForm onCancel={() => setShowForm(false)} onSubmit={addRecord} />}
       {editingRow && <SppForm initial={editingRow} onCancel={() => setEditingRow(null)} onSubmit={addRecord} />}
-      {kuitansi && <KuitansiSpp row={kuitansi} santri={santri} brand={brand} onClose={() => setKuitansi(null)} />}
+      {kuitansi && <KuitansiSpp row={kuitansi} santri={santri} brand={brand} penandaTangan={profilesT.rows.find((p) => p.username === kuitansi.dicatat_oleh_username)} onClose={() => setKuitansi(null)} />}
     </div>
   );
 }
@@ -2169,7 +2170,7 @@ function terbilang(n) {
   if (n < 1e9) return terbilang(Math.floor(n / 1e6)) + " juta" + (n % 1e6 ? " " + terbilang(n % 1e6) : "");
   return String(n);
 }
-function KuitansiSpp({ row, santri, brand, onClose }) {
+function KuitansiSpp({ row, santri, brand, penandaTangan, onClose }) {
   const tglBayar = row.tanggal_bayar ? new Date(row.tanggal_bayar) : new Date();
   const noKuitansi = `BKT-${row.nim}-${row.tahun}${String(BULAN.indexOf(row.bulan) + 1).padStart(2, "0")}`;
   return (
@@ -2203,12 +2204,16 @@ function KuitansiSpp({ row, santri, brand, onClose }) {
         <div style={{ textAlign: "right", marginTop: 26, fontSize: 12 }}>
           <div>{tglBayar.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
           <div>Bendahara</div>
-          <div style={{ height: 44 }}></div>
           {row.dicatat_oleh ? (
-            <div style={{ fontFamily: "cursive", fontSize: 20, color: "#0B3B36", borderBottom: "1px solid #999", display: "inline-block", paddingBottom: 2 }}>{row.dicatat_oleh}</div>
+            penandaTangan?.tanda_tangan_url ? (
+              <img src={penandaTangan.tanda_tangan_url} alt="Tanda tangan" style={{ height: 48, marginBottom: -4 }} />
+            ) : (
+              <div style={{ fontFamily: "cursive", fontSize: 20, color: "#0B3B36", display: "inline-block", paddingTop: 8 }}>{row.dicatat_oleh}</div>
+            )
           ) : (
-            <div>( ............................ )</div>
+            <div style={{ height: 44 }}></div>
           )}
+          <div style={{ borderTop: "1px solid #999", paddingTop: 2 }}>{row.dicatat_oleh || "( ............................ )"}</div>
           {row.dicatat_oleh && <div style={{ fontSize: 9, color: "#888", marginTop: 2 }}>Ditandatangani secara digital di SIAKAD</div>}
         </div>
         <div style={{ textAlign: "center", fontSize: 8.5, color: "#888", marginTop: 16, borderTop: "1px dashed #ccc", paddingTop: 8 }}>No. {noKuitansi} — Dicetak {new Date().toLocaleString("id-ID")}</div>
@@ -2270,8 +2275,10 @@ function SppForm({ initial, onCancel, onSubmit }) {
 /* ---------------------------------------------------------------------- */
 function KelolaAkunPage() {
   const [showForm, setShowForm] = useState(false);
+  const [editingAkun, setEditingAkun] = useState(null);
   const [msg, setMsg] = useState("");
   const profilesT = useTable("profiles");
+  const santriT = useTable("santri");
 
   async function createAccount(f) {
     setMsg("");
@@ -2285,6 +2292,15 @@ function KelolaAkunPage() {
     if (!res.ok) { setMsg("Gagal: " + data.error); return; }
     setMsg("Akun berhasil dibuat.");
     setShowForm(false);
+    profilesT.reload();
+  }
+
+  async function updateAccount(f) {
+    setMsg("");
+    const { error } = await supabase.from("profiles").update({ nama: f.nama, role: f.role, nim: f.role === "santri" ? f.nim : null }).eq("id", f.id);
+    if (error) { setMsg("Gagal: " + error.message); return; }
+    setMsg("Akun berhasil diperbarui.");
+    setEditingAkun(null);
     profilesT.reload();
   }
 
@@ -2302,20 +2318,48 @@ function KelolaAkunPage() {
           <div className="text-xs text-stone-400">{profilesT.rows.length} akun terdaftar</div>
         </div>
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Akun</th><th className="p-3.5">Peran</th></tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Akun</th><th className="p-3.5">Peran</th><th className="p-3.5 text-right">Aksi</th></tr></thead>
           <tbody>
             {profilesT.rows.map((p) => (
               <tr key={p.id} className="border-t border-stone-100">
                 <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={p.nama} url={p.avatar_url} size={30} /><div><div className="font-bold">{p.nama}</div><div className="text-[11px] text-stone-400">{p.username || p.nim}</div></div></div></td>
                 <td className="p-3.5"><Badge tone="grey">{ROLE_LABEL[p.role] || p.role}</Badge></td>
+                <td className="p-3.5 text-right"><button onClick={() => setEditingAkun(p)} className="text-[#145048] text-xs font-bold">Edit</button></td>
               </tr>
             ))}
-            {profilesT.rows.length === 0 && <tr><td colSpan={2}><Empty text="Belum ada akun." /></td></tr>}
+            {profilesT.rows.length === 0 && <tr><td colSpan={3}><Empty text="Belum ada akun." /></td></tr>}
           </tbody>
         </table>
       </Card>
       {showForm && <AkunForm onCancel={() => setShowForm(false)} onSubmit={createAccount} />}
+      {editingAkun && <AkunEditForm initial={editingAkun} santriRows={santriT.rows} onCancel={() => setEditingAkun(null)} onSubmit={updateAccount} />}
     </div>
+  );
+}
+function AkunEditForm({ initial, santriRows, onCancel, onSubmit }) {
+  const [f, setF] = useState({ id: initial.id, nama: initial.nama || "", role: initial.role, nim: initial.nim || "" });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title={`Edit Akun — ${initial.username || initial.nim}`} onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <Field label="Nama"><Input value={f.nama} onChange={set("nama")} /></Field>
+        <Field label="Peran">
+          <Select value={f.role} onChange={set("role")}>
+            {Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </Select>
+        </Field>
+        {f.role === "santri" && (
+          <Field label="Terhubung ke Data Mahasantri">
+            <Select value={f.nim} onChange={set("nim")}>
+              <option value="">— Pilih santri —</option>
+              {santriRows.map((s) => <option key={s.nim} value={s.nim}>{s.nama} — {s.nim}</option>)}
+            </Select>
+          </Field>
+        )}
+        <div className="text-xs text-stone-400 mb-2">Username dan kata sandi tidak bisa diubah di sini. Untuk ganti kata sandi, pemilik akun bisa menggantinya sendiri lewat menu Pengaturan.</div>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+      </form>
+    </Modal>
   );
 }
 function AkunForm({ onCancel, onSubmit }) {
@@ -2355,6 +2399,8 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   const [nama, setNama] = useState(profile.nama);
   const [newPw, setNewPw] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [ttdUploading, setTtdUploading] = useState(false);
+  const ttdRef = useRef(null);
   const [msg, setMsg] = useState("");
   const fileRef = useRef(null);
 
@@ -2423,6 +2469,30 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
     } finally {
       setUploading(false);
     }
+  }
+  async function uploadTtd(e) {
+    const file = e.target.files[0]; if (!file) return;
+    setTtdUploading(true); setMsg("");
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${profile.id}/ttd.${ext}`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      const { error: dbErr } = await supabase.from("profiles").update({ tanda_tangan_url: data.publicUrl }).eq("id", profile.id);
+      if (dbErr) throw dbErr;
+      setMsg("Tanda tangan digital berhasil diperbarui.");
+      onProfileUpdated();
+    } catch (err) {
+      setMsg("Gagal unggah tanda tangan: " + err.message);
+    } finally {
+      setTtdUploading(false);
+    }
+  }
+  async function hapusTtd() {
+    if (!confirm("Hapus tanda tangan digital?")) return;
+    const { error } = await supabase.from("profiles").update({ tanda_tangan_url: null }).eq("id", profile.id);
+    if (!error) onProfileUpdated();
   }
   async function saveBranding(e) {
     e.preventDefault(); setMsg("");
@@ -2516,6 +2586,24 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
           <div>
             <Btn tone="ghost" onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? "Mengunggah…" : "Ganti Foto"}</Btn>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={uploadPhoto} />
+            <p className="text-xs text-stone-400 mt-2">JPG/PNG, maksimal 2MB.</p>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="mb-5">
+        <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-2">Tanda Tangan Digital</h3>
+        <p className="text-xs text-stone-400 mb-4">Foto/scan tanda tangan Anda (latar putih/transparan lebih baik). Akan otomatis terpasang di dokumen yang Anda proses, misalnya Bukti Pembayaran Iuran SPP.</p>
+        <div className="flex items-center gap-5">
+          <div className="w-32 h-16 border border-dashed border-stone-300 rounded-lg flex items-center justify-center bg-stone-50 overflow-hidden">
+            {profile.tanda_tangan_url ? <img src={profile.tanda_tangan_url} alt="Tanda tangan" className="max-h-full max-w-full object-contain" /> : <span className="text-[10px] text-stone-400">Belum ada</span>}
+          </div>
+          <div>
+            <div className="flex gap-2">
+              <Btn tone="ghost" onClick={() => ttdRef.current?.click()} disabled={ttdUploading}>{ttdUploading ? "Mengunggah…" : profile.tanda_tangan_url ? "Ganti" : "Unggah Tanda Tangan"}</Btn>
+              {profile.tanda_tangan_url && <Btn tone="ghost" onClick={hapusTtd}>Hapus</Btn>}
+            </div>
+            <input ref={ttdRef} type="file" accept="image/*" className="hidden" onChange={uploadTtd} />
             <p className="text-xs text-stone-400 mt-2">JPG/PNG, maksimal 2MB.</p>
           </div>
         </div>
