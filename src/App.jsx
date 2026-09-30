@@ -66,17 +66,17 @@ const CAN_EDIT = {
 };
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
-const AKADEMIK_GROUP = { label: "Akademik", items: [["akademik","KRS & KHS"],["kurikulum","Kurikulum"],["kalender","Kalender Akademik"]] };
+const AKADEMIK_GROUP = { label: "Akademik", items: [["akademik","KRS & KHS"],["kurikulum","Kurikulum"],["kalender","Kalender Akademik"],["rapor","Rapor Bulanan"]] };
 const MENUS = {
   admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
-  musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
-  musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["rapor","Rapor Bulanan"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["rapor","Rapor Bulanan"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   keuangan: [["dashboard","Dashboard"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   akademik: [["dashboard","Dashboard"], AKADEMIK_GROUP, ["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
   pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
   santri: [["dashboard","Dashboard"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", rapor: "Rapor Bulanan", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
@@ -1532,6 +1532,151 @@ function KalenderForm({ initial, onCancel, onSubmit }) {
 }
 
 /* ---------------------------------------------------------------------- */
+/* Rapor Bulanan — gabungan Ibadah + Al-Qur'an per bulan                   */
+/* ---------------------------------------------------------------------- */
+function RaporBulananPage({ profile }) {
+  const brand = useContext(BrandContext);
+  const santriT = useTable("santri");
+  const quranT = useTable("quran_log");
+  const ibadahT = useTable("ibadah_log");
+  const isViewer = profile.role !== "santri";
+  const [nim, setNim] = useState(isViewer ? "" : profile.nim);
+  const santri = santriT.rows.find((s) => s.nim === nim);
+  const pickable = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || s.musyrif_username === profile.username);
+
+  const [bulan, setBulan] = useState(BULAN[new Date().getMonth()]);
+  const [tahun, setTahun] = useState(nowYear);
+  const periode = `${tahun}-${String(BULAN.indexOf(bulan) + 1).padStart(2, "0")}`;
+
+  const quranBulan = quranT.rows.filter((l) => l.nim === nim && l.tanggal?.slice(0, 7) === periode);
+  const ibadahBulan = ibadahT.rows.filter((l) => l.nim === nim && l.tanggal?.slice(0, 7) === periode);
+  const jenisIbadahBulanIni = [...new Set([...JENIS_IBADAH, ...ibadahBulan.map((l) => l.jenis)])];
+
+  return (
+    <div>
+      <PageHeader eyebrow={isViewer ? "Akademik" : ""} title="Rapor Bulanan" sub="Ringkasan capaian Ibadah &amp; Al-Qur'an per bulan, bisa dicetak untuk wali."
+        actions={santri && <Btn tone="ghost" onClick={() => window.print()}>🖨 Cetak Rapor</Btn>} />
+
+      {isViewer && !nim && (
+        <Card className="p-0 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">NIM</th></tr></thead>
+            <tbody>
+              {pickable.map((s) => (
+                <tr key={s.nim} className="border-t border-stone-100 cursor-pointer hover:bg-stone-50/60" onClick={() => setNim(s.nim)}>
+                  <td className="p-3.5 font-semibold">{s.nama}</td>
+                  <td className="p-3.5 text-stone-500">{s.nim}</td>
+                </tr>
+              ))}
+              {pickable.length === 0 && <tr><td colSpan={2}><Empty text="Belum ada santri." /></td></tr>}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
+      {santri && (
+        <>
+          <style>{`
+            @media print {
+              body * { visibility: hidden; }
+              .rapor-print, .rapor-print * { visibility: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              .rapor-print { position: absolute; top: 0; left: 0; width: 100%; padding: 24px 32px; box-shadow: none !important; border: none !important; }
+            }
+          `}</style>
+          {isViewer && <BackBar onBack={() => setNim("")} />}
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="font-serif-dh text-2xl font-semibold text-[#0B3B36]">{santri.nama}</div>
+              <div className="text-sm text-stone-400">{santri.nim}</div>
+            </div>
+            <div className="flex gap-2">
+              <Select value={bulan} onChange={(e) => setBulan(e.target.value)} className="!w-auto">{BULAN.map((b) => <option key={b}>{b}</option>)}</Select>
+              <Select value={tahun} onChange={(e) => setTahun(Number(e.target.value))} className="!w-auto">
+                {[nowYear - 1, nowYear, nowYear + 1].map((t) => <option key={t} value={t}>{t}</option>)}
+              </Select>
+            </div>
+          </div>
+
+          <div className="rapor-print bg-white rounded-2xl border border-stone-200 shadow-sm p-8">
+            <table style={{ width: "100%", marginBottom: 14, borderBottom: "2px solid #0B3B36", paddingBottom: 10 }}><tbody><tr>
+              <td style={{ width: 70, verticalAlign: "middle" }}>{(brand.logo_dokumen_url || brand.logo_url) && <img src={brand.logo_dokumen_url || brand.logo_url} alt="logo" style={{ width: 60 }} />}</td>
+              <td style={{ verticalAlign: "middle" }}>
+                <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36" }}>{brand.yayasan_nama}</div>
+                <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36" }}>PONDOK TAHFIDZ QURAN DAN ENTREPRENEUR {brand.nama_pondok?.toUpperCase()}</div>
+                <div style={{ fontSize: 9.5, color: "#44544D" }}>{brand.alamat_pondok}</div>
+                <div style={{ fontSize: 9.5, color: "#44544D", fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
+              </td>
+            </tr></tbody></table>
+
+            <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15, color: "#0B3B36" }}>RAPOR BULANAN SANTRI</div>
+            <div style={{ textAlign: "center", fontSize: 11, marginBottom: 16 }}>Bulan {bulan} {tahun}</div>
+
+            <table style={{ width: "100%", fontSize: 11, marginBottom: 18 }}><tbody>
+              <tr><td style={{ width: 130 }}>Nama Mahasantri</td><td>: {santri.nama}</td></tr>
+              <tr><td>NIM</td><td>: {santri.nim}</td></tr>
+            </tbody></table>
+
+            <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36", marginBottom: 8 }}>Capaian Al-Qur'an</div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 8 }}>
+              <thead><tr style={{ background: "#0B3B36", color: "#fff" }}>
+                {JENIS_SETORAN_QURAN.map((j) => <th key={j} style={{ border: "1px solid #1F2937", padding: 6 }}>{j}</th>)}
+              </tr></thead>
+              <tbody><tr>
+                {JENIS_SETORAN_QURAN.map((j) => {
+                  const hal = quranBulan.filter((l) => l.jenis === j).reduce((a, l) => a + (l.halaman_dari && l.halaman_sampai ? Math.max(0, Number(l.halaman_sampai) - Number(l.halaman_dari) + 1) : 0), 0);
+                  return <td key={j} style={{ border: "1px solid #1F2937", padding: 6, textAlign: "center" }}>{hal} hal<div style={{ fontSize: 9, color: "#8A8A8A" }}>(~{(hal / 20).toFixed(1)} juz)</div></td>;
+                })}
+              </tr></tbody>
+            </table>
+            <div style={{ fontSize: 10.5, marginBottom: 18 }}><b>Total Hafalan Dikuasai (s.d. saat ini):</b> {santri.juz_dikuasai?.length || 0} dari 30 Juz</div>
+
+            <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36", marginBottom: 8 }}>Capaian Ibadah</div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 18 }}>
+              <thead><tr style={{ background: "#0B3B36", color: "#fff" }}>
+                <th style={{ border: "1px solid #1F2937", padding: 6, textAlign: "left" }}>Jenis Ibadah</th>
+                <th style={{ border: "1px solid #1F2937", padding: 6 }}>Capaian Baik</th>
+                <th style={{ border: "1px solid #1F2937", padding: 6 }}>Total Dicatat</th>
+              </tr></thead>
+              <tbody>
+                {jenisIbadahBulanIni.map((j) => {
+                  const entries = ibadahBulan.filter((l) => l.jenis === j);
+                  const positif = entries.filter((l) => !CAPAIAN_NEGATIF.includes(l.capaian)).length;
+                  return (
+                    <tr key={j}>
+                      <td style={{ border: "1px solid #1F2937", padding: 6 }}>{j}</td>
+                      <td style={{ border: "1px solid #1F2937", padding: 6, textAlign: "center" }}>{positif}</td>
+                      <td style={{ border: "1px solid #1F2937", padding: 6, textAlign: "center" }}>{entries.length}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36", marginBottom: 6 }}>Catatan Musyrif/Musyrifah</div>
+            <table style={{ width: "100%", fontSize: 10.5, marginBottom: 18 }}><tbody>
+              <tr><td style={{ width: 110, verticalAlign: "top" }}>Al-Qur'an</td><td style={{ verticalAlign: "top" }}>: {santri.catatan_quran || "-"}</td></tr>
+              <tr><td style={{ verticalAlign: "top" }}>Ibadah</td><td style={{ verticalAlign: "top" }}>: {santri.catatan_ibadah || "-"}</td></tr>
+            </tbody></table>
+
+            <div style={{ fontSize: 10.5, marginTop: 20, textAlign: "right" }}>
+              <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
+              <div>Mudir Pondok Tahfidz Qur'an dan Entrepreneur<br/>Darul Hikmah</div>
+              <div style={{ height: 44 }}></div>
+              <div style={{ borderTop: "1px solid #999", paddingTop: 2, display: "inline-block" }}>{brand.nama_mudir}</div>
+              <div>NIP. {brand.nip_mudir || "-"}</div>
+            </div>
+            <div style={{ fontSize: 8.5, color: "#6B7280", marginTop: 18, paddingTop: 10, borderTop: "1px dashed #B8935A" }}>
+              <div>No. Dokumen: RPR-{nim}-{periode.replace("-", "")}</div>
+              <div>Dicetak: {new Date().toLocaleString("id-ID")}</div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
 /* Akademik santri — gabungan KRS + KHS                                    */
 /* ---------------------------------------------------------------------- */
 function AkademikSantriPage({ profile }) {
@@ -2873,6 +3018,7 @@ export default function App() {
     if (view === "kurikulum") return <KurikulumPage profile={profile} />;
     if (view === "pengumuman") return <PengumumanPage profile={profile} />;
     if (view === "kalender") return <KalenderPage profile={profile} />;
+    if (view === "rapor") return <RaporBulananPage profile={profile} />;
     if (view === "quran") return <QuranPage profile={profile} />;
     if (view === "ibadah") return <IbadahPage profile={profile} />;
     if (view === "spp") return <SppPage profile={profile} />;
