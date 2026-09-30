@@ -487,6 +487,9 @@ function StackedBarChart({ data }) {
     </div>
   );
 }
+function SectionLabel({ children }) {
+  return <div className="text-[11px] font-extrabold text-stone-400 uppercase tracking-[0.12em] mb-3 flex items-center gap-2"><span className="w-4 h-[2px] rounded-full bg-[#B8935A]"></span>{children}</div>;
+}
 function StatCard({ label, value, sub, icon }) {
   return (
     <Card>
@@ -613,6 +616,8 @@ function Dashboard({ profile }) {
     color: JENIS_SETORAN_QURAN_COLOR[j],
   }));
   const totalSantri = santriT.rows.length;
+  const santriAktif = santriT.rows.filter((s) => s.status === "Aktif" || !s.status).length;
+  const jumlahAlumni = santriT.rows.filter((s) => s.status === "Lulus").length;
   const sppTrend = monthsBack(6).map(({ bulan, tahun, label }) => {
     const lunas = sppT.rows.filter((r) => r.bulan === bulan && r.tahun === tahun && r.status === "Lunas").length;
     return { label, lunas, belum: Math.max(0, totalSantri - lunas) };
@@ -629,18 +634,15 @@ function Dashboard({ profile }) {
   return (
     <div>
       <PageHeader eyebrow="Ringkasan" title="Dashboard" sub={`Assalamu'alaikum, ${profile.nama}`} />
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <StatCard label="Total Santri" value={santriT.rows.length} icon="👥" />
-        <StatCard label="Tunggakan Bulan Ini" value={belumLunas} icon="💳" />
-        <StatCard label="Rata-rata Juz" value={santriT.rows.length ? (santriT.rows.reduce((a, s) => a + (s.juz_dikuasai?.length || 0), 0) / santriT.rows.length).toFixed(1) : 0} icon="📖" />
+
+      <SectionLabel>Ringkasan Santri</SectionLabel>
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <StatCard label="Total Santri" value={totalSantri} icon="👥" />
+        <StatCard label="Rata-rata Juz Dikuasai" value={santriT.rows.length ? (santriT.rows.reduce((a, s) => a + (s.juz_dikuasai?.length || 0), 0) / santriT.rows.length).toFixed(1) : 0} sub="dari 30 juz" icon="📖" />
       </div>
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <StatCard label={`Iuran Lunas (${bulanIni})`} value={`${lunasBulanIni.length} / ${sppBulanIniRows.length}`} sub="santri yang sudah bayar" icon="✅" />
-        <StatCard label="Iuran Terkumpul" value={formatRupiah(nominalTerkumpul)} sub="bulan ini" icon="💰" />
-        <StatCard label="Iuran Belum Terbayar" value={formatRupiah(nominalBelum)} sub="bulan ini" icon="⏳" />
-      </div>
+
       {(showQuranChart || showSppChart) && (
-        <div className={`grid gap-4 ${showQuranChart && showSppChart ? "grid-cols-2" : "grid-cols-1"}`}>
+        <div className={`grid gap-4 mb-8 ${showQuranChart && showSppChart ? "grid-cols-2" : "grid-cols-1"}`}>
           {showQuranChart && (
             <Card>
               <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-4">Capaian Al-Qur'an Mahasantri</h3>
@@ -660,6 +662,21 @@ function Dashboard({ profile }) {
           )}
         </div>
       )}
+
+      <SectionLabel>Administrasi &amp; Keuangan</SectionLabel>
+      <Card className="bg-[#FAF8F2] border-stone-200/70 mb-8">
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          <StatCard label="Santri Aktif" value={santriAktif} icon="🟢" />
+          <StatCard label="Jumlah Alumni" value={jumlahAlumni} icon="🎓" />
+          <StatCard label="Tunggakan Bulan Ini" value={belumLunas} sub="santri belum lunas" icon="⚠️" />
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <StatCard label={`Iuran Lunas (${bulanIni})`} value={`${lunasBulanIni.length} / ${sppBulanIniRows.length}`} sub="santri yang sudah bayar" icon="✅" />
+          <StatCard label="Iuran Terkumpul" value={formatRupiah(nominalTerkumpul)} sub="bulan ini" icon="💰" />
+          <StatCard label="Iuran Belum Terbayar" value={formatRupiah(nominalBelum)} sub="bulan ini" icon="⏳" />
+        </div>
+      </Card>
+
       <PengumumanTerbaru rows={pengT.rows} />
     </div>
   );
