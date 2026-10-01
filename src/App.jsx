@@ -1107,7 +1107,10 @@ function AkademikStaffPage({ profile }) {
               style={{ width: 56, height: 56 }}
             />
           </div>
-          <div><b>{brand.nama_mudir}</b></div>
+          {brand.tanda_tangan_mudir_url ? (
+            <div><img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: 46, marginLeft: "auto" }} /></div>
+          ) : null}
+          <div style={{ borderTop: brand.tanda_tangan_mudir_url ? "1px solid #999" : "none", paddingTop: brand.tanda_tangan_mudir_url ? 2 : 0 }}><b>{brand.nama_mudir}</b></div>
           <div>NIP. {brand.nip_mudir || "-"}</div>
         </div>
         <DokumenQR dokType={dokType} nim={santri?.nim} ta={semesterTerbaru?.tahun_ajaran} sem={semesterTerbaru?.semester} pondok={brand.nama_pondok} />
@@ -1661,8 +1664,17 @@ function RaporBulananPage({ profile }) {
             <div style={{ fontSize: 10.5, marginTop: 20, textAlign: "right" }}>
               <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
               <div>Mudir Pondok Tahfidz Qur'an dan Entrepreneur<br/>Darul Hikmah</div>
-              <div style={{ height: 44 }}></div>
-              <div style={{ borderTop: "1px solid #999", paddingTop: 2, display: "inline-block" }}>{brand.nama_mudir}</div>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, marginBottom: 6 }}>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | Rapor Bulanan | NIM ${santri.nim} | ${bulan} ${tahun}`)}`}
+                  alt="QR verifikasi tanda tangan"
+                  style={{ width: 56, height: 56 }}
+                />
+              </div>
+              {brand.tanda_tangan_mudir_url ? (
+                <div><img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: 46, marginLeft: "auto" }} /></div>
+              ) : null}
+              <div style={{ borderTop: brand.tanda_tangan_mudir_url ? "1px solid #999" : "none", paddingTop: brand.tanda_tangan_mudir_url ? 2 : 0 }}>{brand.nama_mudir}</div>
               <div>NIP. {brand.nip_mudir || "-"}</div>
             </div>
             <div style={{ fontSize: 8.5, color: "#6B7280", marginTop: 18, paddingTop: 10, borderTop: "1px dashed #B8935A" }}>
@@ -1850,7 +1862,10 @@ function AkademikSantriPage({ profile }) {
               style={{ width: 56, height: 56 }}
             />
           </div>
-          <div><b>{brand.nama_mudir}</b></div>
+          {brand.tanda_tangan_mudir_url ? (
+            <div><img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: 46, marginLeft: "auto" }} /></div>
+          ) : null}
+          <div style={{ borderTop: brand.tanda_tangan_mudir_url ? "1px solid #999" : "none", paddingTop: brand.tanda_tangan_mudir_url ? 2 : 0 }}><b>{brand.nama_mudir}</b></div>
           <div>NIP. {brand.nip_mudir || "-"}</div>
         </div>
         <DokumenQR dokType={dokType} nim={santri?.nim} ta={ta} sem={sem} pondok={brand.nama_pondok} />
@@ -2624,6 +2639,26 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
   const [kontakPondok, setKontakPondok] = useState(brand.kontak_pondok || "");
   const [namaMudir, setNamaMudir] = useState(brand.nama_mudir || "");
   const [nipMudir, setNipMudir] = useState(brand.nip_mudir || "");
+  const [uploadingTtdMudir, setUploadingTtdMudir] = useState(false);
+  async function uploadTtdMudir(e) {
+    const file = e.target.files[0]; if (!file) return;
+    setUploadingTtdMudir(true); setMsg("");
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `mudir/ttd-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      const { error: dbErr } = await supabase.from("pengaturan_pondok").update({ tanda_tangan_mudir_url: data.publicUrl }).eq("id", 1);
+      if (dbErr) throw dbErr;
+      setMsg("Tanda tangan Mudir berhasil diperbarui.");
+      onBrandUpdated();
+    } catch (err) {
+      setMsg("Gagal unggah tanda tangan: " + err.message);
+    } finally {
+      setUploadingTtdMudir(false);
+    }
+  }
   const [namaKabagAkademik, setNamaKabagAkademik] = useState(brand.nama_kabag_akademik || "");
   const [nipKabagAkademik, setNipKabagAkademik] = useState(brand.nip_kabag_akademik || "");
   const [ukuranLogo, setUkuranLogo] = useState(brand.ukuran_logo_sidebar || 52);
@@ -2953,6 +2988,20 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
               <Field label="Nama Plt. Mudir"><Input value={namaMudir} onChange={(e) => setNamaMudir(e.target.value)} /></Field>
               <Field label="NIP Mudir"><Input value={nipMudir} onChange={(e) => setNipMudir(e.target.value)} /></Field>
             </div>
+            <Field label="Tanda Tangan Digital Mudir">
+              <div className="flex items-center gap-4">
+                <div className="w-32 h-16 border border-dashed border-stone-300 rounded-lg flex items-center justify-center bg-stone-50 overflow-hidden">
+                  {brand.tanda_tangan_mudir_url ? <img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" className="max-h-full max-w-full object-contain" /> : <span className="text-[10px] text-stone-400">Belum ada</span>}
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-[#0B3B36] border border-stone-300 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-stone-50">
+                    {uploadingTtdMudir ? "Mengunggah…" : brand.tanda_tangan_mudir_url ? "Ganti" : "Unggah Tanda Tangan"}
+                    <input type="file" accept="image/*" className="hidden" onChange={uploadTtdMudir} disabled={uploadingTtdMudir} />
+                  </label>
+                  <p className="text-xs text-stone-400 mt-2">Foto/scan tanda tangan Mudir, latar putih/transparan. Otomatis dipakai di KRS, KHS, dan Rapor Bulanan.</p>
+                </div>
+              </div>
+            </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Nama Kabag. Akademik"><Input value={namaKabagAkademik} onChange={(e) => setNamaKabagAkademik(e.target.value)} /></Field>
               <Field label="NIP Kabag. Akademik"><Input value={nipKabagAkademik} onChange={(e) => setNipKabagAkademik(e.target.value)} /></Field>
