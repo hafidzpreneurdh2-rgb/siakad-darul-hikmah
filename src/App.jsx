@@ -67,16 +67,17 @@ const CAN_EDIT = {
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
 const AKADEMIK_GROUP = { label: "Akademik", items: [["akademik","KRS & KHS"],["kurikulum","Kurikulum"],["kalender","Kalender Akademik"],["rapor","Rapor Bulanan"]] };
+const KARTU_MENU = ["kartu", "Kartu Tanda Santri"];
 const MENUS = {
-  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
+  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, KARTU_MENU, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
   musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["rapor","Rapor Bulanan"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["rapor","Rapor Bulanan"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   keuangan: [["dashboard","Dashboard"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
-  akademik: [["dashboard","Dashboard"], AKADEMIK_GROUP, ["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
-  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
-  santri: [["dashboard","Dashboard"], AKADEMIK_GROUP, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
+  akademik: [["dashboard","Dashboard"], AKADEMIK_GROUP, KARTU_MENU, ["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
+  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, KARTU_MENU, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
+  santri: [["dashboard","Dashboard"], AKADEMIK_GROUP, KARTU_MENU, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", rapor: "Rapor Bulanan", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", rapor: "Rapor Bulanan", kartu: "Kartu Tanda Santri", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
@@ -1689,6 +1690,123 @@ function RaporBulananPage({ profile }) {
 }
 
 /* ---------------------------------------------------------------------- */
+/* Kartu Tanda Santri (KTS)                                                 */
+/* ---------------------------------------------------------------------- */
+function KartuSantriPage({ profile }) {
+  const brand = useContext(BrandContext);
+  const santriT = useTable("santri");
+  const isViewer = profile.role !== "santri";
+  const [nim, setNim] = useState(isViewer ? "" : profile.nim);
+  const [q, setQ] = useState("");
+  const santri = santriT.rows.find((s) => s.nim === nim);
+  const daftar = santriT.rows.filter((s) => (s.status === "Aktif" || !s.status) && (s.nama.toLowerCase().includes(q.toLowerCase()) || s.nim.includes(q)));
+  const fmtTgl = (d) => d ? new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-";
+
+  return (
+    <div>
+      <PageHeader title="Kartu Tanda Santri" sub="Kartu identitas resmi mahasantri, bisa dicetak." actions={santri && <Btn tone="ghost" onClick={() => window.print()}>🖨 Cetak Kartu</Btn>} />
+
+      {isViewer && !nim && (
+        <>
+          <div className="mb-4 max-w-sm"><Input placeholder="Cari nama atau NIM…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+          <Card className="p-0 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">NIM</th></tr></thead>
+              <tbody>
+                {daftar.map((s) => (
+                  <tr key={s.nim} className="border-t border-stone-100 cursor-pointer hover:bg-stone-50/60" onClick={() => setNim(s.nim)}>
+                    <td className="p-3.5 font-semibold">{s.nama}</td>
+                    <td className="p-3.5 text-stone-500">{s.nim}</td>
+                  </tr>
+                ))}
+                {daftar.length === 0 && <tr><td colSpan={2}><Empty text="Tidak ada santri yang cocok." /></td></tr>}
+              </tbody>
+            </table>
+          </Card>
+        </>
+      )}
+
+      {santri && (
+        <>
+          <style>{`
+            @media print {
+              body * { visibility: hidden; }
+              .kts-print, .kts-print * { visibility: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              .kts-print { position: absolute; top: 0; left: 0; }
+            }
+          `}</style>
+          {isViewer && <BackBar onBack={() => setNim("")} />}
+
+          <div className="kts-print flex flex-col gap-5" style={{ width: "85.6mm" }}>
+            {/* ===== Sisi Depan ===== */}
+            <div style={{
+              width: "85.6mm", height: "54mm", borderRadius: 10, overflow: "hidden", position: "relative",
+              background: `linear-gradient(145deg, ${brand.warna_utama || "#0B3B36"}, #04100a)`, color: "#fff",
+              fontFamily: fontFamilyOf(brand, "font_judul"), boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+            }}>
+              <div style={{ position: "absolute", inset: 0, opacity: 0.08, backgroundImage: "radial-gradient(#fff 1px, transparent 1px)", backgroundSize: "10px 10px" }}></div>
+              <div style={{ position: "relative", padding: "8px 10px", display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid rgba(255,255,255,0.18)" }}>
+                {brand.logo_url && <img src={brand.logo_url} alt="logo" style={{ width: 22, height: 22, objectFit: "contain" }} />}
+                <div style={{ lineHeight: 1.15 }}>
+                  <div style={{ fontSize: 6.5, letterSpacing: 1, opacity: 0.7 }}>KARTU TANDA SANTRI</div>
+                  <div style={{ fontSize: 9, fontWeight: 700 }}>{brand.nama_pondok || "Darul Hikmah"}</div>
+                </div>
+              </div>
+              <div style={{ position: "relative", display: "flex", gap: 10, padding: "9px 10px" }}>
+                <div style={{ width: 52, height: 64, borderRadius: 6, overflow: "hidden", background: "rgba(255,255,255,0.12)", flexShrink: 0, border: "1px solid rgba(255,255,255,0.25)" }}>
+                  {santri.foto_url ? <img src={santri.foto_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div className="w-full h-full flex items-center justify-center text-[18px] font-bold">{initials(santri.nama)}</div>}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2 }}>{santri.nama}</div>
+                  <div style={{ fontSize: 8, opacity: 0.75, marginBottom: 5 }}>NIM {santri.nim}</div>
+                  <div style={{ fontSize: 7.5, opacity: 0.85, lineHeight: 1.6 }}>
+                    <div>Angkatan: {santri.angkatan || "-"}</div>
+                    <div>TTL: {santri.tempat_lahir || "-"}, {fmtTgl(santri.tanggal_lahir)}</div>
+                    <div>Gol. Darah: {santri.golongan_darah || "-"}</div>
+                  </div>
+                </div>
+              </div>
+              <div style={{ position: "absolute", bottom: 6, right: 8, fontSize: 6, opacity: 0.6, fontStyle: "italic" }}>Berlaku selama aktif sebagai mahasantri</div>
+            </div>
+
+            {/* ===== Sisi Belakang ===== */}
+            <div style={{
+              width: "85.6mm", height: "54mm", borderRadius: 10, overflow: "hidden", position: "relative",
+              background: "#fff", border: "1px solid #E5E0D3", boxShadow: "0 2px 10px rgba(0,0,0,0.08)", padding: "9px 10px",
+              display: "flex", flexDirection: "column", justifyContent: "space-between",
+            }}>
+              <div style={{ fontSize: 7, color: "#44544D", lineHeight: 1.5 }}>
+                <div style={{ fontWeight: 700, color: "#0B3B36", fontSize: 8, marginBottom: 2 }}>{brand.yayasan_nama}</div>
+                <div>{brand.alamat_pondok}</div>
+                <div style={{ fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
+              </div>
+              <div style={{ fontSize: 6.3, color: "#6B7280", lineHeight: 1.5 }}>
+                Kartu ini adalah identitas resmi mahasantri Pondok Tahfidz Qur'an dan Entrepreneur Darul Hikmah.
+                Jika ditemukan, mohon dikembalikan ke alamat pondok di atas.
+              </div>
+              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | KTS | ${santri.nama} | NIM ${santri.nim}`)}`}
+                  alt="QR verifikasi"
+                  style={{ width: 38, height: 38 }}
+                />
+                <div style={{ textAlign: "center", fontSize: 6.5 }}>
+                  {brand.tanda_tangan_mudir_url ? (
+                    <img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: 22, marginBottom: 1 }} />
+                  ) : <div style={{ height: 22 }}></div>}
+                  <div style={{ borderTop: "1px solid #bbb", paddingTop: 1, color: "#0B3B36", fontWeight: 700 }}>{brand.nama_mudir}</div>
+                  <div style={{ color: "#8A8A8A" }}>Mudir Pondok</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
 /* Akademik santri — gabungan KRS + KHS                                    */
 /* ---------------------------------------------------------------------- */
 function AkademikSantriPage({ profile }) {
@@ -3068,6 +3186,7 @@ export default function App() {
     if (view === "pengumuman") return <PengumumanPage profile={profile} />;
     if (view === "kalender") return <KalenderPage profile={profile} />;
     if (view === "rapor") return <RaporBulananPage profile={profile} />;
+    if (view === "kartu") return <KartuSantriPage profile={profile} />;
     if (view === "quran") return <QuranPage profile={profile} />;
     if (view === "ibadah") return <IbadahPage profile={profile} />;
     if (view === "spp") return <SppPage profile={profile} />;
