@@ -67,7 +67,7 @@ const CAN_EDIT = {
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
 const AKADEMIK_GROUP = { label: "Akademik", items: [["akademik","KRS & KHS"],["kurikulum","Kurikulum"],["kalender","Kalender Akademik"],["rapor","Rapor Bulanan"]] };
-const KARTU_MENU = ["kartu", "Kartu Tanda Santri"];
+const KARTU_MENU = ["kartu", "Kartu Tanda Mahasantri"];
 const MENUS = {
   admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, KARTU_MENU, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
   musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["rapor","Rapor Bulanan"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
@@ -77,7 +77,7 @@ const MENUS = {
   pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, KARTU_MENU, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
   santri: [["dashboard","Dashboard"], AKADEMIK_GROUP, KARTU_MENU, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", rapor: "Rapor Bulanan", kartu: "Kartu Tanda Santri", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", rapor: "Rapor Bulanan", kartu: "Kartu Tanda Mahasantri", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
@@ -1690,7 +1690,7 @@ function RaporBulananPage({ profile }) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Kartu Tanda Santri (KTS)                                                 */
+/* Kartu Tanda Mahasantri (KTS)                                                 */
 /* ---------------------------------------------------------------------- */
 function KartuSantriPage({ profile }) {
   const brand = useContext(BrandContext);
@@ -1704,7 +1704,7 @@ function KartuSantriPage({ profile }) {
 
   return (
     <div>
-      <PageHeader title="Kartu Tanda Santri" sub="Kartu identitas resmi mahasantri, bisa dicetak." actions={santri && <Btn tone="ghost" onClick={() => window.print()}>🖨 Cetak Kartu</Btn>} />
+      <PageHeader title="Kartu Tanda Mahasantri" sub="Kartu identitas resmi mahasantri, bisa dicetak." actions={santri && <Btn tone="ghost" onClick={() => window.print()}>🖨 Cetak Kartu</Btn>} />
 
       {isViewer && !nim && (
         <>
@@ -1741,52 +1741,53 @@ function KartuSantriPage({ profile }) {
             {/* ===== Sisi Depan ===== */}
             <div style={{
               width: "85.6mm", height: "54mm", borderRadius: 10, overflow: "hidden", position: "relative",
-              background: `linear-gradient(145deg, ${brand.warna_utama || "#0B3B36"}, #04100a)`, color: "#fff",
-              fontFamily: fontFamilyOf(brand, "font_judul"), boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+              background: "#FBF8F1", color: "#0B3B36", border: "1px solid #E7DFCB",
+              fontFamily: fontFamilyOf(brand, "font_judul"), boxShadow: "0 2px 10px rgba(0,0,0,0.12)",
+              display: "flex", flexDirection: "column",
             }}>
-              <div style={{ position: "absolute", inset: 0, opacity: 0.08, backgroundImage: "radial-gradient(#fff 1px, transparent 1px)", backgroundSize: "10px 10px" }}></div>
-              <div style={{ position: "relative", padding: "8px 10px", display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid rgba(255,255,255,0.18)" }}>
-                {brand.logo_url && <img src={brand.logo_url} alt="logo" style={{ width: 22, height: 22, objectFit: "contain" }} />}
-                <div style={{ lineHeight: 1.15 }}>
-                  <div style={{ fontSize: 6.5, letterSpacing: 1, opacity: 0.7 }}>KARTU TANDA SANTRI</div>
+              <div style={{ background: `linear-gradient(120deg, ${brand.warna_utama || "#0B3B36"}, #04100a)`, padding: "7px 10px", display: "flex", alignItems: "center", gap: 7, borderBottom: "2px solid #B8935A" }}>
+                {brand.logo_url && <img src={brand.logo_url} alt="logo" style={{ width: 20, height: 20, objectFit: "contain" }} />}
+                <div style={{ lineHeight: 1.15, color: "#fff" }}>
+                  <div style={{ fontSize: 6.5, letterSpacing: 1, opacity: 0.75 }}>KARTU TANDA MAHASANTRI</div>
                   <div style={{ fontSize: 9, fontWeight: 700 }}>{brand.nama_pondok || "Darul Hikmah"}</div>
                 </div>
               </div>
-              <div style={{ position: "relative", display: "flex", gap: 10, padding: "9px 10px" }}>
-                <div style={{ width: 52, height: 64, borderRadius: 6, overflow: "hidden", background: "rgba(255,255,255,0.12)", flexShrink: 0, border: "1px solid rgba(255,255,255,0.25)" }}>
-                  {santri.foto_url ? <img src={santri.foto_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div className="w-full h-full flex items-center justify-center text-[18px] font-bold">{initials(santri.nama)}</div>}
+              <div style={{ display: "flex", gap: 10, padding: "9px 10px", flex: 1 }}>
+                <div style={{ width: 50, height: 62, borderRadius: 6, overflow: "hidden", background: "#EFE8D4", flexShrink: 0, border: "1px solid #DCCFA0" }}>
+                  {santri.foto_url ? <img src={santri.foto_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div className="w-full h-full flex items-center justify-center text-[18px] font-bold text-[#B8935A]">{initials(santri.nama)}</div>}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2 }}>{santri.nama}</div>
-                  <div style={{ fontSize: 8, opacity: 0.75, marginBottom: 5 }}>NIM {santri.nim}</div>
-                  <div style={{ fontSize: 7.5, opacity: 0.85, lineHeight: 1.6 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, color: "#0B3B36" }}>{santri.nama}</div>
+                  <div style={{ fontSize: 8, color: "#B8935A", fontWeight: 700, marginBottom: 5 }}>NIM {santri.nim}</div>
+                  <div style={{ fontSize: 7.5, color: "#44544D", lineHeight: 1.6 }}>
                     <div>Angkatan: {santri.angkatan || "-"}</div>
                     <div>TTL: {santri.tempat_lahir || "-"}, {fmtTgl(santri.tanggal_lahir)}</div>
                     <div>Gol. Darah: {santri.golongan_darah || "-"}</div>
                   </div>
                 </div>
               </div>
-              <div style={{ position: "absolute", bottom: 6, right: 8, fontSize: 6, opacity: 0.6, fontStyle: "italic" }}>Berlaku selama aktif sebagai mahasantri</div>
+              <div style={{ borderTop: "1px solid #E7DFCB", padding: "3px 10px", fontSize: 6, color: "#8A7F5E", fontStyle: "italic", textAlign: "right" }}>Berlaku selama aktif sebagai mahasantri</div>
             </div>
 
             {/* ===== Sisi Belakang ===== */}
             <div style={{
               width: "85.6mm", height: "54mm", borderRadius: 10, overflow: "hidden", position: "relative",
-              background: "#fff", border: "1px solid #E5E0D3", boxShadow: "0 2px 10px rgba(0,0,0,0.08)", padding: "9px 10px",
+              background: "#FBF8F1", border: "1px solid #E7DFCB", boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
               display: "flex", flexDirection: "column", justifyContent: "space-between",
             }}>
-              <div style={{ fontSize: 7, color: "#44544D", lineHeight: 1.5 }}>
+              <div style={{ borderTop: "3px solid #B8935A" }}></div>
+              <div style={{ padding: "8px 10px 0", fontSize: 7, color: "#44544D", lineHeight: 1.5 }}>
                 <div style={{ fontWeight: 700, color: "#0B3B36", fontSize: 8, marginBottom: 2 }}>{brand.yayasan_nama}</div>
                 <div>{brand.alamat_pondok}</div>
                 <div style={{ fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
               </div>
-              <div style={{ fontSize: 6.3, color: "#6B7280", lineHeight: 1.5 }}>
+              <div style={{ padding: "0 10px", fontSize: 6.3, color: "#6B7280", lineHeight: 1.5 }}>
                 Kartu ini adalah identitas resmi mahasantri Pondok Tahfidz Qur'an dan Entrepreneur Darul Hikmah.
                 Jika ditemukan, mohon dikembalikan ke alamat pondok di atas.
               </div>
-              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+              <div style={{ padding: "0 10px 9px", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | KTS | ${santri.nama} | NIM ${santri.nim}`)}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | KTM | ${santri.nama} | NIM ${santri.nim}`)}`}
                   alt="QR verifikasi"
                   style={{ width: 38, height: 38 }}
                 />
