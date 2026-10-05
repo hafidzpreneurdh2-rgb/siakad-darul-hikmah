@@ -691,7 +691,10 @@ function DataSantriPage({ profile }) {
   const { rows, reload } = useTable("santri");
   const [modal, setModal] = useState(null);
 
-  async function upsert(form) {
+  async function upsert(rawForm) {
+    const form = Object.fromEntries(
+      Object.entries(rawForm).map(([k, v]) => [k, v === "" ? null : v])
+    );
     if (modal === "new") {
       const { error } = await supabase.from("santri").insert(form);
       if (error) { alert(error.message); return; }
@@ -761,9 +764,10 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
     setF((prev) => ({ ...prev, foto_url: data.publicUrl }));
     setUploading("");
   }
-  async function uploadDokumen(field) {
+  function uploadDokumen(field) {
     return async (e) => {
       const file = e.target.files?.[0];
+      e.target.value = "";
       if (!file || !f.nim) { if (!f.nim) alert("Isi NIM terlebih dahulu sebelum unggah dokumen."); return; }
       setUploading(field);
       const path = `${f.nim}/${field}-${Date.now()}.${file.name.split(".").pop()}`;
@@ -775,11 +779,23 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
     };
   }
   function DokRow({ label, field }) {
+    const sudah = !!f[field];
     return (
-      <div className="flex items-center justify-between border border-dashed border-stone-300 rounded-xl px-3.5 py-2.5 mb-2.5 text-sm">
-        <span className="text-stone-600">{label}{f[field] && <a href={f[field]} target="_blank" rel="noreferrer" className="ml-2 text-[10px] font-bold text-[#145048] underline">Lihat file</a>}</span>
-        <label className="text-xs font-bold text-[#0B3B36] border border-stone-300 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-stone-50">
-          {uploading === field ? "Mengunggah…" : f[field] ? "Ganti" : "Unggah"}
+      <div className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 mb-2.5 text-sm border ${sudah ? "border-solid border-emerald-300 bg-emerald-50" : "border-dashed border-stone-300"}`}>
+        <div className="flex flex-col">
+          <span className="text-stone-700">{label}</span>
+          {uploading === field ? (
+            <span className="text-[11px] font-bold text-amber-600">Mengunggah…</span>
+          ) : sudah ? (
+            <span className="text-[11px] font-bold text-emerald-700">
+              ✓ Terunggah <a href={f[field]} target="_blank" rel="noreferrer" className="ml-1 underline">Lihat file</a>
+            </span>
+          ) : (
+            <span className="text-[11px] text-stone-400">Belum diunggah</span>
+          )}
+        </div>
+        <label className="text-xs font-bold text-[#0B3B36] border border-stone-300 bg-white rounded-lg px-3 py-1.5 cursor-pointer hover:bg-stone-50">
+          {uploading === field ? "Mengunggah…" : sudah ? "Ganti" : "Unggah"}
           <input type="file" accept="image/*,.pdf" className="hidden" onChange={uploadDokumen(field)} disabled={uploading === field} />
         </label>
       </div>
