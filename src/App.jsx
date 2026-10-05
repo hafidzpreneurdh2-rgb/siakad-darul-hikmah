@@ -4,11 +4,12 @@ import { supabase } from "./supabaseClient.js";
 const BrandContext = createContext({ warna_utama: "#0B3B36", warna_aksen: "#B8935A" });
 
 /* Ukuran tampilan (ukuran huruf dasar). Semua ukuran rem ikut membesar. */
-const UI_SIZES = [16, 18, 20, 22];
-const UI_SIZE_DEFAULT = 18;
+const UI_SIZES = [15, 16, 17, 18, 20];
+const UI_SIZE_LABELS = { 15: "Kecil", 16: "Normal", 17: "Sedang", 18: "Besar", 20: "Sangat Besar" };
+const UI_SIZE_DEFAULT = 17;
 function loadUiSize() {
   try {
-    const v = Number(localStorage.getItem("siakad_ui_size"));
+    const v = Number(localStorage.getItem("siakad_ui_size_v2"));
     return UI_SIZES.includes(v) ? v : UI_SIZE_DEFAULT;
   } catch { return UI_SIZE_DEFAULT; }
 }
@@ -283,9 +284,9 @@ function LoginScreen({ brand }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F4F2EA] p-5 relative overflow-hidden">
       <SoftPatternBG color={brand.warna_utama} />
-      <div className="w-full max-w-5xl grid md:grid-cols-2 md:min-h-[34rem] rounded-[28px] overflow-hidden shadow-[0_30px_70px_-20px_rgba(10,30,20,.35)] relative z-10">
+      <div className="w-full max-w-4xl grid md:grid-cols-2 md:min-h-[30rem] rounded-[28px] overflow-hidden shadow-[0_30px_70px_-20px_rgba(10,30,20,.35)] relative z-10">
         <div
-          className="relative p-12 text-white flex flex-col justify-between overflow-hidden bg-cover bg-center"
+          className="relative p-10 text-white flex flex-col justify-between overflow-hidden bg-cover bg-center"
           style={
             brand.foto_latar_url
               ? { backgroundImage: `linear-gradient(150deg, ${brand.warna_utama}dd, #050b08e6 130%), url(${brand.foto_latar_url})` }
@@ -295,21 +296,21 @@ function LoginScreen({ brand }) {
           {!brand.foto_latar_url && <PatternBG />}
           <div className="relative">
             <div className="mb-10">
-              <LogoMark size={(brand.ukuran_logo_login || 76) * 1.2} url={brand.logo_url} />
+              <LogoMark size={(brand.ukuran_logo_login || 76) * 1.1} url={brand.logo_url} />
             </div>
-            <div className="font-bold leading-none mb-4 drop-shadow-sm" style={{ fontSize: `${(brand.ukuran_judul || 72) * 1.2}px`, fontFamily: fontFamilyOf(brand, "font_judul") }}>{brand.judul_besar || "SIAKAD"}</div>
-            <p className="text-white/90 mt-2 leading-snug max-w-sm font-semibold whitespace-pre-line" style={{ fontSize: `${(brand.ukuran_subjudul || 18) * 1.2}px`, textAlign: brand.align_subjudul || "left", marginLeft: brand.align_subjudul === "center" ? "auto" : 0, marginRight: brand.align_subjudul === "center" ? "auto" : 0, fontFamily: fontFamilyOf(brand, "font_subjudul") }}>
+            <div className="font-bold leading-none mb-4 drop-shadow-sm" style={{ fontSize: `${(brand.ukuran_judul || 72) * 1.1}px`, fontFamily: fontFamilyOf(brand, "font_judul") }}>{brand.judul_besar || "SIAKAD"}</div>
+            <p className="text-white/90 mt-2 leading-snug max-w-sm font-semibold whitespace-pre-line" style={{ fontSize: `${(brand.ukuran_subjudul || 18) * 1.1}px`, textAlign: brand.align_subjudul || "left", marginLeft: brand.align_subjudul === "center" ? "auto" : 0, marginRight: brand.align_subjudul === "center" ? "auto" : 0, fontFamily: fontFamilyOf(brand, "font_subjudul") }}>
               {brand.subjudul || "Sistem Informasi Terpadu dan Manajemen Pembelajaran"} {brand.nama_pondok}
             </p>
           </div>
           <div className="relative pt-5 mt-8 border-t border-white/15">
-            <div className="italic text-white whitespace-pre-line" style={{ textAlign: brand.align_slogan || "left", fontFamily: fontFamilyOf(brand, "font_slogan"), fontSize: `${(brand.ukuran_slogan || 18) * 1.2}px` }}>"{brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran"}"</div>
+            <div className="italic text-white whitespace-pre-line" style={{ textAlign: brand.align_slogan || "left", fontFamily: fontFamilyOf(brand, "font_slogan"), fontSize: `${(brand.ukuran_slogan || 18) * 1.1}px` }}>"{brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran"}"</div>
           </div>
         </div>
 
-        <div className="bg-white p-12 flex flex-col justify-center">
-          <h3 className="mb-1 font-semibold" style={{ color: brand.warna_utama, fontFamily: fontFamilyOf(brand, "font_sapaan"), fontSize: `${(brand.ukuran_sapaan || 24) * 1.2}px` }}>{brand.sapaan || "Selamat Datang"}</h3>
-          <p dir="rtl" lang="ar" style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif", color: brand.warna_arab || "#B8935A" }} className="text-2xl mb-5 text-left">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
+        <div className="bg-white p-10 flex flex-col justify-center">
+          <h3 className="mb-1 font-semibold" style={{ color: brand.warna_utama, fontFamily: fontFamilyOf(brand, "font_sapaan"), fontSize: `${(brand.ukuran_sapaan || 24) * 1.1}px` }}>{brand.sapaan || "Selamat Datang"}</h3>
+          <p dir="rtl" lang="ar" style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif", color: brand.warna_arab || "#B8935A" }} className="text-xl mb-4 text-left">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
           {!forgotMode ? (
             <form onSubmit={submit}>
               <Field label="Username / NIM"><Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Masukkan username atau NIM Anda" required autoFocus /></Field>
@@ -384,7 +385,7 @@ function ResetPasswordScreen({ brand, onDone }) {
 /* ---------------------------------------------------------------------- */
 /* Shell (sidebar + topbar)                                                 */
 /* ---------------------------------------------------------------------- */
-function Shell({ profile, view, setView, brand, uiSize, setUiSize, children }) {
+function Shell({ profile, view, setView, brand, children }) {
   const menu = MENUS[profile.role] || [];
   const groupOf = (v) => menu.find((m) => m.items && m.items.some(([k]) => k === v));
   const [openGroup, setOpenGroup] = useState(() => groupOf(view)?.label || null);
@@ -455,18 +456,6 @@ function Shell({ profile, view, setView, brand, uiSize, setUiSize, children }) {
           </div>
           <div className="flex items-center gap-4">
             <div className="text-xs text-stone-500 font-medium hidden sm:block">{todayLong()}</div>
-            <div className="flex items-center gap-1" title="Ukuran tampilan">
-              <button
-                onClick={() => setUiSize(UI_SIZES[Math.max(0, UI_SIZES.indexOf(uiSize) - 1)])}
-                disabled={uiSize === UI_SIZES[0]}
-                className="w-7 h-7 rounded-lg border border-stone-200 text-xs font-bold text-[#0B3B36] hover:bg-stone-50 disabled:opacity-30"
-              >A−</button>
-              <button
-                onClick={() => setUiSize(UI_SIZES[Math.min(UI_SIZES.length - 1, UI_SIZES.indexOf(uiSize) + 1)])}
-                disabled={uiSize === UI_SIZES[UI_SIZES.length - 1]}
-                className="w-7 h-7 rounded-lg border border-stone-200 text-sm font-bold text-[#0B3B36] hover:bg-stone-50 disabled:opacity-30"
-              >A+</button>
-            </div>
             <div className="w-px h-6 bg-stone-200" />
             <Avatar name={profile.nama} url={profile.avatar_url} size={30} />
           </div>
@@ -2790,7 +2779,7 @@ function AkunForm({ onCancel, onSubmit }) {
 /* ---------------------------------------------------------------------- */
 /* Pengaturan — profil, foto, ganti kata sandi, + branding (admin)          */
 /* ---------------------------------------------------------------------- */
-function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
+function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSize, setUiSize }) {
   const [nama, setNama] = useState(profile.nama);
   const [newPw, setNewPw] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -2993,6 +2982,25 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
     <div>
       <PageHeader title="Pengaturan" sub="Kelola profil dan kata sandi akun Anda." />
       {msg && <div className="text-sm mb-4 p-3.5 rounded-xl bg-[#E9F1EE] text-[#0F4A44] font-medium">{msg}</div>}
+
+      <Card className="mb-5">
+        <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-2">Ukuran Tampilan</h3>
+        <p className="text-xs text-stone-400 mb-4">Atur besar huruf dan elemen di seluruh aplikasi. Pilihan ini tersimpan di perangkat ini saja, jadi tiap perangkat bisa berbeda.</p>
+        <div className="flex flex-wrap gap-2">
+          {UI_SIZES.map((sz) => (
+            <button
+              key={sz}
+              type="button"
+              onClick={() => setUiSize(sz)}
+              className={`px-4 py-2 rounded-xl border text-sm font-semibold transition ${uiSize === sz ? "bg-[#0B3B36] text-white border-[#0B3B36]" : "bg-white text-[#0B3B36] border-stone-300 hover:bg-stone-50"}`}
+            >
+              {UI_SIZE_LABELS[sz]}
+              {sz === UI_SIZE_DEFAULT && <span className="ml-1.5 text-[0.625rem] font-bold opacity-70">(bawaan)</span>}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-stone-400 mt-3">Ukuran berubah langsung saat dipilih. Hasil cetak (kartu, rapor, KRS/KHS) tidak terpengaruh.</p>
+      </Card>
 
       <Card className="mb-5">
         <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-4">Foto Profil</h3>
@@ -3253,7 +3261,7 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.style.fontSize = uiSize + "px";
-    try { localStorage.setItem("siakad_ui_size", String(uiSize)); } catch {}
+    try { localStorage.setItem("siakad_ui_size_v2", String(uiSize)); } catch {}
   }, [uiSize]);
 
   useEffect(() => {
@@ -3299,13 +3307,13 @@ export default function App() {
     if (view === "ibadah") return <IbadahPage profile={profile} />;
     if (view === "spp") return <SppPage profile={profile} />;
     if (view === "akun" && profile.role === "admin") return <KelolaAkunPage />;
-    if (view === "pengaturan") return <PengaturanPage profile={profile} onProfileUpdated={loadProfile} brand={brand} onBrandUpdated={reloadBrand} />;
+    if (view === "pengaturan") return <PengaturanPage profile={profile} onProfileUpdated={loadProfile} brand={brand} onBrandUpdated={reloadBrand} uiSize={uiSize} setUiSize={setUiSize} />;
     return null;
   }
 
   return (
     <BrandContext.Provider value={brand}>
-      <Shell profile={profile} view={view} setView={setView} brand={brand} uiSize={uiSize} setUiSize={setUiSize}>{renderView()}</Shell>
+      <Shell profile={profile} view={view} setView={setView} brand={brand}>{renderView()}</Shell>
     </BrandContext.Provider>
   );
 }
