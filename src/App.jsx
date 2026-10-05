@@ -42,10 +42,15 @@ const AVATAR_COLORS = ["#0B4D30","#AD7F2C","#8A4A3A","#3F6C8A","#5C4A8A","#2F6B5
 const nowYear = new Date().getFullYear();
 const DEFAULT_TAGLINE = "Pondok Tahfidz Qur'an dan Entrepreneur Darul Hikmah";
 const DEFAULT_JABATAN_TTD = "Mudir\nPTQE Darul Hikmah";
-/* Posisi tulisan jabatan (Mudir ...) saja. Kosong/"ikut" = ikut posisi blok. */
-function jabatanAlign(brand) {
-  const m = { kiri: "left", tengah: "center", kanan: "right" };
-  return m[brand?.posisi_jabatan] || undefined;
+/* Gaya tulisan jabatan (Mudir ...). "ikut" = ikut blok; "tengah" = baris-baris jabatan
+   rata tengah satu sama lain (Mudir di tengah atas PTQE Darul Hikmah), blok tetap di sisi sesuai posisi blok. */
+function jabatanStyle(brand) {
+  const pos = brand?.posisi_jabatan;
+  const base = { whiteSpace: "pre-line" };
+  if (pos === "kiri") return { ...base, textAlign: "left" };
+  if (pos === "kanan") return { ...base, textAlign: "right" };
+  if (pos === "tengah") return { ...base, textAlign: "center", width: "fit-content", margin: ttdAlign(brand).img };
+  return base;
 }
 /* Posisi blok tanda tangan di dokumen: kiri / tengah / kanan */
 function ttdAlign(brand) {
@@ -1141,7 +1146,7 @@ function AkademikStaffPage({ profile }) {
 
         <div style={{ fontSize: 10.5, marginTop: 24, textAlign: ttdAlign(brand).text }}>
           <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-          <div style={{ whiteSpace: "pre-line", textAlign: jabatanAlign(brand) }}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
+          <div style={jabatanStyle(brand)}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
           <div style={{ display: "flex", justifyContent: ttdAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | ${dokType} | NIM ${santri?.nim} | ${semesterTerbaru?.tahun_ajaran} Semester ${semesterTerbaru?.semester}`)}`}
@@ -1705,7 +1710,7 @@ function RaporBulananPage({ profile }) {
 
             <div style={{ fontSize: 10.5, marginTop: 20, textAlign: ttdAlign(brand).text }}>
               <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-              <div style={{ whiteSpace: "pre-line", textAlign: jabatanAlign(brand) }}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
+              <div style={jabatanStyle(brand)}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
               <div style={{ display: "flex", justifyContent: ttdAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | Rapor Bulanan | NIM ${santri.nim} | ${bulan} ${tahun}`)}`}
@@ -2143,7 +2148,7 @@ function AkademikSantriPage({ profile }) {
 
         <div style={{ fontSize: 10.5, marginTop: 24, textAlign: ttdAlign(brand).text }}>
           <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-          <div style={{ whiteSpace: "pre-line", textAlign: jabatanAlign(brand) }}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
+          <div style={jabatanStyle(brand)}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
           <div style={{ display: "flex", justifyContent: ttdAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | ${dokType} | NIM ${santri?.nim} | ${ta} Semester ${sem}`)}`}
@@ -3318,7 +3323,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSi
                     className={`px-4 py-2 rounded-xl border text-sm font-semibold ${posisiJabatan === v ? "bg-[#0B3B36] text-white border-[#0B3B36]" : "bg-white text-[#0B3B36] border-stone-300 hover:bg-stone-50"}`}>{l}</button>
                 ))}
               </div>
-              <p className="text-xs text-stone-400 mt-1">Hanya mengatur tulisan jabatan. QR, tanda tangan, nama, dan NIP tetap mengikuti <b>Posisi Blok Tanda Tangan</b> di bawah. "Tengah" artinya tengah halaman dokumen.</p>
+              <p className="text-xs text-stone-400 mt-1">Hanya mengatur tulisan jabatan. QR, tanda tangan, nama, dan NIP tetap mengikuti <b>Posisi Blok Tanda Tangan</b> di bawah. "Tengah" membuat baris-barisnya rata tengah satu sama lain (misalnya "Mudir" tepat di tengah atas "PTQE Darul Hikmah").</p>
               {!("posisi_jabatan" in brand) && <p className="text-xs text-red-600 mt-1">Kolom <b>posisi_jabatan</b> belum ada di database, jadi pilihan ini belum bisa disimpan. Jalankan SQL penambahan kolom di Supabase terlebih dahulu.</p>}
             </Field>
             <Field label="Posisi Blok Tanda Tangan di Dokumen">
