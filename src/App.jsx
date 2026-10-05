@@ -1726,7 +1726,12 @@ function KartuSantriPage({ profile }) {
   const isViewer = profile.role !== "santri";
   const [nim, setNim] = useState(isViewer ? "" : profile.nim);
   const [q, setQ] = useState("");
-  const KTS_DEFAULT = { skala: "100", marginAtas: "10", marginKiri: "10", jarak: "5", susunan: "kolom" };
+  const KTS_DEFAULT = {
+    skala: "100", marginAtas: "10", marginKiri: "10", jarak: "5", susunan: "kolom",
+    hdrAlign: "tengah", hdrSusunan: "atas", logoUkuran: "26",
+    fotoPos: "kiri", dataAlign: "kiri", footAlign: "tengah", belAlign: "tengah",
+    qrPos: "kiri", qrUkuran: "38", ttdPos: "kanan", ttdUkuran: "22",
+  };
   const [cfg, setCfg] = useState(() => {
     try { return { ...KTS_DEFAULT, ...JSON.parse(localStorage.getItem("siakad_kartu_cfg") || "{}") }; } catch { return KTS_DEFAULT; }
   });
@@ -1737,9 +1742,41 @@ function KartuSantriPage({ profile }) {
   const mKiri = Math.max(0, num(cfg.marginKiri, 10));
   const jarak = Math.max(0, num(cfg.jarak, 5));
   const setC = (k) => (e) => setCfg((c) => ({ ...c, [k]: e.target.value }));
+  const TA = { kiri: "left", tengah: "center", kanan: "right" };
+  const FX = { kiri: "flex-start", tengah: "center", kanan: "flex-end" };
+  const clamp = (v, d, lo, hi) => Math.min(hi, Math.max(lo, num(v, d)));
+  const logoPx = clamp(cfg.logoUkuran, 26, 12, 60);
+  const qrPx = clamp(cfg.qrUkuran, 38, 20, 70);
+  const ttdPx = clamp(cfg.ttdUkuran, 22, 10, 45);
+  const seg = (k, opts) => (
+    <div className="inline-flex gap-1">
+      {opts.map(([v, l]) => (
+        <button key={v} type="button" onClick={() => setCfg((c) => ({ ...c, [k]: v }))}
+          className={`px-3 py-1.5 rounded-lg border text-xs font-semibold ${cfg[k] === v ? "bg-[#0B3B36] text-white border-[#0B3B36]" : "bg-white text-[#0B3B36] border-stone-300 hover:bg-stone-50"}`}>{l}</button>
+      ))}
+    </div>
+  );
+  const ALIGN3 = [["kiri", "Kiri"], ["tengah", "Tengah"], ["kanan", "Kanan"]];
   const santri = santriT.rows.find((s) => s.nim === nim);
   const daftar = santriT.rows.filter((s) => (s.status === "Aktif" || !s.status) && (s.nama.toLowerCase().includes(q.toLowerCase()) || s.nim.includes(q)));
   const fmtTgl = (d) => d ? new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-";
+
+  const qrEl = santri ? (
+    <img
+      src={`https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | KTM | ${santri.nama} | NIM ${santri.nim}`)}`}
+      alt="QR verifikasi"
+      style={{ width: qrPx, height: qrPx }}
+    />
+  ) : null;
+  const ttdEl = (
+    <div style={{ textAlign: "center", fontSize: 6.5 }}>
+      {brand.tanda_tangan_mudir_url ? (
+        <img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: ttdPx, margin: "0 auto 1px" }} />
+      ) : <div style={{ height: ttdPx }}></div>}
+      <div style={{ borderTop: "1px solid #bbb", paddingTop: 1, color: "#0B3B36", fontWeight: 700 }}>{brand.nama_mudir}</div>
+      <div style={{ color: "#8A8A8A" }}>Mudir Pondok</div>
+    </div>
+  );
 
   return (
     <div>
@@ -1805,6 +1842,39 @@ function KartuSantriPage({ profile }) {
                   className={`px-3 py-1.5 rounded-lg border text-xs font-semibold ${cfg.susunan === v ? "bg-[#0B3B36] text-white border-[#0B3B36]" : "bg-white text-[#0B3B36] border-stone-300 hover:bg-stone-50"}`}>{l}</button>
               ))}
             </div>
+            <div className="border-t border-stone-100 mt-4 pt-4">
+              <div className="text-[0.6875rem] font-extrabold text-[#B8935A] uppercase tracking-[0.1em] mb-3">Tata Letak Kartu</div>
+              <div className="grid gap-3">
+                {[
+                  ["Judul & logo (header)", seg("hdrAlign", ALIGN3)],
+                  ["Susunan logo & judul", seg("hdrSusunan", [["atas", "Logo di atas"], ["samping", "Logo di samping"]])],
+                  ["Posisi foto", seg("fotoPos", [["kiri", "Kiri"], ["kanan", "Kanan"]])],
+                  ["Rata data mahasantri", seg("dataAlign", ALIGN3)],
+                  ["Rata tulisan bawah (depan)", seg("footAlign", ALIGN3)],
+                  ["Rata tulisan sisi belakang", seg("belAlign", ALIGN3)],
+                  ["Posisi QR code", seg("qrPos", ALIGN3)],
+                  ["Posisi tanda tangan", seg("ttdPos", ALIGN3)],
+                ].map(([label, ctrl]) => (
+                  <div key={label} className="flex items-center justify-between gap-3 flex-wrap">
+                    <span className="text-sm text-stone-600">{label}</span>
+                    {ctrl}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-3 mt-4">
+                {[
+                  ["logoUkuran", "Ukuran logo (px)", "12–60"],
+                  ["qrUkuran", "Ukuran QR (px)", "20–70"],
+                  ["ttdUkuran", "Tinggi tanda tangan (px)", "10–45"],
+                ].map(([k, label, hint]) => (
+                  <label key={k} className="block">
+                    <span className="block text-[0.6875rem] font-bold uppercase tracking-wide text-stone-500 mb-1">{label}</span>
+                    <input type="number" step="any" value={cfg[k]} onChange={setC(k)} className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm" />
+                    <span className="block text-[0.625rem] text-stone-400 mt-1">{hint}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
             <p className="text-xs text-stone-400 mt-3">Pengaturan tersimpan di perangkat ini. Saat jendela cetak muncul, pastikan opsi <b>Margin</b> di browser diatur ke <b>Bawaan</b> atau <b>Tidak ada</b>.</p>
           </Card>
           {isViewer && <BackBar onBack={() => setNim("")} />}
@@ -1820,18 +1890,18 @@ function KartuSantriPage({ profile }) {
               fontFamily: fontFamilyOf(brand, "font_judul"), boxShadow: "0 2px 10px rgba(0,0,0,0.12)",
               display: "flex", flexDirection: "column",
             }}>
-              <div style={{ background: `linear-gradient(120deg, ${brand.warna_utama || "#0B3B36"}, #04100a)`, padding: "6px 10px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, textAlign: "center", borderBottom: "2px solid #B8935A" }}>
-                {brand.logo_url && <img src={brand.logo_url} alt="logo" style={{ width: 26, height: 26, objectFit: "contain" }} />}
+              <div style={{ background: `linear-gradient(120deg, ${brand.warna_utama || "#0B3B36"}, #04100a)`, padding: "6px 10px", display: "flex", flexDirection: cfg.hdrSusunan === "samping" ? "row" : "column", alignItems: cfg.hdrSusunan === "samping" ? "center" : FX[cfg.hdrAlign], justifyContent: cfg.hdrSusunan === "samping" ? FX[cfg.hdrAlign] : "center", gap: cfg.hdrSusunan === "samping" ? 7 : 3, textAlign: TA[cfg.hdrAlign], borderBottom: "2px solid #B8935A" }}>
+                {brand.logo_url && <img src={brand.logo_url} alt="logo" style={{ width: logoPx, height: logoPx, objectFit: "contain" }} />}
                 <div style={{ lineHeight: 1.15, color: "#fff" }}>
                   <div style={{ fontSize: 6.5, letterSpacing: 1, opacity: 0.75 }}>KARTU TANDA MAHASANTRI</div>
                   <div style={{ fontSize: 9, fontWeight: 700 }}>{brand.nama_pondok || "Darul Hikmah"}</div>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 10, padding: "9px 10px", flex: 1 }}>
+              <div style={{ display: "flex", flexDirection: cfg.fotoPos === "kanan" ? "row-reverse" : "row", gap: 10, padding: "9px 10px", flex: 1 }}>
                 <div style={{ width: 50, height: 62, borderRadius: 6, overflow: "hidden", background: "#EFE8D4", flexShrink: 0, border: "1px solid #DCCFA0" }}>
                   {santri.foto_url ? <img src={santri.foto_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div className="w-full h-full flex items-center justify-center text-[1.125rem] font-bold text-[#B8935A]">{initials(santri.nama)}</div>}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ flex: 1, minWidth: 0, textAlign: TA[cfg.dataAlign] }}>
                   <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, color: "#0B3B36" }}>{santri.nama}</div>
                   <div style={{ fontSize: 8, color: "#B8935A", fontWeight: 700, marginBottom: 5 }}>NIM {santri.nim}</div>
                   <div style={{ fontSize: 7.5, color: "#44544D", lineHeight: 1.6 }}>
@@ -1841,7 +1911,7 @@ function KartuSantriPage({ profile }) {
                   </div>
                 </div>
               </div>
-              <div style={{ borderTop: "1px solid #E7DFCB", padding: "3px 10px", fontSize: 6, color: "#8A7F5E", fontStyle: "italic", textAlign: "center" }}>Berlaku selama aktif sebagai mahasantri</div>
+              <div style={{ borderTop: "1px solid #E7DFCB", padding: "3px 10px", fontSize: 6, color: "#8A7F5E", fontStyle: "italic", textAlign: TA[cfg.footAlign] }}>Berlaku selama aktif sebagai mahasantri</div>
             </div>
 
             </div>
@@ -1855,28 +1925,22 @@ function KartuSantriPage({ profile }) {
               display: "flex", flexDirection: "column", justifyContent: "space-between",
             }}>
               <div style={{ borderTop: "3px solid #B8935A" }}></div>
-              <div style={{ padding: "8px 10px 0", fontSize: 7, color: "#44544D", lineHeight: 1.5, textAlign: "center" }}>
+              <div style={{ padding: "8px 10px 0", fontSize: 7, color: "#44544D", lineHeight: 1.5, textAlign: TA[cfg.belAlign] }}>
                 <div style={{ fontWeight: 700, color: "#0B3B36", fontSize: 8, marginBottom: 2 }}>{brand.yayasan_nama}</div>
                 <div>{brand.alamat_pondok}</div>
                 <div style={{ fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
               </div>
-              <div style={{ padding: "0 10px", fontSize: 6.3, color: "#6B7280", lineHeight: 1.5, textAlign: "center" }}>
+              <div style={{ padding: "0 10px", fontSize: 6.3, color: "#6B7280", lineHeight: 1.5, textAlign: TA[cfg.belAlign] }}>
                 Kartu ini adalah identitas resmi mahasantri Pondok Tahfidz Qur'an dan Entrepreneur Darul Hikmah.
                 Jika ditemukan, mohon dikembalikan ke alamat pondok di atas.
               </div>
-              <div style={{ padding: "0 10px 9px", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | KTM | ${santri.nama} | NIM ${santri.nim}`)}`}
-                  alt="QR verifikasi"
-                  style={{ width: 38, height: 38 }}
-                />
-                <div style={{ textAlign: "center", fontSize: 6.5 }}>
-                  {brand.tanda_tangan_mudir_url ? (
-                    <img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: 22, marginBottom: 1 }} />
-                  ) : <div style={{ height: 22 }}></div>}
-                  <div style={{ borderTop: "1px solid #bbb", paddingTop: 1, color: "#0B3B36", fontWeight: 700 }}>{brand.nama_mudir}</div>
-                  <div style={{ color: "#8A8A8A" }}>Mudir Pondok</div>
-                </div>
+              <div style={{ padding: "0 10px 9px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", alignItems: "end" }}>
+                {["kiri", "tengah", "kanan"].map((pos) => (
+                  <div key={pos} style={{ display: "flex", alignItems: "flex-end", gap: 8, justifyContent: FX[pos] }}>
+                    {cfg.qrPos === pos && qrEl}
+                    {cfg.ttdPos === pos && ttdEl}
+                  </div>
+                ))}
               </div>
             </div>
             </div>
