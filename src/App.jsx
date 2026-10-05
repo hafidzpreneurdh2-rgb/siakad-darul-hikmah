@@ -42,6 +42,11 @@ const AVATAR_COLORS = ["#0B4D30","#AD7F2C","#8A4A3A","#3F6C8A","#5C4A8A","#2F6B5
 const nowYear = new Date().getFullYear();
 const DEFAULT_TAGLINE = "Pondok Tahfidz Qur'an dan Entrepreneur Darul Hikmah";
 const DEFAULT_JABATAN_TTD = "Mudir\nPTQE Darul Hikmah";
+/* Posisi tulisan jabatan (Mudir ...) saja. Kosong/"ikut" = ikut posisi blok. */
+function jabatanAlign(brand) {
+  const m = { kiri: "left", tengah: "center", kanan: "right" };
+  return m[brand?.posisi_jabatan] || undefined;
+}
 /* Posisi blok tanda tangan di dokumen: kiri / tengah / kanan */
 function ttdAlign(brand) {
   const pos = brand?.posisi_ttd || "kanan";
@@ -1136,7 +1141,7 @@ function AkademikStaffPage({ profile }) {
 
         <div style={{ fontSize: 10.5, marginTop: 24, textAlign: ttdAlign(brand).text }}>
           <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-          <div style={{ whiteSpace: "pre-line" }}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
+          <div style={{ whiteSpace: "pre-line", textAlign: jabatanAlign(brand) }}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
           <div style={{ display: "flex", justifyContent: ttdAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | ${dokType} | NIM ${santri?.nim} | ${semesterTerbaru?.tahun_ajaran} Semester ${semesterTerbaru?.semester}`)}`}
@@ -1700,7 +1705,7 @@ function RaporBulananPage({ profile }) {
 
             <div style={{ fontSize: 10.5, marginTop: 20, textAlign: ttdAlign(brand).text }}>
               <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-              <div style={{ whiteSpace: "pre-line" }}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
+              <div style={{ whiteSpace: "pre-line", textAlign: jabatanAlign(brand) }}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
               <div style={{ display: "flex", justifyContent: ttdAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | Rapor Bulanan | NIM ${santri.nim} | ${bulan} ${tahun}`)}`}
@@ -2138,7 +2143,7 @@ function AkademikSantriPage({ profile }) {
 
         <div style={{ fontSize: 10.5, marginTop: 24, textAlign: ttdAlign(brand).text }}>
           <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-          <div style={{ whiteSpace: "pre-line" }}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
+          <div style={{ whiteSpace: "pre-line", textAlign: jabatanAlign(brand) }}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
           <div style={{ display: "flex", justifyContent: ttdAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | ${dokType} | NIM ${santri?.nim} | ${ta} Semester ${sem}`)}`}
@@ -2925,6 +2930,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSi
   const [nipMudir, setNipMudir] = useState(brand.nip_mudir || "");
   const [jabatanTtd, setJabatanTtd] = useState(brand.jabatan_ttd || DEFAULT_JABATAN_TTD);
   const [posisiTtd, setPosisiTtd] = useState(brand.posisi_ttd || "kanan");
+  const [posisiJabatan, setPosisiJabatan] = useState(brand.posisi_jabatan || "ikut");
   const [uploadingTtdMudir, setUploadingTtdMudir] = useState(false);
   async function uploadTtdMudir(e) {
     const file = e.target.files[0]; if (!file) return;
@@ -3030,7 +3036,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSi
     const { error } = await supabase.from("pengaturan_pondok").update({
       nama_pondok: namaPondok, tagline, warna_utama: warnaUtama, warna_aksen: warnaAksen, warna_arab: warnaArab,
       yayasan_nama: yayasanNama, alamat_pondok: alamatPondok, kontak_pondok: kontakPondok,
-      nama_mudir: namaMudir, nip_mudir: nipMudir, ...("jabatan_ttd" in brand ? { jabatan_ttd: jabatanTtd } : {}), ...("posisi_ttd" in brand ? { posisi_ttd: posisiTtd } : {}), nama_kabag_akademik: namaKabagAkademik, nip_kabag_akademik: nipKabagAkademik,
+      nama_mudir: namaMudir, nip_mudir: nipMudir, ...("jabatan_ttd" in brand ? { jabatan_ttd: jabatanTtd } : {}), ...("posisi_ttd" in brand ? { posisi_ttd: posisiTtd } : {}), ...("posisi_jabatan" in brand ? { posisi_jabatan: posisiJabatan } : {}), nama_kabag_akademik: namaKabagAkademik, nip_kabag_akademik: nipKabagAkademik,
       ukuran_logo_sidebar: Number(ukuranLogo), ukuran_logo_login: Number(ukuranLogoLogin),
       ukuran_slogan: Number(ukuranSlogan), ukuran_sapaan: Number(ukuranSapaan),
       judul_besar: judulBesar, subjudul, slogan, sapaan,
@@ -3304,6 +3310,16 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSi
               />
               <p className="text-xs text-stone-400 mt-1">Tiap baris (Enter) akan tampil sebagai baris baru di dokumen KRS, KHS, dan rapor.</p>
               {!("jabatan_ttd" in brand) && <p className="text-xs text-red-600 mt-1">Kolom <b>jabatan_ttd</b> belum ada di database, jadi isian ini belum bisa disimpan. Jalankan SQL penambahan kolom di Supabase terlebih dahulu.</p>}
+            </Field>
+            <Field label="Posisi Tulisan Jabatan (Mudir / PTQE Darul Hikmah)">
+              <div className="inline-flex gap-1 flex-wrap">
+                {[["ikut", "Ikut blok"], ["kiri", "Kiri"], ["tengah", "Tengah"], ["kanan", "Kanan"]].map(([v, l]) => (
+                  <button key={v} type="button" onClick={() => setPosisiJabatan(v)}
+                    className={`px-4 py-2 rounded-xl border text-sm font-semibold ${posisiJabatan === v ? "bg-[#0B3B36] text-white border-[#0B3B36]" : "bg-white text-[#0B3B36] border-stone-300 hover:bg-stone-50"}`}>{l}</button>
+                ))}
+              </div>
+              <p className="text-xs text-stone-400 mt-1">Hanya mengatur tulisan jabatan. QR, tanda tangan, nama, dan NIP tetap mengikuti <b>Posisi Blok Tanda Tangan</b> di bawah. "Tengah" artinya tengah halaman dokumen.</p>
+              {!("posisi_jabatan" in brand) && <p className="text-xs text-red-600 mt-1">Kolom <b>posisi_jabatan</b> belum ada di database, jadi pilihan ini belum bisa disimpan. Jalankan SQL penambahan kolom di Supabase terlebih dahulu.</p>}
             </Field>
             <Field label="Posisi Blok Tanda Tangan di Dokumen">
               <div className="inline-flex gap-1">
