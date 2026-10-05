@@ -41,6 +41,7 @@ const ROLE_LABEL = { admin: "Administrator", musyrif: "Musyrif", musyrifah: "Mus
 const AVATAR_COLORS = ["#0B4D30","#AD7F2C","#8A4A3A","#3F6C8A","#5C4A8A","#2F6B5E"];
 const nowYear = new Date().getFullYear();
 const DEFAULT_TAGLINE = "Pondok Tahfidz Qur'an dan Entrepreneur Darul Hikmah";
+const DEFAULT_JABATAN_TTD = "Mudir\nPTQE Darul Hikmah";
 function fontFamilyOf(brand, key) { return (FONT_OPTIONS[brand[key]] || FONT_OPTIONS.fraunces).heading; }
 
 const FONT_OPTIONS = {
@@ -1128,7 +1129,7 @@ function AkademikStaffPage({ profile }) {
 
         <div style={{ fontSize: 10.5, marginTop: 24, textAlign: "right" }}>
           <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-          <div>Mudir Pondok Tahfidz Qur'an dan Entrepreneur<br/>Darul Hikmah</div>
+          <div style={{ whiteSpace: "pre-line" }}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, marginBottom: 6 }}>
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | ${dokType} | NIM ${santri?.nim} | ${semesterTerbaru?.tahun_ajaran} Semester ${semesterTerbaru?.semester}`)}`}
@@ -1692,7 +1693,7 @@ function RaporBulananPage({ profile }) {
 
             <div style={{ fontSize: 10.5, marginTop: 20, textAlign: "right" }}>
               <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-              <div>Mudir Pondok Tahfidz Qur'an dan Entrepreneur<br/>Darul Hikmah</div>
+              <div style={{ whiteSpace: "pre-line" }}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, marginBottom: 6 }}>
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | Rapor Bulanan | NIM ${santri.nim} | ${bulan} ${tahun}`)}`}
@@ -1863,7 +1864,7 @@ function KartuSantriPage({ profile }) {
                   ["Rata data mahasantri", seg("dataAlign", ALIGN3)],
                   ["Rata tulisan bawah (depan)", seg("footAlign", ALIGN3)],
                   ["Rata tulisan sisi belakang", seg("belAlign", ALIGN3)],
-                  ["QR code terpisah" + (cfg.ttdBentuk === "qr" ? " (otomatis tersembunyi karena TTD sudah QR)" : ""), seg("qrTampil", [["ya", "Tampilkan"], ["tidak", "Sembunyikan"]])],
+                  ["QR code terpisah" + ((cfg.ttdBentuk === "qr" || cfg.ttdBentuk === "keduanya") ? " (otomatis tersembunyi karena TTD sudah memakai QR)" : ""), seg("qrTampil", [["ya", "Tampilkan"], ["tidak", "Sembunyikan"]])],
                   ["Posisi QR code terpisah", seg("qrPos", ALIGN3)],
                   ["Bentuk tanda tangan", seg("ttdBentuk", [["gambar", "Gambar TTD"], ["qr", "QR code"], ["keduanya", "Keduanya"]])],
                   ["Posisi tanda tangan", seg("ttdPos", ALIGN3)],
@@ -1950,7 +1951,7 @@ function KartuSantriPage({ profile }) {
               <div style={{ padding: "0 10px 9px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", alignItems: "end" }}>
                 {["kiri", "tengah", "kanan"].map((pos) => (
                   <div key={pos} style={{ display: "flex", alignItems: "flex-end", gap: 8, justifyContent: FX[pos] }}>
-                    {cfg.qrTampil !== "tidak" && ttdBentuk !== "qr" && cfg.qrPos === pos && qrEl}
+                    {cfg.qrTampil !== "tidak" && ttdBentuk === "gambar" && cfg.qrPos === pos && qrEl}
                     {cfg.ttdPos === pos && ttdEl}
                   </div>
                 ))}
@@ -2130,7 +2131,7 @@ function AkademikSantriPage({ profile }) {
 
         <div style={{ fontSize: 10.5, marginTop: 24, textAlign: "right" }}>
           <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-          <div>Mudir Pondok Tahfidz Qur'an dan Entrepreneur<br/>Darul Hikmah</div>
+          <div style={{ whiteSpace: "pre-line" }}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, marginBottom: 6 }}>
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | ${dokType} | NIM ${santri?.nim} | ${ta} Semester ${sem}`)}`}
@@ -2915,6 +2916,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSi
   const [kontakPondok, setKontakPondok] = useState(brand.kontak_pondok || "");
   const [namaMudir, setNamaMudir] = useState(brand.nama_mudir || "");
   const [nipMudir, setNipMudir] = useState(brand.nip_mudir || "");
+  const [jabatanTtd, setJabatanTtd] = useState(brand.jabatan_ttd || DEFAULT_JABATAN_TTD);
   const [uploadingTtdMudir, setUploadingTtdMudir] = useState(false);
   async function uploadTtdMudir(e) {
     const file = e.target.files[0]; if (!file) return;
@@ -3020,7 +3022,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSi
     const { error } = await supabase.from("pengaturan_pondok").update({
       nama_pondok: namaPondok, tagline, warna_utama: warnaUtama, warna_aksen: warnaAksen, warna_arab: warnaArab,
       yayasan_nama: yayasanNama, alamat_pondok: alamatPondok, kontak_pondok: kontakPondok,
-      nama_mudir: namaMudir, nip_mudir: nipMudir, nama_kabag_akademik: namaKabagAkademik, nip_kabag_akademik: nipKabagAkademik,
+      nama_mudir: namaMudir, nip_mudir: nipMudir, ...("jabatan_ttd" in brand ? { jabatan_ttd: jabatanTtd } : {}), nama_kabag_akademik: namaKabagAkademik, nip_kabag_akademik: nipKabagAkademik,
       ukuran_logo_sidebar: Number(ukuranLogo), ukuran_logo_login: Number(ukuranLogoLogin),
       ukuran_slogan: Number(ukuranSlogan), ukuran_sapaan: Number(ukuranSapaan),
       judul_besar: judulBesar, subjudul, slogan, sapaan,
@@ -3284,6 +3286,17 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSi
               <Field label="Nama Plt. Mudir"><Input value={namaMudir} onChange={(e) => setNamaMudir(e.target.value)} /></Field>
               <Field label="NIP Mudir"><Input value={nipMudir} onChange={(e) => setNipMudir(e.target.value)} /></Field>
             </div>
+            <Field label="Jabatan Penandatangan (tulisan di atas tanda tangan pada dokumen)">
+              <textarea
+                className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm"
+                rows={2}
+                value={jabatanTtd}
+                onChange={(e) => setJabatanTtd(e.target.value)}
+                placeholder={"Mudir\nPTQE Darul Hikmah"}
+              />
+              <p className="text-xs text-stone-400 mt-1">Tiap baris (Enter) akan tampil sebagai baris baru di dokumen KRS, KHS, dan rapor.</p>
+              {!("jabatan_ttd" in brand) && <p className="text-xs text-red-600 mt-1">Kolom <b>jabatan_ttd</b> belum ada di database, jadi isian ini belum bisa disimpan. Jalankan SQL penambahan kolom di Supabase terlebih dahulu.</p>}
+            </Field>
             <Field label="Tanda Tangan Digital Mudir">
               <div className="flex items-center gap-4">
                 <div className="w-32 h-16 border border-dashed border-stone-300 rounded-lg flex items-center justify-center bg-stone-50 overflow-hidden">
