@@ -49,8 +49,22 @@ function jabatanStyle(brand) {
   const base = { whiteSpace: "pre-line" };
   if (pos === "kiri") return { ...base, textAlign: "left" };
   if (pos === "kanan") return { ...base, textAlign: "right" };
-  if (pos === "tengah") return { ...base, textAlign: "center", width: "fit-content", margin: ttdAlign(brand).img };
+  if (pos === "tengah") return { ...base, textAlign: "center", width: "fit-content", margin: isiAlign(brand).img };
   return base;
+}
+/* Rata isi blok tanda tangan. "tengah" = semua baris (tanggal, jabatan, QR, nama, NIP) sejajar di tengah blok. */
+function isiAlign(brand) {
+  if (brand?.rata_blok_ttd === "tengah") return { text: "center", flex: "center", img: "0 auto" };
+  return ttdAlign(brand);
+}
+function ttdBlokStyle(brand, top) {
+  const a = ttdAlign(brand);
+  if (brand?.rata_blok_ttd === "tengah") {
+    const pos = brand?.posisi_ttd || "kanan";
+    const margin = pos === "kiri" ? `${top}px auto 0 0` : pos === "tengah" ? `${top}px auto 0` : `${top}px 0 0 auto`;
+    return { textAlign: "center", width: "fit-content", margin };
+  }
+  return { marginTop: top, textAlign: a.text };
 }
 /* Posisi blok tanda tangan di dokumen: kiri / tengah / kanan */
 function ttdAlign(brand) {
@@ -1144,10 +1158,10 @@ function AkademikStaffPage({ profile }) {
         </>
         )}
 
-        <div style={{ fontSize: 10.5, marginTop: 24, textAlign: ttdAlign(brand).text }}>
+        <div style={{ fontSize: 10.5, ...ttdBlokStyle(brand, 24) }}>
           <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
           <div style={jabatanStyle(brand)}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
-          <div style={{ display: "flex", justifyContent: ttdAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
+          <div style={{ display: "flex", justifyContent: isiAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | ${dokType} | NIM ${santri?.nim} | ${semesterTerbaru?.tahun_ajaran} Semester ${semesterTerbaru?.semester}`)}`}
               alt="QR verifikasi tanda tangan"
@@ -1155,7 +1169,7 @@ function AkademikStaffPage({ profile }) {
             />
           </div>
           {brand.tanda_tangan_mudir_url ? (
-            <div><img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: 46, margin: ttdAlign(brand).img }} /></div>
+            <div><img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: 46, margin: isiAlign(brand).img }} /></div>
           ) : null}
           <div style={{ borderTop: brand.tanda_tangan_mudir_url ? "1px solid #999" : "none", paddingTop: brand.tanda_tangan_mudir_url ? 2 : 0 }}><b>{brand.nama_mudir}</b></div>
           <div>NIP. {brand.nip_mudir || "-"}</div>
@@ -1708,10 +1722,10 @@ function RaporBulananPage({ profile }) {
               <tr><td style={{ verticalAlign: "top" }}>Ibadah</td><td style={{ verticalAlign: "top" }}>: {santri.catatan_ibadah || "-"}</td></tr>
             </tbody></table>
 
-            <div style={{ fontSize: 10.5, marginTop: 20, textAlign: ttdAlign(brand).text }}>
+            <div style={{ fontSize: 10.5, ...ttdBlokStyle(brand, 20) }}>
               <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
               <div style={jabatanStyle(brand)}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
-              <div style={{ display: "flex", justifyContent: ttdAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
+              <div style={{ display: "flex", justifyContent: isiAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | Rapor Bulanan | NIM ${santri.nim} | ${bulan} ${tahun}`)}`}
                   alt="QR verifikasi tanda tangan"
@@ -1719,7 +1733,7 @@ function RaporBulananPage({ profile }) {
                 />
               </div>
               {brand.tanda_tangan_mudir_url ? (
-                <div><img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: 46, margin: ttdAlign(brand).img }} /></div>
+                <div><img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: 46, margin: isiAlign(brand).img }} /></div>
               ) : null}
               <div style={{ borderTop: brand.tanda_tangan_mudir_url ? "1px solid #999" : "none", paddingTop: brand.tanda_tangan_mudir_url ? 2 : 0 }}>{brand.nama_mudir}</div>
               <div>NIP. {brand.nip_mudir || "-"}</div>
@@ -2146,10 +2160,10 @@ function AkademikSantriPage({ profile }) {
         </>
         )}
 
-        <div style={{ fontSize: 10.5, marginTop: 24, textAlign: ttdAlign(brand).text }}>
+        <div style={{ fontSize: 10.5, ...ttdBlokStyle(brand, 24) }}>
           <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
           <div style={jabatanStyle(brand)}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
-          <div style={{ display: "flex", justifyContent: ttdAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
+          <div style={{ display: "flex", justifyContent: isiAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | ${dokType} | NIM ${santri?.nim} | ${ta} Semester ${sem}`)}`}
               alt="QR verifikasi tanda tangan"
@@ -2157,7 +2171,7 @@ function AkademikSantriPage({ profile }) {
             />
           </div>
           {brand.tanda_tangan_mudir_url ? (
-            <div><img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: 46, margin: ttdAlign(brand).img }} /></div>
+            <div><img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: 46, margin: isiAlign(brand).img }} /></div>
           ) : null}
           <div style={{ borderTop: brand.tanda_tangan_mudir_url ? "1px solid #999" : "none", paddingTop: brand.tanda_tangan_mudir_url ? 2 : 0 }}><b>{brand.nama_mudir}</b></div>
           <div>NIP. {brand.nip_mudir || "-"}</div>
@@ -2935,6 +2949,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSi
   const [nipMudir, setNipMudir] = useState(brand.nip_mudir || "");
   const [jabatanTtd, setJabatanTtd] = useState(brand.jabatan_ttd || DEFAULT_JABATAN_TTD);
   const [posisiTtd, setPosisiTtd] = useState(brand.posisi_ttd || "kanan");
+  const [rataBlok, setRataBlok] = useState(brand.rata_blok_ttd || "ikut");
   const [posisiJabatan, setPosisiJabatan] = useState(brand.posisi_jabatan || "ikut");
   const [uploadingTtdMudir, setUploadingTtdMudir] = useState(false);
   async function uploadTtdMudir(e) {
@@ -3041,7 +3056,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSi
     const { error } = await supabase.from("pengaturan_pondok").update({
       nama_pondok: namaPondok, tagline, warna_utama: warnaUtama, warna_aksen: warnaAksen, warna_arab: warnaArab,
       yayasan_nama: yayasanNama, alamat_pondok: alamatPondok, kontak_pondok: kontakPondok,
-      nama_mudir: namaMudir, nip_mudir: nipMudir, ...("jabatan_ttd" in brand ? { jabatan_ttd: jabatanTtd } : {}), ...("posisi_ttd" in brand ? { posisi_ttd: posisiTtd } : {}), ...("posisi_jabatan" in brand ? { posisi_jabatan: posisiJabatan } : {}), nama_kabag_akademik: namaKabagAkademik, nip_kabag_akademik: nipKabagAkademik,
+      nama_mudir: namaMudir, nip_mudir: nipMudir, ...("jabatan_ttd" in brand ? { jabatan_ttd: jabatanTtd } : {}), ...("posisi_ttd" in brand ? { posisi_ttd: posisiTtd } : {}), ...("rata_blok_ttd" in brand ? { rata_blok_ttd: rataBlok } : {}), ...("posisi_jabatan" in brand ? { posisi_jabatan: posisiJabatan } : {}), nama_kabag_akademik: namaKabagAkademik, nip_kabag_akademik: nipKabagAkademik,
       ukuran_logo_sidebar: Number(ukuranLogo), ukuran_logo_login: Number(ukuranLogoLogin),
       ukuran_slogan: Number(ukuranSlogan), ukuran_sapaan: Number(ukuranSapaan),
       judul_besar: judulBesar, subjudul, slogan, sapaan,
@@ -3325,6 +3340,16 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSi
               </div>
               <p className="text-xs text-stone-400 mt-1">Hanya mengatur tulisan jabatan. QR, tanda tangan, nama, dan NIP tetap mengikuti <b>Posisi Blok Tanda Tangan</b> di bawah. "Tengah" membuat baris-barisnya rata tengah satu sama lain (misalnya "Mudir" tepat di tengah atas "PTQE Darul Hikmah").</p>
               {!("posisi_jabatan" in brand) && <p className="text-xs text-red-600 mt-1">Kolom <b>posisi_jabatan</b> belum ada di database, jadi pilihan ini belum bisa disimpan. Jalankan SQL penambahan kolom di Supabase terlebih dahulu.</p>}
+            </Field>
+            <Field label="Rata Isi Blok Tanda Tangan">
+              <div className="inline-flex gap-1 flex-wrap">
+                {[["ikut", "Ikut posisi blok"], ["tengah", "Semua rata tengah"]].map(([v, l]) => (
+                  <button key={v} type="button" onClick={() => setRataBlok(v)}
+                    className={`px-4 py-2 rounded-xl border text-sm font-semibold ${rataBlok === v ? "bg-[#0B3B36] text-white border-[#0B3B36]" : "bg-white text-[#0B3B36] border-stone-300 hover:bg-stone-50"}`}>{l}</button>
+                ))}
+              </div>
+              <p className="text-xs text-stone-400 mt-1">"Semua rata tengah": tanggal, jabatan, QR, tanda tangan, nama, dan NIP sejajar di tengah blok. Letak blok di halaman tetap mengikuti <b>Posisi Blok Tanda Tangan</b> di bawah.</p>
+              {!("rata_blok_ttd" in brand) && <p className="text-xs text-red-600 mt-1">Kolom <b>rata_blok_ttd</b> belum ada di database, jadi pilihan ini belum bisa disimpan. Jalankan SQL penambahan kolom di Supabase terlebih dahulu.</p>}
             </Field>
             <Field label="Posisi Blok Tanda Tangan di Dokumen">
               <div className="inline-flex gap-1">
