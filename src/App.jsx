@@ -1820,8 +1820,8 @@ function KartuSantriPage({ profile }) {
               fontFamily: fontFamilyOf(brand, "font_judul"), boxShadow: "0 2px 10px rgba(0,0,0,0.12)",
               display: "flex", flexDirection: "column",
             }}>
-              <div style={{ background: `linear-gradient(120deg, ${brand.warna_utama || "#0B3B36"}, #04100a)`, padding: "7px 10px", display: "flex", alignItems: "center", gap: 7, borderBottom: "2px solid #B8935A" }}>
-                {brand.logo_url && <img src={brand.logo_url} alt="logo" style={{ width: 20, height: 20, objectFit: "contain" }} />}
+              <div style={{ background: `linear-gradient(120deg, ${brand.warna_utama || "#0B3B36"}, #04100a)`, padding: "6px 10px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, textAlign: "center", borderBottom: "2px solid #B8935A" }}>
+                {brand.logo_url && <img src={brand.logo_url} alt="logo" style={{ width: 26, height: 26, objectFit: "contain" }} />}
                 <div style={{ lineHeight: 1.15, color: "#fff" }}>
                   <div style={{ fontSize: 6.5, letterSpacing: 1, opacity: 0.75 }}>KARTU TANDA MAHASANTRI</div>
                   <div style={{ fontSize: 9, fontWeight: 700 }}>{brand.nama_pondok || "Darul Hikmah"}</div>
@@ -1841,7 +1841,7 @@ function KartuSantriPage({ profile }) {
                   </div>
                 </div>
               </div>
-              <div style={{ borderTop: "1px solid #E7DFCB", padding: "3px 10px", fontSize: 6, color: "#8A7F5E", fontStyle: "italic", textAlign: "right" }}>Berlaku selama aktif sebagai mahasantri</div>
+              <div style={{ borderTop: "1px solid #E7DFCB", padding: "3px 10px", fontSize: 6, color: "#8A7F5E", fontStyle: "italic", textAlign: "center" }}>Berlaku selama aktif sebagai mahasantri</div>
             </div>
 
             </div>
@@ -1855,12 +1855,12 @@ function KartuSantriPage({ profile }) {
               display: "flex", flexDirection: "column", justifyContent: "space-between",
             }}>
               <div style={{ borderTop: "3px solid #B8935A" }}></div>
-              <div style={{ padding: "8px 10px 0", fontSize: 7, color: "#44544D", lineHeight: 1.5 }}>
+              <div style={{ padding: "8px 10px 0", fontSize: 7, color: "#44544D", lineHeight: 1.5, textAlign: "center" }}>
                 <div style={{ fontWeight: 700, color: "#0B3B36", fontSize: 8, marginBottom: 2 }}>{brand.yayasan_nama}</div>
                 <div>{brand.alamat_pondok}</div>
                 <div style={{ fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
               </div>
-              <div style={{ padding: "0 10px", fontSize: 6.3, color: "#6B7280", lineHeight: 1.5 }}>
+              <div style={{ padding: "0 10px", fontSize: 6.3, color: "#6B7280", lineHeight: 1.5, textAlign: "center" }}>
                 Kartu ini adalah identitas resmi mahasantri Pondok Tahfidz Qur'an dan Entrepreneur Darul Hikmah.
                 Jika ditemukan, mohon dikembalikan ke alamat pondok di atas.
               </div>
