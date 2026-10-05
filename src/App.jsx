@@ -3028,7 +3028,8 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
             </div>
           </div>
 
-          <form onSubmit={saveBranding} className="max-w-md">
+          <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
+          <form onSubmit={saveBranding} className="min-w-0">
             <Field label="Nama Pondok (ditampilkan di sidebar)"><Input value={namaPondok} onChange={(e) => setNamaPondok(e.target.value)} /></Field>
             <div className="border-t border-[#EDD9A0] my-4 pt-4">
               <div className="text-xs font-extrabold text-stone-500 uppercase tracking-wide mb-3">Teks Halaman Login</div>
@@ -3133,8 +3134,57 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
             </Field>
             <Btn type="submit" tone="gold">Simpan Identitas Pondok</Btn>
           </form>
+          <div className="sticky top-4 hidden lg:block">
+            <LoginPreviewCard
+              namaPondok={namaPondok} logoUrl={brand.logo_url} warnaUtama={warnaUtama} warnaArab={warnaArab} fotoLatarUrl={brand.foto_latar_url}
+              judulBesar={judulBesar} ukuranJudul={ukuranJudul} fontJudul={fontJudul}
+              subjudul={subjudul} ukuranSubjudul={ukuranSubjudul} fontSubjudul={fontSubjudul} alignSubjudul={alignSubjudul}
+              slogan={slogan} ukuranSlogan={ukuranSlogan} fontSlogan={fontSlogan} alignSlogan={alignSlogan}
+              sapaan={sapaan} ukuranSapaan={ukuranSapaan} fontSapaan={fontSapaan} ukuranLogoLogin={ukuranLogoLogin}
+            />
+          </div>
+          </div>
         </Card>
       )}
+    </div>
+  );
+}
+function LoginPreviewCard({ namaPondok, logoUrl, warnaUtama, warnaArab, fotoLatarUrl, judulBesar, ukuranJudul, fontJudul, subjudul, ukuranSubjudul, fontSubjudul, alignSubjudul, slogan, ukuranSlogan, fontSlogan, alignSlogan, sapaan, ukuranSapaan, fontSapaan, ukuranLogoLogin }) {
+  const scale = 0.42;
+  const ff = (key) => (FONT_OPTIONS[key] || FONT_OPTIONS.fraunces).heading;
+  return (
+    <div>
+      <div className="text-xs font-extrabold text-stone-500 uppercase tracking-wide mb-2">Pratinjau Halaman Login</div>
+      <div className="rounded-2xl overflow-hidden shadow-lg border border-stone-200 mb-4">
+        <div
+          className="relative p-5 text-white flex flex-col justify-between overflow-hidden bg-cover bg-center"
+          style={fotoLatarUrl
+            ? { minHeight: 180, backgroundImage: `linear-gradient(150deg, ${warnaUtama}dd, #050b08e6 130%), url(${fotoLatarUrl})` }
+            : { minHeight: 180, background: `linear-gradient(150deg, ${warnaUtama || "#0B3B36"}, #050b08 130%)` }
+          }
+        >
+          <div>
+            <div className="mb-3"><LogoMark size={(Number(ukuranLogoLogin) || 76) * scale} url={logoUrl} /></div>
+            <div className="font-bold leading-none mb-1.5" style={{ fontSize: `${(Number(ukuranJudul) || 72) * scale}px`, fontFamily: ff(fontJudul) }}>{judulBesar || "SIAKAD"}</div>
+            <p className="text-white/90 leading-snug font-semibold whitespace-pre-line" style={{ fontSize: `${(Number(ukuranSubjudul) || 18) * scale}px`, textAlign: alignSubjudul || "left", fontFamily: ff(fontSubjudul) }}>
+              {subjudul} {namaPondok}
+            </p>
+          </div>
+          <div className="pt-3 mt-3 border-t border-white/15">
+            <div className="italic" style={{ textAlign: alignSlogan || "left", fontFamily: ff(fontSlogan), fontSize: `${(Number(ukuranSlogan) || 18) * scale}px` }}>"{slogan}"</div>
+          </div>
+        </div>
+        <div className="bg-white p-5">
+          <div className="font-semibold mb-1" style={{ color: warnaUtama, fontFamily: ff(fontSapaan), fontSize: `${(Number(ukuranSapaan) || 24) * scale}px` }}>{sapaan || "Selamat Datang"}</div>
+          <p dir="rtl" lang="ar" style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif", color: warnaArab || "#B8935A", fontSize: 13 }}>السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
+          <div className="mt-3 space-y-2">
+            <div className="h-7 rounded-lg bg-stone-100"></div>
+            <div className="h-7 rounded-lg bg-stone-100"></div>
+            <div className="h-7 rounded-lg mt-1" style={{ background: warnaUtama }}></div>
+          </div>
+        </div>
+      </div>
+      <p className="text-xs text-stone-400">Pratinjau langsung sesuai perubahan yang belum disimpan. Klik "Simpan Identitas Pondok" kalau sudah cocok.</p>
     </div>
   );
 }
