@@ -1726,6 +1726,17 @@ function KartuSantriPage({ profile }) {
   const isViewer = profile.role !== "santri";
   const [nim, setNim] = useState(isViewer ? "" : profile.nim);
   const [q, setQ] = useState("");
+  const KTS_DEFAULT = { skala: "100", marginAtas: "10", marginKiri: "10", jarak: "5", susunan: "kolom" };
+  const [cfg, setCfg] = useState(() => {
+    try { return { ...KTS_DEFAULT, ...JSON.parse(localStorage.getItem("siakad_kartu_cfg") || "{}") }; } catch { return KTS_DEFAULT; }
+  });
+  useEffect(() => { try { localStorage.setItem("siakad_kartu_cfg", JSON.stringify(cfg)); } catch {} }, [cfg]);
+  const num = (v, d) => { const n = parseFloat(String(v).replace(",", ".")); return Number.isFinite(n) ? n : d; };
+  const skala = Math.min(200, Math.max(30, num(cfg.skala, 100))) / 100;
+  const mAtas = Math.max(0, num(cfg.marginAtas, 10));
+  const mKiri = Math.max(0, num(cfg.marginKiri, 10));
+  const jarak = Math.max(0, num(cfg.jarak, 5));
+  const setC = (k) => (e) => setCfg((c) => ({ ...c, [k]: e.target.value }));
   const santri = santriT.rows.find((s) => s.nim === nim);
   const daftar = santriT.rows.filter((s) => (s.status === "Aktif" || !s.status) && (s.nama.toLowerCase().includes(q.toLowerCase()) || s.nim.includes(q)));
   const fmtTgl = (d) => d ? new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-";
@@ -1758,18 +1769,47 @@ function KartuSantriPage({ profile }) {
         <>
           <style>{`
             .kts-print { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; zoom: 1.4; }
-            .kts-side { width: 85.6mm; }
+            .kts-side { width: 85.6mm; zoom: ${skala}; }
             .kts-label { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #8A7F5E; margin-bottom: 6px; }
             @media print {
+              @page { margin: 0; }
               body * { visibility: hidden; }
               .kts-print, .kts-print * { visibility: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-              .kts-print { position: absolute; top: 0; left: 0; zoom: 1; flex-direction: column; flex-wrap: nowrap; gap: 5mm; width: 85.6mm; }
+              .kts-print { position: absolute; top: ${mAtas}mm; left: ${mKiri}mm; zoom: 1; flex-direction: ${cfg.susunan === "baris" ? "row" : "column"}; flex-wrap: nowrap; gap: ${jarak}mm; width: auto; }
               .kts-label, .kts-hint { display: none !important; }
             }
           `}</style>
+          <Card className="mb-4 kts-hint">
+            <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+              <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold">Atur Ukuran &amp; Margin Cetak</h3>
+              <Btn tone="ghost" onClick={() => setCfg(KTS_DEFAULT)}>Kembalikan ke Bawaan</Btn>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                ["skala", "Ukuran kartu (%)", "30–200"],
+                ["marginAtas", "Margin atas (mm)", "jarak dari tepi atas kertas"],
+                ["marginKiri", "Margin kiri (mm)", "jarak dari tepi kiri kertas"],
+                ["jarak", "Jarak depan–belakang (mm)", ""],
+              ].map(([k, label, hint]) => (
+                <label key={k} className="block">
+                  <span className="block text-[0.6875rem] font-bold uppercase tracking-wide text-stone-500 mb-1">{label}</span>
+                  <input type="number" step="any" min="0" value={cfg[k]} onChange={setC(k)} className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm" />
+                  {hint && <span className="block text-[0.625rem] text-stone-400 mt-1">{hint}</span>}
+                </label>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 mt-3 flex-wrap">
+              <span className="text-[0.6875rem] font-bold uppercase tracking-wide text-stone-500">Susunan saat dicetak:</span>
+              {[["kolom", "Atas–bawah"], ["baris", "Berdampingan"]].map(([v, l]) => (
+                <button key={v} type="button" onClick={() => setCfg((c) => ({ ...c, susunan: v }))}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold ${cfg.susunan === v ? "bg-[#0B3B36] text-white border-[#0B3B36]" : "bg-white text-[#0B3B36] border-stone-300 hover:bg-stone-50"}`}>{l}</button>
+              ))}
+            </div>
+            <p className="text-xs text-stone-400 mt-3">Pengaturan tersimpan di perangkat ini. Saat jendela cetak muncul, pastikan opsi <b>Margin</b> di browser diatur ke <b>Bawaan</b> atau <b>Tidak ada</b>.</p>
+          </Card>
           {isViewer && <BackBar onBack={() => setNim("")} />}
 
-          <div className="kts-hint text-xs text-stone-500 mb-3">Pratinjau kartu. Saat dicetak, ukuran kartu menjadi 85,6 × 54 mm (seperti kartu ATM).</div>
+          <div className="kts-hint text-xs text-stone-500 mb-3">Pratinjau kartu. Ukuran saat dicetak: {(85.6 * skala).toFixed(1).replace(".", ",")} × {(54 * skala).toFixed(1).replace(".", ",")} mm (kartu ATM standar: 85,6 × 54 mm).</div>
           <div className="kts-print">
             {/* ===== Sisi Depan ===== */}
             <div className="kts-side">
