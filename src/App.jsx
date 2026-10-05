@@ -3,6 +3,16 @@ import { supabase } from "./supabaseClient.js";
 
 const BrandContext = createContext({ warna_utama: "#0B3B36", warna_aksen: "#B8935A" });
 
+/* Ukuran tampilan (ukuran huruf dasar). Semua ukuran rem ikut membesar. */
+const UI_SIZES = [16, 18, 20, 22];
+const UI_SIZE_DEFAULT = 18;
+function loadUiSize() {
+  try {
+    const v = Number(localStorage.getItem("siakad_ui_size"));
+    return UI_SIZES.includes(v) ? v : UI_SIZE_DEFAULT;
+  } catch { return UI_SIZE_DEFAULT; }
+}
+
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing","Sidang Bisnis","Sidang Munaqasyah Matan Jazary"];
 const BIDANG_BISNIS = ["Bakery", "Fashion", "Kuliner", "Kerajinan", "Digital/Online", "Lainnya"];
@@ -131,7 +141,7 @@ function Btn({ children, onClick, tone = "primary", type = "button", disabled })
   );
 }
 function Field({ label, children }) {
-  return <div className="mb-3"><label className="block text-[11px] font-extrabold text-stone-500 uppercase tracking-wider mb-1.5">{label}</label>{children}</div>;
+  return <div className="mb-3"><label className="block text-[0.6875rem] font-extrabold text-stone-500 uppercase tracking-wider mb-1.5">{label}</label>{children}</div>;
 }
 function Input(props) { return <input {...props} className={`w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-[#E9F1EE] focus:border-[#0B3B36] transition ${props.className || ""}`} />; }
 function Select(props) { return <select {...props} className={`w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-[#E9F1EE] ${props.className || ""}`} />; }
@@ -164,7 +174,7 @@ function JuzTracker({ juz = [] }) {
       <div className="grid grid-cols-10 gap-1.5">
         {Array.from({ length: 30 }, (_, i) => 30 - i).map((j) => (
           <div key={j} title={`Juz ${j}`}
-            className={`aspect-square flex items-center justify-center text-[10px] font-bold rounded-md transition-transform hover:scale-110 ${set.has(j) ? "bg-gradient-to-br from-[#D8BE93] to-[#B8935A] text-white shadow-sm" : "bg-stone-100 text-stone-400"}`}>
+            className={`aspect-square flex items-center justify-center text-[0.625rem] font-bold rounded-md transition-transform hover:scale-110 ${set.has(j) ? "bg-gradient-to-br from-[#D8BE93] to-[#B8935A] text-white shadow-sm" : "bg-stone-100 text-stone-400"}`}>
             {j}
           </div>
         ))}
@@ -273,9 +283,9 @@ function LoginScreen({ brand }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F4F2EA] p-5 relative overflow-hidden">
       <SoftPatternBG color={brand.warna_utama} />
-      <div className="w-full max-w-4xl grid md:grid-cols-2 rounded-[28px] overflow-hidden shadow-[0_30px_70px_-20px_rgba(10,30,20,.35)] relative z-10">
+      <div className="w-full max-w-5xl grid md:grid-cols-2 md:min-h-[34rem] rounded-[28px] overflow-hidden shadow-[0_30px_70px_-20px_rgba(10,30,20,.35)] relative z-10">
         <div
-          className="relative p-10 text-white flex flex-col justify-between overflow-hidden bg-cover bg-center"
+          className="relative p-12 text-white flex flex-col justify-between overflow-hidden bg-cover bg-center"
           style={
             brand.foto_latar_url
               ? { backgroundImage: `linear-gradient(150deg, ${brand.warna_utama}dd, #050b08e6 130%), url(${brand.foto_latar_url})` }
@@ -285,21 +295,21 @@ function LoginScreen({ brand }) {
           {!brand.foto_latar_url && <PatternBG />}
           <div className="relative">
             <div className="mb-10">
-              <LogoMark size={brand.ukuran_logo_login || 76} url={brand.logo_url} />
+              <LogoMark size={(brand.ukuran_logo_login || 76) * 1.2} url={brand.logo_url} />
             </div>
-            <div className="font-bold leading-none mb-4 drop-shadow-sm" style={{ fontSize: `${brand.ukuran_judul || 72}px`, fontFamily: fontFamilyOf(brand, "font_judul") }}>{brand.judul_besar || "SIAKAD"}</div>
-            <p className="text-white/90 mt-2 leading-snug max-w-sm font-semibold whitespace-pre-line" style={{ fontSize: `${brand.ukuran_subjudul || 18}px`, textAlign: brand.align_subjudul || "left", marginLeft: brand.align_subjudul === "center" ? "auto" : 0, marginRight: brand.align_subjudul === "center" ? "auto" : 0, fontFamily: fontFamilyOf(brand, "font_subjudul") }}>
+            <div className="font-bold leading-none mb-4 drop-shadow-sm" style={{ fontSize: `${(brand.ukuran_judul || 72) * 1.2}px`, fontFamily: fontFamilyOf(brand, "font_judul") }}>{brand.judul_besar || "SIAKAD"}</div>
+            <p className="text-white/90 mt-2 leading-snug max-w-sm font-semibold whitespace-pre-line" style={{ fontSize: `${(brand.ukuran_subjudul || 18) * 1.2}px`, textAlign: brand.align_subjudul || "left", marginLeft: brand.align_subjudul === "center" ? "auto" : 0, marginRight: brand.align_subjudul === "center" ? "auto" : 0, fontFamily: fontFamilyOf(brand, "font_subjudul") }}>
               {brand.subjudul || "Sistem Informasi Terpadu dan Manajemen Pembelajaran"} {brand.nama_pondok}
             </p>
           </div>
           <div className="relative pt-5 mt-8 border-t border-white/15">
-            <div className="italic text-white whitespace-pre-line" style={{ textAlign: brand.align_slogan || "left", fontFamily: fontFamilyOf(brand, "font_slogan"), fontSize: `${brand.ukuran_slogan || 18}px` }}>"{brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran"}"</div>
+            <div className="italic text-white whitespace-pre-line" style={{ textAlign: brand.align_slogan || "left", fontFamily: fontFamilyOf(brand, "font_slogan"), fontSize: `${(brand.ukuran_slogan || 18) * 1.2}px` }}>"{brand.slogan || "Mencetak Pengusaha Muda Penghafal Quran"}"</div>
           </div>
         </div>
 
-        <div className="bg-white p-10 flex flex-col justify-center">
-          <h3 className="mb-1 font-semibold" style={{ color: brand.warna_utama, fontFamily: fontFamilyOf(brand, "font_sapaan"), fontSize: `${brand.ukuran_sapaan || 24}px` }}>{brand.sapaan || "Selamat Datang"}</h3>
-          <p dir="rtl" lang="ar" style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif", color: brand.warna_arab || "#B8935A" }} className="text-xl mb-4 text-left">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
+        <div className="bg-white p-12 flex flex-col justify-center">
+          <h3 className="mb-1 font-semibold" style={{ color: brand.warna_utama, fontFamily: fontFamilyOf(brand, "font_sapaan"), fontSize: `${(brand.ukuran_sapaan || 24) * 1.2}px` }}>{brand.sapaan || "Selamat Datang"}</h3>
+          <p dir="rtl" lang="ar" style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif", color: brand.warna_arab || "#B8935A" }} className="text-2xl mb-5 text-left">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
           {!forgotMode ? (
             <form onSubmit={submit}>
               <Field label="Username / NIM"><Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Masukkan username atau NIM Anda" required autoFocus /></Field>
@@ -322,7 +332,7 @@ function LoginScreen({ brand }) {
               </button>
             </form>
           )}
-          <div className="text-center mt-8 text-[11px] text-stone-400">© {nowYear} {brand.tagline || DEFAULT_TAGLINE}</div>
+          <div className="text-center mt-8 text-[0.6875rem] text-stone-400">© {nowYear} {brand.tagline || DEFAULT_TAGLINE}</div>
         </div>
       </div>
     </div>
@@ -374,22 +384,23 @@ function ResetPasswordScreen({ brand, onDone }) {
 /* ---------------------------------------------------------------------- */
 /* Shell (sidebar + topbar)                                                 */
 /* ---------------------------------------------------------------------- */
-function Shell({ profile, view, setView, brand, children }) {
+function Shell({ profile, view, setView, brand, uiSize, setUiSize, children }) {
   const menu = MENUS[profile.role] || [];
   const groupOf = (v) => menu.find((m) => m.items && m.items.some(([k]) => k === v));
   const [openGroup, setOpenGroup] = useState(() => groupOf(view)?.label || null);
   return (
     <div className="min-h-screen bg-[#F4F2EA] flex">
+      <style>{`@media print { html { font-size: 16px !important; } }`}</style>
       <aside className="w-64 text-white p-4 flex flex-col relative overflow-hidden" style={{ background: `linear-gradient(180deg, ${brand.warna_utama}, #04100a)` }}>
         <PatternBG />
         <div className="relative flex flex-col items-center text-center gap-2 pb-5 mb-5 border-b border-white/10">
           <LogoMark size={brand.ukuran_logo_sidebar || 52} url={brand.logo_url} />
           <div>
-            <div className="text-[10px] font-bold text-white/45 tracking-[0.15em]">SIAKAD</div>
-            <div className="font-serif-dh text-[15px] font-semibold">{brand.nama_pondok}</div>
+            <div className="text-[0.625rem] font-bold text-white/45 tracking-[0.15em]">SIAKAD</div>
+            <div className="font-serif-dh text-[0.9375rem] font-semibold">{brand.nama_pondok}</div>
           </div>
         </div>
-        <div className="relative text-[10px] font-extrabold text-white/35 tracking-[0.15em] px-3 mb-2">MENU UTAMA</div>
+        <div className="relative text-[0.625rem] font-extrabold text-white/35 tracking-[0.15em] px-3 mb-2">MENU UTAMA</div>
         <nav className="relative flex-1 space-y-1">
           {menu.map((entry) => {
             if (entry.items) {
@@ -398,16 +409,16 @@ function Shell({ profile, view, setView, brand, children }) {
               return (
                 <div key={entry.label}>
                   <div onClick={() => setOpenGroup(isOpen ? null : entry.label)}
-                    className={`relative px-3.5 py-2.5 rounded-xl text-[13.5px] font-semibold cursor-pointer transition flex items-center justify-between ${activeInside ? "bg-white/10 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
+                    className={`relative px-3.5 py-2.5 rounded-xl text-[0.84375rem] font-semibold cursor-pointer transition flex items-center justify-between ${activeInside ? "bg-white/10 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
                     {activeInside && <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r" style={{ backgroundColor: brand.warna_aksen }} />}
                     <span>{entry.label}</span>
-                    <span className={`text-[10px] transition-transform ${isOpen ? "rotate-180" : ""}`}>▾</span>
+                    <span className={`text-[0.625rem] transition-transform ${isOpen ? "rotate-180" : ""}`}>▾</span>
                   </div>
                   {isOpen && (
                     <div className="pl-3 mt-1 space-y-1">
                       {entry.items.map(([key, label]) => (
                         <div key={key} onClick={() => setView(key)}
-                          className={`relative px-3.5 py-2 rounded-lg text-[12.5px] font-medium cursor-pointer transition ${view === key ? "bg-white/10 text-white" : "text-white/55 hover:bg-white/5 hover:text-white"}`}>
+                          className={`relative px-3.5 py-2 rounded-lg text-[0.78125rem] font-medium cursor-pointer transition ${view === key ? "bg-white/10 text-white" : "text-white/55 hover:bg-white/5 hover:text-white"}`}>
                           {view === key && <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-4 rounded-r" style={{ backgroundColor: brand.warna_aksen }} />}
                           {label}
                         </div>
@@ -420,7 +431,7 @@ function Shell({ profile, view, setView, brand, children }) {
             const [key, label] = entry;
             return (
               <div key={key} onClick={() => setView(key)}
-                className={`relative px-3.5 py-2.5 rounded-xl text-[13.5px] font-semibold cursor-pointer transition ${view === key ? "bg-white/10 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
+                className={`relative px-3.5 py-2.5 rounded-xl text-[0.84375rem] font-semibold cursor-pointer transition ${view === key ? "bg-white/10 text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}>
                 {view === key && <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r" style={{ backgroundColor: brand.warna_aksen }} />}
                 {label}
               </div>
@@ -430,8 +441,8 @@ function Shell({ profile, view, setView, brand, children }) {
         <div className="relative border-t border-white/10 pt-4 mt-3 flex items-center gap-3">
           <Avatar name={profile.nama} url={profile.avatar_url} />
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-bold truncate">{profile.nama}</div>
-            <div className="text-[11px] text-white/45">{ROLE_LABEL[profile.role]}</div>
+            <div className="text-[0.8125rem] font-bold truncate">{profile.nama}</div>
+            <div className="text-[0.6875rem] text-white/45">{ROLE_LABEL[profile.role]}</div>
           </div>
           <button onClick={() => supabase.auth.signOut()} title="Keluar" className="w-8 h-8 rounded-lg bg-white/8 hover:bg-white/15 flex items-center justify-center text-white/75">⏻</button>
         </div>
@@ -439,11 +450,23 @@ function Shell({ profile, view, setView, brand, children }) {
       <div className="flex-1 flex flex-col">
         <div className="flex items-center justify-between px-8 py-4 bg-white border-b border-stone-200 sticky top-0 z-10">
           <div>
-            <div className="text-[11px] text-stone-400 font-semibold">Beranda / {PAGE_TITLES[view]}</div>
-            <div className="font-serif-dh text-[17px] font-semibold text-[#0B3B36]">{PAGE_TITLES[view]}</div>
+            <div className="text-[0.6875rem] text-stone-400 font-semibold">Beranda / {PAGE_TITLES[view]}</div>
+            <div className="font-serif-dh text-[1.0625rem] font-semibold text-[#0B3B36]">{PAGE_TITLES[view]}</div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-xs text-stone-500 font-medium hidden sm:block">{todayLong()}</div>
+            <div className="flex items-center gap-1" title="Ukuran tampilan">
+              <button
+                onClick={() => setUiSize(UI_SIZES[Math.max(0, UI_SIZES.indexOf(uiSize) - 1)])}
+                disabled={uiSize === UI_SIZES[0]}
+                className="w-7 h-7 rounded-lg border border-stone-200 text-xs font-bold text-[#0B3B36] hover:bg-stone-50 disabled:opacity-30"
+              >A−</button>
+              <button
+                onClick={() => setUiSize(UI_SIZES[Math.min(UI_SIZES.length - 1, UI_SIZES.indexOf(uiSize) + 1)])}
+                disabled={uiSize === UI_SIZES[UI_SIZES.length - 1]}
+                className="w-7 h-7 rounded-lg border border-stone-200 text-sm font-bold text-[#0B3B36] hover:bg-stone-50 disabled:opacity-30"
+              >A+</button>
+            </div>
             <div className="w-px h-6 bg-stone-200" />
             <Avatar name={profile.nama} url={profile.avatar_url} size={30} />
           </div>
@@ -458,7 +481,7 @@ function PageHeader({ eyebrow, title, sub, actions }) {
   return (
     <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
       <div>
-        {eyebrow && <div className="text-[11px] font-extrabold text-[#B8935A] uppercase tracking-[0.14em] mb-1">{eyebrow}</div>}
+        {eyebrow && <div className="text-[0.6875rem] font-extrabold text-[#B8935A] uppercase tracking-[0.14em] mb-1">{eyebrow}</div>}
         <h2 className="font-serif-dh text-2xl text-[#0B3B36] font-semibold">{title}</h2>
         {sub && <p className="text-sm text-stone-500 mt-1">{sub}</p>}
       </div>
@@ -481,7 +504,7 @@ function StackedBarChart({ data }) {
               {belumPct > 0 && <div style={{ height: `${belumPct}%`, backgroundColor: "#DC2626" }} />}
               {lunasPct > 0 && <div style={{ height: `${lunasPct}%`, backgroundColor: "#0B4D30" }} />}
             </div>
-            <div className="text-[11px] font-bold text-stone-500">{d.label}</div>
+            <div className="text-[0.6875rem] font-bold text-stone-500">{d.label}</div>
           </div>
         );
       })}
@@ -489,13 +512,13 @@ function StackedBarChart({ data }) {
   );
 }
 function SectionLabel({ children }) {
-  return <div className="text-[11px] font-extrabold text-stone-400 uppercase tracking-[0.12em] mb-3 flex items-center gap-2"><span className="w-4 h-[2px] rounded-full bg-[#B8935A]"></span>{children}</div>;
+  return <div className="text-[0.6875rem] font-extrabold text-stone-400 uppercase tracking-[0.12em] mb-3 flex items-center gap-2"><span className="w-4 h-[2px] rounded-full bg-[#B8935A]"></span>{children}</div>;
 }
 function StatCard({ label, value, sub, icon }) {
   return (
     <Card>
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-extrabold text-stone-500 uppercase tracking-wider">{label}</div>
+        <div className="text-[0.6875rem] font-extrabold text-stone-500 uppercase tracking-wider">{label}</div>
         {icon && <div className="w-8 h-8 rounded-lg bg-[#E9F1EE] flex items-center justify-center text-[#0F4A44]">{icon}</div>}
       </div>
       <div className="font-serif-dh text-3xl font-semibold mt-2 text-stone-800">{value}</div>
@@ -577,7 +600,7 @@ function PengumumanTerbaru({ rows, onLihat }) {
         {top.map((p) => (
           <div key={p.id} className="border-t border-stone-100 pt-3 first:border-t-0 first:pt-0">
             <div className="text-sm font-bold text-stone-800">{p.judul}</div>
-            <div className="text-[11px] text-stone-400 mb-1">{p.created_at ? new Date(p.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""}</div>
+            <div className="text-[0.6875rem] text-stone-400 mb-1">{p.created_at ? new Date(p.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""}</div>
             <div className="text-sm text-stone-600 line-clamp-2 whitespace-pre-wrap">{p.isi}</div>
           </div>
         ))}
@@ -715,11 +738,11 @@ function DataSantriPage({ profile }) {
       <PageHeader title="Data Mahasantri" actions={editable && <Btn onClick={() => setModal("new")}>+ Tambah Mahasantri</Btn>} />
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">Juz</th><th className="p-3.5">Status</th><th className="p-3.5"></th></tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">Juz</th><th className="p-3.5">Status</th><th className="p-3.5"></th></tr></thead>
           <tbody>
             {rows.map((s) => (
               <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60">
-                <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
+                <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[0.6875rem] text-stone-400">{s.nim}</div></div></div></td>
                 <td className="p-3.5">{s.kelas}</td>
                 <td className="p-3.5"><Badge tone="gold">{s.juz_dikuasai?.length || 0} juz</Badge></td>
                 <td className="p-3.5"><Badge tone={s.status === "Aktif" || !s.status ? "green" : s.status === "Lulus" ? "gold" : "grey"}>{s.status || "Aktif"}</Badge></td>
@@ -751,7 +774,7 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
   });
   const [uploading, setUploading] = useState("");
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-  const SectionTitle = ({ children }) => <div className="text-[11px] font-extrabold text-[#B8935A] uppercase tracking-[0.1em] mt-5 mb-2 pt-4 border-t border-stone-100 first:mt-0 first:pt-0 first:border-0">{children}</div>;
+  const SectionTitle = ({ children }) => <div className="text-[0.6875rem] font-extrabold text-[#B8935A] uppercase tracking-[0.1em] mt-5 mb-2 pt-4 border-t border-stone-100 first:mt-0 first:pt-0 first:border-0">{children}</div>;
 
   async function uploadPhoto(e) {
     const file = e.target.files?.[0];
@@ -785,13 +808,13 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
         <div className="flex flex-col">
           <span className="text-stone-700">{label}</span>
           {uploading === field ? (
-            <span className="text-[11px] font-bold text-amber-600">Mengunggah…</span>
+            <span className="text-[0.6875rem] font-bold text-amber-600">Mengunggah…</span>
           ) : sudah ? (
-            <span className="text-[11px] font-bold text-emerald-700">
+            <span className="text-[0.6875rem] font-bold text-emerald-700">
               ✓ Terunggah <a href={f[field]} target="_blank" rel="noreferrer" className="ml-1 underline">Lihat file</a>
             </span>
           ) : (
-            <span className="text-[11px] text-stone-400">Belum diunggah</span>
+            <span className="text-[0.6875rem] text-stone-400">Belum diunggah</span>
           )}
         </div>
         <label className="text-xs font-bold text-[#0B3B36] border border-stone-300 bg-white rounded-lg px-3 py-1.5 cursor-pointer hover:bg-stone-50">
@@ -812,7 +835,7 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
               {uploading === "foto" ? "Mengunggah…" : "Unggah Foto Profil"}
               <input type="file" accept="image/*" className="hidden" onChange={uploadPhoto} disabled={uploading === "foto"} />
             </label>
-            <div className="text-[11px] text-stone-400 mt-1">JPG/PNG, isi NIM dulu sebelum unggah.</div>
+            <div className="text-[0.6875rem] text-stone-400 mt-1">JPG/PNG, isi NIM dulu sebelum unggah.</div>
           </div>
         </div>
         <SectionTitle>Data Pribadi</SectionTitle>
@@ -942,7 +965,7 @@ function AkademikStaffPage({ profile }) {
         <PageHeader title="Akademik" sub="Semua santri — klik salah satu untuk kelola nilai." />
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">IPK</th><th className="p-3.5">Matkul Selesai</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">IPK</th><th className="p-3.5">Matkul Selesai</th></tr></thead>
             <tbody>
               {santriT.rows.map((s) => {
                 const sel = bestPerKode(akT.rows.filter((a) => a.nim === s.nim && a.status === "selesai"));
@@ -950,7 +973,7 @@ function AkademikStaffPage({ profile }) {
                 const ipk = tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * r.sks, 0) / tot).toFixed(2) : "-";
                 return (
                   <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
-                    <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
+                    <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[0.6875rem] text-stone-400">{s.nim}</div></div></div></td>
                     <td className="p-3.5">{s.kelas}</td><td className="p-3.5">{ipk}</td><td className="p-3.5">{sel.length}</td>
                   </tr>
                 );
@@ -1144,16 +1167,16 @@ function AkademikStaffPage({ profile }) {
       </div>
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Kode MK</th><th className="p-3.5">Mata Kuliah</th><th className="p-3.5">Semester</th><th className="p-3.5">Pengajar</th><th className="p-3.5">SKS</th><th className="p-3.5">Status</th><th className="p-3.5">Nilai</th>{editable && <th className="p-3.5"></th>}</tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Kode MK</th><th className="p-3.5">Mata Kuliah</th><th className="p-3.5">Semester</th><th className="p-3.5">Pengajar</th><th className="p-3.5">SKS</th><th className="p-3.5">Status</th><th className="p-3.5">Nilai</th>{editable && <th className="p-3.5"></th>}</tr></thead>
           <tbody>
             {records.map((r) => (
               <tr key={r.id} className="border-t border-stone-100">
                 <td className="p-3.5 text-stone-400">{r.kode_mk || "-"}</td>
                 <td className="p-3.5 font-semibold">
                   {r.mata_kuliah}
-                  {r.mengulang && <span className="ml-2 inline-block text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">🔁 Mengulang</span>}
+                  {r.mengulang && <span className="ml-2 inline-block text-[0.625rem] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">🔁 Mengulang</span>}
                   {r.mata_kuliah === "Sidang Bisnis" && r.nama_brand && (
-                    <div className="text-[11px] font-normal text-stone-500 mt-0.5">
+                    <div className="text-[0.6875rem] font-normal text-stone-500 mt-0.5">
                       Brand: {r.nama_brand} ({r.bidang_bisnis || "-"})
                       {r.logo_url && <a href={r.logo_url} target="_blank" rel="noreferrer" className="ml-2 text-[#145048] font-bold underline">Logo</a>}
                       {r.foto_produk_url && <a href={r.foto_produk_url} target="_blank" rel="noreferrer" className="ml-2 text-[#145048] font-bold underline">Foto Produk</a>}
@@ -1231,14 +1254,14 @@ function AkademikForm({ initial, nim, onCancel, onSubmit }) {
             <Field label="Nama Brand"><Input value={f.nama_brand} onChange={set("nama_brand")} placeholder="cth. Roti Berkah" /></Field>
             <Field label="Deskripsi Produk"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={f.deskripsi_produk} onChange={set("deskripsi_produk")} /></Field>
             <div className="flex items-center justify-between border border-dashed border-stone-300 rounded-xl px-3.5 py-2.5 mb-2.5 text-sm bg-white">
-              <span className="text-stone-600">Logo Brand{f.logo_url && <a href={f.logo_url} target="_blank" rel="noreferrer" className="ml-2 text-[10px] font-bold text-[#145048] underline">Lihat file</a>}</span>
+              <span className="text-stone-600">Logo Brand{f.logo_url && <a href={f.logo_url} target="_blank" rel="noreferrer" className="ml-2 text-[0.625rem] font-bold text-[#145048] underline">Lihat file</a>}</span>
               <label className="text-xs font-bold text-[#0B3B36] border border-stone-300 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-stone-50">
                 {uploading === "logo_url" ? "Mengunggah…" : f.logo_url ? "Ganti" : "Unggah"}
                 <input type="file" accept="image/*" className="hidden" onChange={uploadFile("logo_url")} disabled={uploading === "logo_url"} />
               </label>
             </div>
             <div className="flex items-center justify-between border border-dashed border-stone-300 rounded-xl px-3.5 py-2.5 text-sm bg-white">
-              <span className="text-stone-600">Foto Produk{f.foto_produk_url && <a href={f.foto_produk_url} target="_blank" rel="noreferrer" className="ml-2 text-[10px] font-bold text-[#145048] underline">Lihat file</a>}</span>
+              <span className="text-stone-600">Foto Produk{f.foto_produk_url && <a href={f.foto_produk_url} target="_blank" rel="noreferrer" className="ml-2 text-[0.625rem] font-bold text-[#145048] underline">Lihat file</a>}</span>
               <label className="text-xs font-bold text-[#0B3B36] border border-stone-300 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-stone-50">
                 {uploading === "foto_produk_url" ? "Mengunggah…" : f.foto_produk_url ? "Ganti" : "Unggah"}
                 <input type="file" accept="image/*" className="hidden" onChange={uploadFile("foto_produk_url")} disabled={uploading === "foto_produk_url"} />
@@ -1320,7 +1343,7 @@ function KurikulumPage({ profile }) {
         <Card key={sk} className="p-0 overflow-hidden mb-4">
           <div className="px-4 py-3 bg-stone-50 border-b border-stone-100 font-bold text-sm text-[#0B3B36]">Semester {sk}</div>
           <table className="w-full text-sm">
-            <thead><tr className="text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3">Kode MK</th><th className="p-3">Mata Kuliah</th><th className="p-3">SKS</th>{nim && <th className="p-3">Status</th>}{editable && <th className="p-3"></th>}</tr></thead>
+            <thead><tr className="text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3">Kode MK</th><th className="p-3">Mata Kuliah</th><th className="p-3">SKS</th>{nim && <th className="p-3">Status</th>}{editable && <th className="p-3"></th>}</tr></thead>
             <tbody>
               {bySemester[sk].map((k) => (
                 <tr key={k.id} className="border-t border-stone-100">
@@ -1395,7 +1418,7 @@ function PengumumanPage({ profile }) {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="font-bold text-[#0B3B36] text-base mb-1">{p.judul}</div>
-                <div className="text-[11px] text-stone-400 mb-2">{p.created_at ? new Date(p.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""} — {p.dibuat_oleh}</div>
+                <div className="text-[0.6875rem] text-stone-400 mb-2">{p.created_at ? new Date(p.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""} — {p.dibuat_oleh}</div>
                 <div className="text-sm text-stone-700 whitespace-pre-wrap">{p.isi}</div>
               </div>
               {editable && <div className="flex gap-3 shrink-0">
@@ -1508,7 +1531,7 @@ function KalenderPage({ profile }) {
             <div key={d.id} className="flex items-center justify-between border border-stone-100 rounded-lg px-3.5 py-2.5">
               <a href={d.url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[#145048] underline">📄 {d.judul}</a>
               <div className="flex items-center gap-3">
-                <span className="text-[11px] text-stone-400">{d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""}</span>
+                <span className="text-[0.6875rem] text-stone-400">{d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""}</span>
                 {editable && <button onClick={() => hapusDokumen(d.id)} className="text-red-600 text-xs font-bold">Hapus</button>}
               </div>
             </div>
@@ -1519,7 +1542,7 @@ function KalenderPage({ profile }) {
       <Card className="p-0 overflow-hidden mb-4">
         <div className="px-4 py-3 bg-stone-50 border-b border-stone-100 font-bold text-sm text-[#0B3B36]">Akan Datang</div>
         <table className="w-full text-sm">
-          <thead><tr className="text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Tanggal</th><th className="p-3.5">Kegiatan</th><th className="p-3.5">Keterangan</th>{editable && <th className="p-3.5"></th>}</tr></thead>
+          <thead><tr className="text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Tanggal</th><th className="p-3.5">Kegiatan</th><th className="p-3.5">Keterangan</th>{editable && <th className="p-3.5"></th>}</tr></thead>
           <tbody>{akanDatang.map((k) => <Baris key={k.id} k={k} />)}{akanDatang.length === 0 && <tr><td colSpan={editable ? 4 : 3}><Empty text="Tidak ada agenda mendatang." /></td></tr>}</tbody>
         </table>
       </Card>
@@ -1580,7 +1603,7 @@ function RaporBulananPage({ profile }) {
       {isViewer && !nim && (
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">NIM</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">NIM</th></tr></thead>
             <tbody>
               {pickable.map((s) => (
                 <tr key={s.nim} className="border-t border-stone-100 cursor-pointer hover:bg-stone-50/60" onClick={() => setNim(s.nim)}>
@@ -1727,7 +1750,7 @@ function KartuSantriPage({ profile }) {
           <div className="mb-4 max-w-sm"><Input placeholder="Cari nama atau NIM…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           <Card className="p-0 overflow-hidden">
             <table className="w-full text-sm">
-              <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">NIM</th></tr></thead>
+              <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">NIM</th></tr></thead>
               <tbody>
                 {daftar.map((s) => (
                   <tr key={s.nim} className="border-t border-stone-100 cursor-pointer hover:bg-stone-50/60" onClick={() => setNim(s.nim)}>
@@ -1745,16 +1768,23 @@ function KartuSantriPage({ profile }) {
       {santri && (
         <>
           <style>{`
+            .kts-print { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; zoom: 1.4; }
+            .kts-side { width: 85.6mm; }
+            .kts-label { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #8A7F5E; margin-bottom: 6px; }
             @media print {
               body * { visibility: hidden; }
               .kts-print, .kts-print * { visibility: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-              .kts-print { position: absolute; top: 0; left: 0; }
+              .kts-print { position: absolute; top: 0; left: 0; zoom: 1; flex-direction: column; flex-wrap: nowrap; gap: 5mm; width: 85.6mm; }
+              .kts-label, .kts-hint { display: none !important; }
             }
           `}</style>
           {isViewer && <BackBar onBack={() => setNim("")} />}
 
-          <div className="kts-print flex flex-col gap-5" style={{ width: "85.6mm" }}>
+          <div className="kts-hint text-xs text-stone-500 mb-3">Pratinjau kartu. Saat dicetak, ukuran kartu menjadi 85,6 × 54 mm (seperti kartu ATM).</div>
+          <div className="kts-print">
             {/* ===== Sisi Depan ===== */}
+            <div className="kts-side">
+            <div className="kts-label">Sisi Depan</div>
             <div style={{
               width: "85.6mm", height: "54mm", borderRadius: 10, overflow: "hidden", position: "relative",
               background: "#FBF8F1", color: "#0B3B36", border: "1px solid #E7DFCB",
@@ -1770,7 +1800,7 @@ function KartuSantriPage({ profile }) {
               </div>
               <div style={{ display: "flex", gap: 10, padding: "9px 10px", flex: 1 }}>
                 <div style={{ width: 50, height: 62, borderRadius: 6, overflow: "hidden", background: "#EFE8D4", flexShrink: 0, border: "1px solid #DCCFA0" }}>
-                  {santri.foto_url ? <img src={santri.foto_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div className="w-full h-full flex items-center justify-center text-[18px] font-bold text-[#B8935A]">{initials(santri.nama)}</div>}
+                  {santri.foto_url ? <img src={santri.foto_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div className="w-full h-full flex items-center justify-center text-[1.125rem] font-bold text-[#B8935A]">{initials(santri.nama)}</div>}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, color: "#0B3B36" }}>{santri.nama}</div>
@@ -1785,7 +1815,11 @@ function KartuSantriPage({ profile }) {
               <div style={{ borderTop: "1px solid #E7DFCB", padding: "3px 10px", fontSize: 6, color: "#8A7F5E", fontStyle: "italic", textAlign: "right" }}>Berlaku selama aktif sebagai mahasantri</div>
             </div>
 
+            </div>
+
             {/* ===== Sisi Belakang ===== */}
+            <div className="kts-side">
+            <div className="kts-label">Sisi Belakang</div>
             <div style={{
               width: "85.6mm", height: "54mm", borderRadius: 10, overflow: "hidden", position: "relative",
               background: "#FBF8F1", border: "1px solid #E7DFCB", boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
@@ -1815,6 +1849,7 @@ function KartuSantriPage({ profile }) {
                   <div style={{ color: "#8A8A8A" }}>Mudir Pondok</div>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </>
@@ -2083,13 +2118,13 @@ function QuranPage({ profile }) {
         <PageHeader title="Capaian Al-Qur'an" sub="Semua santri — klik salah satu untuk lihat detail." />
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Juz Dikuasai</th><th className="p-3.5">Setoran Terakhir</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Juz Dikuasai</th><th className="p-3.5">Setoran Terakhir</th></tr></thead>
             <tbody>
               {pickable.map((s) => {
                 const last = logT.rows.filter((l) => l.nim === s.nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal))[0];
                 return (
                   <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
-                    <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
+                    <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[0.6875rem] text-stone-400">{s.nim}</div></div></div></td>
                     <td className="p-3.5"><Badge tone="gold">{s.juz_dikuasai?.length || 0} juz</Badge></td>
                     <td className="p-3.5 text-stone-500">{last ? `${last.tanggal} · ${last.jenis}` : "-"}</td>
                   </tr>
@@ -2133,12 +2168,12 @@ function QuranPage({ profile }) {
             </div>
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3 whitespace-nowrap">Tgl</th><th className="p-3 whitespace-nowrap">Jenis</th><th className="p-3 whitespace-nowrap">Juz &amp; Hal.</th><th className="p-3 whitespace-nowrap">Penilaian</th><th className="p-3 whitespace-nowrap">Catatan</th>{editable && isViewer && <th className="p-3 text-right whitespace-nowrap">Aksi</th>}</tr></thead>
+              <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase text-stone-500"><th className="p-3 whitespace-nowrap">Tgl</th><th className="p-3 whitespace-nowrap">Jenis</th><th className="p-3 whitespace-nowrap">Juz &amp; Hal.</th><th className="p-3 whitespace-nowrap">Penilaian</th><th className="p-3 whitespace-nowrap">Catatan</th>{editable && isViewer && <th className="p-3 text-right whitespace-nowrap">Aksi</th>}</tr></thead>
               <tbody>{filteredLogs.map((l) => (
                 <tr key={l.id} className="border-t border-stone-100 align-top">
                   <td className="p-3 whitespace-nowrap">{l.tanggal}</td>
                   <td className="p-3 whitespace-nowrap">{l.jenis}</td>
-                  <td className="p-3 whitespace-nowrap">Juz {l.juz}{l.halaman_dari ? <div className="text-[11px] text-stone-400">hal. {l.halaman_dari}–{l.halaman_sampai}</div> : null}</td>
+                  <td className="p-3 whitespace-nowrap">Juz {l.juz}{l.halaman_dari ? <div className="text-[0.6875rem] text-stone-400">hal. {l.halaman_dari}–{l.halaman_sampai}</div> : null}</td>
                   <td className="p-3 whitespace-nowrap"><Badge tone={["Lancar", "Sudah Baik", "Paham"].includes(l.kelancaran) ? "green" : "gold"}>{l.kelancaran || "-"}</Badge></td>
                   <td className="p-3 text-stone-500 max-w-[160px]">{l.catatan || "-"}</td>
                   {editable && isViewer && <td className="p-3 text-right whitespace-nowrap">
@@ -2270,11 +2305,11 @@ function IbadahPage({ profile }) {
         </div>
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Catatan Terakhir</th><th className="p-3.5">Status</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Catatan Terakhir</th><th className="p-3.5">Status</th></tr></thead>
             <tbody>
               {withStatus.map(({ s, last, perhatian }) => (
                 <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
-                  <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
+                  <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[0.6875rem] text-stone-400">{s.nim}</div></div></div></td>
                   <td className="p-3.5 text-stone-500">{last ? <>{last.tanggal} · {last.jenis} · <Badge tone={capaianTone(last.capaian)}>{last.capaian}</Badge></> : "-"}</td>
                   <td className="p-3.5">{perhatian ? <Badge tone="red">Perlu Perhatian</Badge> : <Badge tone="green">Baik</Badge>}</td>
                 </tr>
@@ -2306,7 +2341,7 @@ function IbadahPage({ profile }) {
       })()}
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Tanggal</th><th className="p-3">Jenis Ibadah</th><th className="p-3">Capaian</th><th className="p-3">Catatan</th>{editable && isViewer && <th className="p-3 text-right">Aksi</th>}</tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase text-stone-500"><th className="p-3">Tanggal</th><th className="p-3">Jenis Ibadah</th><th className="p-3">Capaian</th><th className="p-3">Catatan</th>{editable && isViewer && <th className="p-3 text-right">Aksi</th>}</tr></thead>
           <tbody>
             {logs.map((l) => (
               <tr key={l.id} className="border-t border-stone-100">
@@ -2450,11 +2485,11 @@ function SppPage({ profile }) {
         <div className="mb-4 max-w-xs"><Input placeholder="Cari nama atau NIM..." value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Status Bulan Ini</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Status Bulan Ini</th></tr></thead>
             <tbody>
               {withStatus.map(({ s, row }) => (
                 <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
-                  <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[11px] text-stone-400">{s.nim}</div></div></div></td>
+                  <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[0.6875rem] text-stone-400">{s.nim}</div></div></div></td>
                   <td className="p-3.5">{row ? <Badge tone={row.status === "Lunas" ? "green" : "red"}>{row.status}</Badge> : <Badge tone="grey">Belum ada iuran</Badge>}</td>
                 </tr>
               ))}
@@ -2478,7 +2513,7 @@ function SppPage({ profile }) {
       </div>
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase text-stone-500"><th className="p-3">Bulan</th><th className="p-3">Tahun</th><th className="p-3">Nominal</th><th className="p-3">Status</th><th className="p-3">Bukti Bayar</th>{editable && <th className="p-3 text-right">Aksi</th>}</tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase text-stone-500"><th className="p-3">Bulan</th><th className="p-3">Tahun</th><th className="p-3">Nominal</th><th className="p-3">Status</th><th className="p-3">Bukti Bayar</th>{editable && <th className="p-3 text-right">Aksi</th>}</tr></thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-t border-stone-100">
@@ -2678,11 +2713,11 @@ function KelolaAkunPage() {
           <div className="text-xs text-stone-400">{profilesT.rows.length} akun terdaftar</div>
         </div>
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[11px] uppercase tracking-wide text-stone-500"><th className="p-3.5">Akun</th><th className="p-3.5">Peran</th><th className="p-3.5 text-right">Aksi</th></tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Akun</th><th className="p-3.5">Peran</th><th className="p-3.5 text-right">Aksi</th></tr></thead>
           <tbody>
             {profilesT.rows.map((p) => (
               <tr key={p.id} className="border-t border-stone-100">
-                <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={p.nama} url={p.avatar_url} size={30} /><div><div className="font-bold">{p.nama}</div><div className="text-[11px] text-stone-400">{p.username || p.nim}</div></div></div></td>
+                <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={p.nama} url={p.avatar_url} size={30} /><div><div className="font-bold">{p.nama}</div><div className="text-[0.6875rem] text-stone-400">{p.username || p.nim}</div></div></div></td>
                 <td className="p-3.5"><Badge tone="grey">{ROLE_LABEL[p.role] || p.role}</Badge></td>
                 <td className="p-3.5 text-right"><button onClick={() => setEditingAkun(p)} className="text-[#145048] text-xs font-bold">Edit</button></td>
               </tr>
@@ -2976,7 +3011,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
         <p className="text-xs text-stone-400 mb-4">Foto/scan tanda tangan Anda (latar putih/transparan lebih baik). Akan otomatis terpasang di dokumen yang Anda proses, misalnya Bukti Pembayaran Iuran SPP.</p>
         <div className="flex items-center gap-5">
           <div className="w-32 h-16 border border-dashed border-stone-300 rounded-lg flex items-center justify-center bg-stone-50 overflow-hidden">
-            {profile.tanda_tangan_url ? <img src={profile.tanda_tangan_url} alt="Tanda tangan" className="max-h-full max-w-full object-contain" /> : <span className="text-[10px] text-stone-400">Belum ada</span>}
+            {profile.tanda_tangan_url ? <img src={profile.tanda_tangan_url} alt="Tanda tangan" className="max-h-full max-w-full object-contain" /> : <span className="text-[0.625rem] text-stone-400">Belum ada</span>}
           </div>
           <div>
             <div className="flex gap-2">
@@ -3021,7 +3056,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
 
           <div className="flex items-center gap-5 mb-5 pt-4 border-t border-[#EDD9A0]">
             <div className="w-16 h-16 rounded-lg bg-white border border-stone-200 flex items-center justify-center overflow-hidden">
-              {brand.logo_dokumen_url ? <img src={brand.logo_dokumen_url} alt="logo dokumen" className="w-full h-full object-contain p-1" /> : <span className="text-[10px] text-stone-300 text-center px-2">Belum ada</span>}
+              {brand.logo_dokumen_url ? <img src={brand.logo_dokumen_url} alt="logo dokumen" className="w-full h-full object-contain p-1" /> : <span className="text-[0.625rem] text-stone-300 text-center px-2">Belum ada</span>}
             </div>
             <div>
               <Btn tone="ghost" onClick={() => logoDokumenRef.current?.click()} disabled={logoDokumenUploading}>{logoDokumenUploading ? "Mengunggah…" : "Ganti Logo untuk Dokumen (KRS/KHS)"}</Btn>
@@ -3032,7 +3067,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
 
           <div className="flex items-center gap-5 mb-5 pt-4 border-t border-[#EDD9A0]">
             <div className="w-24 h-16 rounded-lg bg-stone-800 border border-stone-200 flex items-center justify-center overflow-hidden">
-              {brand.foto_latar_url ? <img src={brand.foto_latar_url} alt="wallpaper login" className="w-full h-full object-cover" /> : <span className="text-[10px] text-stone-400 text-center px-2">Belum ada — pakai gradasi warna</span>}
+              {brand.foto_latar_url ? <img src={brand.foto_latar_url} alt="wallpaper login" className="w-full h-full object-cover" /> : <span className="text-[0.625rem] text-stone-400 text-center px-2">Belum ada — pakai gradasi warna</span>}
             </div>
             <div>
               <div className="flex gap-2">
@@ -3116,7 +3151,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
             </div>
             <p className="text-xs text-stone-400 mb-4">Warna Utama untuk latar sidebar & tombol utama. Warna Aksen untuk logo, sorotan menu, dan tagline. Warna Teks Arab khusus untuk salam "Assalamu'alaikum" di halaman login.</p>
 
-            <div className="text-[11px] font-extrabold text-[#B8935A] uppercase tracking-[0.1em] mt-6 mb-2 pt-4 border-t border-stone-100">Kop Surat & Tanda Tangan (untuk Cetak KRS)</div>
+            <div className="text-[0.6875rem] font-extrabold text-[#B8935A] uppercase tracking-[0.1em] mt-6 mb-2 pt-4 border-t border-stone-100">Kop Surat & Tanda Tangan (untuk Cetak KRS)</div>
             <Field label="Nama Yayasan"><Input value={yayasanNama} onChange={(e) => setYayasanNama(e.target.value)} placeholder="cth. YAYASAN WAKAF HAMALATUL QURAN" /></Field>
             <Field label="Alamat Pondok"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={alamatPondok} onChange={(e) => setAlamatPondok(e.target.value)} /></Field>
             <Field label="Kontak"><Input value={kontakPondok} onChange={(e) => setKontakPondok(e.target.value)} placeholder="cth. +62812-3456-7890" /></Field>
@@ -3127,7 +3162,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated }) {
             <Field label="Tanda Tangan Digital Mudir">
               <div className="flex items-center gap-4">
                 <div className="w-32 h-16 border border-dashed border-stone-300 rounded-lg flex items-center justify-center bg-stone-50 overflow-hidden">
-                  {brand.tanda_tangan_mudir_url ? <img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" className="max-h-full max-w-full object-contain" /> : <span className="text-[10px] text-stone-400">Belum ada</span>}
+                  {brand.tanda_tangan_mudir_url ? <img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" className="max-h-full max-w-full object-contain" /> : <span className="text-[0.625rem] text-stone-400">Belum ada</span>}
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#0B3B36] border border-stone-300 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-stone-50">
@@ -3214,6 +3249,12 @@ export default function App() {
   const [view, setView] = useState("dashboard");
   const [recovery, setRecovery] = useState(false);
   const { brand, reloadBrand } = useBrand();
+  const [uiSize, setUiSize] = useState(loadUiSize);
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = uiSize + "px";
+    try { localStorage.setItem("siakad_ui_size", String(uiSize)); } catch {}
+  }, [uiSize]);
 
   useEffect(() => {
     const f = FONT_OPTIONS[brand.font_style] || FONT_OPTIONS.fraunces;
@@ -3264,7 +3305,7 @@ export default function App() {
 
   return (
     <BrandContext.Provider value={brand}>
-      <Shell profile={profile} view={view} setView={setView} brand={brand}>{renderView()}</Shell>
+      <Shell profile={profile} view={view} setView={setView} brand={brand} uiSize={uiSize} setUiSize={setUiSize}>{renderView()}</Shell>
     </BrandContext.Provider>
   );
 }
