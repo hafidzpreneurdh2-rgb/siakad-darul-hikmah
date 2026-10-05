@@ -1863,7 +1863,7 @@ function KartuSantriPage({ profile }) {
                   ["Rata data mahasantri", seg("dataAlign", ALIGN3)],
                   ["Rata tulisan bawah (depan)", seg("footAlign", ALIGN3)],
                   ["Rata tulisan sisi belakang", seg("belAlign", ALIGN3)],
-                  ["QR code terpisah", seg("qrTampil", [["ya", "Tampilkan"], ["tidak", "Sembunyikan"]])],
+                  ["QR code terpisah" + (cfg.ttdBentuk === "qr" ? " (otomatis tersembunyi karena TTD sudah QR)" : ""), seg("qrTampil", [["ya", "Tampilkan"], ["tidak", "Sembunyikan"]])],
                   ["Posisi QR code terpisah", seg("qrPos", ALIGN3)],
                   ["Bentuk tanda tangan", seg("ttdBentuk", [["gambar", "Gambar TTD"], ["qr", "QR code"], ["keduanya", "Keduanya"]])],
                   ["Posisi tanda tangan", seg("ttdPos", ALIGN3)],
@@ -1950,7 +1950,7 @@ function KartuSantriPage({ profile }) {
               <div style={{ padding: "0 10px 9px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", alignItems: "end" }}>
                 {["kiri", "tengah", "kanan"].map((pos) => (
                   <div key={pos} style={{ display: "flex", alignItems: "flex-end", gap: 8, justifyContent: FX[pos] }}>
-                    {cfg.qrTampil !== "tidak" && cfg.qrPos === pos && qrEl}
+                    {cfg.qrTampil !== "tidak" && ttdBentuk !== "qr" && cfg.qrPos === pos && qrEl}
                     {cfg.ttdPos === pos && ttdEl}
                   </div>
                 ))}
