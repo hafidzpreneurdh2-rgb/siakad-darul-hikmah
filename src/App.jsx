@@ -1730,7 +1730,7 @@ function KartuSantriPage({ profile }) {
     skala: "100", marginAtas: "10", marginKiri: "10", jarak: "5", susunan: "kolom",
     hdrAlign: "tengah", hdrSusunan: "atas", logoUkuran: "26",
     fotoPos: "kiri", dataAlign: "kiri", footAlign: "tengah", belAlign: "tengah",
-    qrPos: "kiri", qrUkuran: "38", ttdPos: "kanan", ttdUkuran: "22",
+    qrPos: "kiri", qrUkuran: "38", qrTampil: "ya", ttdPos: "kanan", ttdUkuran: "22", ttdBentuk: "gambar",
   };
   const [cfg, setCfg] = useState(() => {
     try { return { ...KTS_DEFAULT, ...JSON.parse(localStorage.getItem("siakad_kartu_cfg") || "{}") }; } catch { return KTS_DEFAULT; }
@@ -1747,7 +1747,7 @@ function KartuSantriPage({ profile }) {
   const clamp = (v, d, lo, hi) => Math.min(hi, Math.max(lo, num(v, d)));
   const logoPx = clamp(cfg.logoUkuran, 26, 12, 60);
   const qrPx = clamp(cfg.qrUkuran, 38, 20, 70);
-  const ttdPx = clamp(cfg.ttdUkuran, 22, 10, 45);
+  const ttdPx = clamp(cfg.ttdUkuran, 22, 10, 70);
   const seg = (k, opts) => (
     <div className="inline-flex gap-1">
       {opts.map(([v, l]) => (
@@ -1768,11 +1768,22 @@ function KartuSantriPage({ profile }) {
       style={{ width: qrPx, height: qrPx }}
     />
   ) : null;
+  const ttdBentuk = cfg.ttdBentuk || "gambar";
+  const ttdQrEl = santri ? (
+    <img
+      src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`TTD Digital | ${brand.nama_mudir || "Mudir"} | ${brand.nama_pondok || "SIAKAD"} | KTM ${santri.nama} | NIM ${santri.nim}`)}`}
+      alt="QR tanda tangan digital"
+      style={{ width: ttdPx, height: ttdPx, margin: "0 auto 1px" }}
+    />
+  ) : null;
   const ttdEl = (
     <div style={{ textAlign: "center", fontSize: 6.5 }}>
-      {brand.tanda_tangan_mudir_url ? (
-        <img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: ttdPx, margin: "0 auto 1px" }} />
-      ) : <div style={{ height: ttdPx }}></div>}
+      {(ttdBentuk === "gambar" || ttdBentuk === "keduanya") && (
+        brand.tanda_tangan_mudir_url ? (
+          <img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: ttdPx, margin: "0 auto 1px" }} />
+        ) : ttdBentuk === "gambar" ? <div style={{ height: ttdPx }}></div> : null
+      )}
+      {(ttdBentuk === "qr" || ttdBentuk === "keduanya") && ttdQrEl}
       <div style={{ borderTop: "1px solid #bbb", paddingTop: 1, color: "#0B3B36", fontWeight: 700 }}>{brand.nama_mudir}</div>
       <div style={{ color: "#8A8A8A" }}>Mudir Pondok</div>
     </div>
@@ -1852,7 +1863,9 @@ function KartuSantriPage({ profile }) {
                   ["Rata data mahasantri", seg("dataAlign", ALIGN3)],
                   ["Rata tulisan bawah (depan)", seg("footAlign", ALIGN3)],
                   ["Rata tulisan sisi belakang", seg("belAlign", ALIGN3)],
-                  ["Posisi QR code", seg("qrPos", ALIGN3)],
+                  ["QR code terpisah", seg("qrTampil", [["ya", "Tampilkan"], ["tidak", "Sembunyikan"]])],
+                  ["Posisi QR code terpisah", seg("qrPos", ALIGN3)],
+                  ["Bentuk tanda tangan", seg("ttdBentuk", [["gambar", "Gambar TTD"], ["qr", "QR code"], ["keduanya", "Keduanya"]])],
                   ["Posisi tanda tangan", seg("ttdPos", ALIGN3)],
                 ].map(([label, ctrl]) => (
                   <div key={label} className="flex items-center justify-between gap-3 flex-wrap">
@@ -1865,7 +1878,7 @@ function KartuSantriPage({ profile }) {
                 {[
                   ["logoUkuran", "Ukuran logo (px)", "12–60"],
                   ["qrUkuran", "Ukuran QR (px)", "20–70"],
-                  ["ttdUkuran", "Tinggi tanda tangan (px)", "10–45"],
+                  ["ttdUkuran", "Ukuran tanda tangan / QR TTD (px)", "10–70"],
                 ].map(([k, label, hint]) => (
                   <label key={k} className="block">
                     <span className="block text-[0.6875rem] font-bold uppercase tracking-wide text-stone-500 mb-1">{label}</span>
@@ -1937,7 +1950,7 @@ function KartuSantriPage({ profile }) {
               <div style={{ padding: "0 10px 9px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", alignItems: "end" }}>
                 {["kiri", "tengah", "kanan"].map((pos) => (
                   <div key={pos} style={{ display: "flex", alignItems: "flex-end", gap: 8, justifyContent: FX[pos] }}>
-                    {cfg.qrPos === pos && qrEl}
+                    {cfg.qrTampil !== "tidak" && cfg.qrPos === pos && qrEl}
                     {cfg.ttdPos === pos && ttdEl}
                   </div>
                 ))}
