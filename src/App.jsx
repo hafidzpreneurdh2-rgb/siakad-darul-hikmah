@@ -417,8 +417,10 @@ function ResetPasswordScreen({ brand, onDone }) {
 /* ---------------------------------------------------------------------- */
 /* Shell (sidebar + topbar)                                                 */
 /* ---------------------------------------------------------------------- */
-function Shell({ profile, view, setView, brand, children }) {
-  const menu = MENUS[profile.role] || [];
+function Shell({ profile, view, setView, brand, children, extraMenu = [], extraTitles = {} }) {
+  const baseMenu = MENUS[profile.role] || [];
+  const sisip = baseMenu.findIndex((m) => !m.items && (m[0] === "akun" || m[0] === "pengaturan"));
+  const menu = extraMenu.length && sisip >= 0 ? [...baseMenu.slice(0, sisip), ...extraMenu, ...baseMenu.slice(sisip)] : baseMenu;
   const groupOf = (v) => menu.find((m) => m.items && m.items.some(([k]) => k === v));
   const [openGroup, setOpenGroup] = useState(() => groupOf(view)?.label || null);
   return (
@@ -483,8 +485,8 @@ function Shell({ profile, view, setView, brand, children }) {
       <div className="flex-1 flex flex-col">
         <div className="flex items-center justify-between px-8 py-4 bg-white border-b border-stone-200 sticky top-0 z-10">
           <div>
-            <div className="text-[0.6875rem] text-stone-400 font-semibold">Beranda / {PAGE_TITLES[view]}</div>
-            <div className="font-serif-dh text-[1.0625rem] font-semibold text-[#0B3B36]">{PAGE_TITLES[view]}</div>
+            <div className="text-[0.6875rem] text-stone-400 font-semibold">Beranda / {PAGE_TITLES[view] || extraTitles[view]}</div>
+            <div className="font-serif-dh text-[1.0625rem] font-semibold text-[#0B3B36]">{PAGE_TITLES[view] || extraTitles[view]}</div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-xs text-stone-500 font-medium hidden sm:block">{todayLong()}</div>
@@ -2916,6 +2918,16 @@ function SppForm({ initial, defaultNominal, onCancel, onSubmit }) {
 /* ---------------------------------------------------------------------- */
 /* Kelola Akun                                                              */
 /* ---------------------------------------------------------------------- */
+function infoMasuk(ts) {
+  if (!ts) return { text: "Belum pernah masuk", tone: "grey", hariIni: false };
+  const d = new Date(ts), now = new Date();
+  const jam = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === now.toDateString()) return { text: `Hari ini, ${jam}`, tone: "green", hariIni: true };
+  const selisih = Math.floor((new Date(now.toDateString()) - new Date(d.toDateString())) / 86400000);
+  if (selisih === 1) return { text: `Kemarin, ${jam}`, tone: "grey", hariIni: false };
+  if (selisih < 7) return { text: `${selisih} hari lalu`, tone: "grey", hariIni: false };
+  return { text: d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }), tone: "grey", hariIni: false };
+}
 function KelolaAkunPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingAkun, setEditingAkun] = useState(null);
@@ -2958,19 +2970,20 @@ function KelolaAkunPage() {
       <Card className="p-0 overflow-hidden">
         <div className="px-5 py-3 bg-stone-50 border-b border-stone-200 flex items-center justify-between">
           <div className="font-bold text-sm text-[#0B3B36]">Daftar Akun</div>
-          <div className="text-xs text-stone-400">{profilesT.rows.length} akun terdaftar</div>
+          <div className="text-xs text-stone-400">{profilesT.rows.filter((p) => infoMasuk(p.last_login).hariIni).length} dari {profilesT.rows.length} akun sudah masuk hari ini</div>
         </div>
         <table className="w-full text-sm">
-          <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Akun</th><th className="p-3.5">Peran</th><th className="p-3.5 text-right">Aksi</th></tr></thead>
+          <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Akun</th><th className="p-3.5">Peran</th><th className="p-3.5">Terakhir Masuk</th><th className="p-3.5 text-right">Aksi</th></tr></thead>
           <tbody>
-            {profilesT.rows.map((p) => (
+            {[...profilesT.rows].sort((a, b) => String(b.last_login || "").localeCompare(String(a.last_login || ""))).map((p) => (
               <tr key={p.id} className="border-t border-stone-100">
                 <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={p.nama} url={p.avatar_url} size={30} /><div><div className="font-bold">{p.nama}</div><div className="text-[0.6875rem] text-stone-400">{p.username || p.nim}</div></div></div></td>
                 <td className="p-3.5"><Badge tone="grey">{ROLE_LABEL[p.role] || p.role}</Badge></td>
+                <td className="p-3.5">{(() => { const m = infoMasuk(p.last_login); return <Badge tone={m.tone}>{m.text}</Badge>; })()}</td>
                 <td className="p-3.5 text-right"><button onClick={() => setEditingAkun(p)} className="text-[#145048] text-xs font-bold">Edit</button></td>
               </tr>
             ))}
-            {profilesT.rows.length === 0 && <tr><td colSpan={3}><Empty text="Belum ada akun." /></td></tr>}
+            {profilesT.rows.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada akun." /></td></tr>}
           </tbody>
         </table>
       </Card>
@@ -3038,7 +3051,241 @@ function AkunForm({ onCancel, onSubmit }) {
 /* ---------------------------------------------------------------------- */
 /* Pengaturan — profil, foto, ganti kata sandi, + branding (admin)          */
 /* ---------------------------------------------------------------------- */
-function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSize, setUiSize }) {
+/* ---------------------------------------------------------------------- */
+/* Menu Tambahan (buatan administrator, tanpa deploy)                       */
+/* ---------------------------------------------------------------------- */
+const TIPE_KOLOM = [["teks", "Teks pendek"], ["teks_panjang", "Teks panjang"], ["angka", "Angka"], ["rupiah", "Rupiah"], ["tanggal", "Tanggal"], ["pilihan", "Pilihan"], ["santri", "Pilih Mahasantri"]];
+function ModulKustomPage({ modul, profile }) {
+  const kolom = modul.kolom || [];
+  const editable = profile.role === "admin" || (modul.peran_edit || []).includes(profile.role);
+  const santriT = useTable("santri");
+  const [rows, setRows] = useState([]);
+  const [q, setQ] = useState("");
+  const [form, setForm] = useState(null);
+  async function load() {
+    const { data } = await supabase.from("modul_kustom_data").select("*").eq("modul_id", modul.id).order("id", { ascending: false });
+    setRows(data || []);
+  }
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [modul.id]);
+  const namaSantri = (nim) => santriT.rows.find((x) => x.nim === nim)?.nama || nim;
+  const tampil = (c, v) => {
+    if (v == null || v === "") return "-";
+    if (c.tipe === "rupiah") return formatRupiah(v);
+    if (c.tipe === "tanggal") return new Date(v).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+    if (c.tipe === "santri") return namaSantri(v);
+    return String(v);
+  };
+  const tersaring = rows.filter((r) => !q || kolom.map((c) => tampil(c, r.data?.[c.key])).join(" ").toLowerCase().includes(q.toLowerCase()));
+  async function simpan(data, id) {
+    const { error } = id
+      ? await supabase.from("modul_kustom_data").update({ data, diubah_pada: new Date().toISOString() }).eq("id", id)
+      : await supabase.from("modul_kustom_data").insert({ modul_id: modul.id, data, dibuat_oleh: profile.nama || profile.username });
+    if (error) alert(error.message); else { setForm(null); load(); }
+  }
+  async function hapus(r) {
+    if (!confirm("Hapus baris ini?")) return;
+    const { error } = await supabase.from("modul_kustom_data").delete().eq("id", r.id);
+    if (error) alert(error.message); else load();
+  }
+  function unduhCsv() {
+    const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const baris = [kolom.map((c) => esc(c.label)).join(","), ...tersaring.map((r) => kolom.map((c) => esc(tampil(c, r.data?.[c.key]))).join(","))];
+    const url = URL.createObjectURL(new Blob(["\ufeff" + baris.join("\n")], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a"); a.href = url; a.download = `${modul.nama}.csv`; a.click(); URL.revokeObjectURL(url);
+  }
+  return (
+    <div>
+      <PageHeader title={modul.nama} sub={`${rows.length} data tercatat`} actions={<div className="flex gap-2"><Btn tone="ghost" onClick={unduhCsv}>⬇ Unduh CSV</Btn>{editable && <Btn onClick={() => setForm({})}>+ Tambah Data</Btn>}</div>} />
+      <div className="mb-4 max-w-xs"><Input placeholder="Cari..." value={q} onChange={(e) => setQ(e.target.value)} /></div>
+      <Card className="p-0 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500">{kolom.map((c) => <th key={c.key} className="p-3.5">{c.label}</th>)}{editable && <th className="p-3.5 text-right">Aksi</th>}</tr></thead>
+          <tbody>
+            {tersaring.map((r) => (
+              <tr key={r.id} className="border-t border-stone-100">
+                {kolom.map((c) => <td key={c.key} className="p-3.5 whitespace-pre-line">{tampil(c, r.data?.[c.key])}</td>)}
+                {editable && <td className="p-3.5 text-right whitespace-nowrap">
+                  <button onClick={() => setForm(r)} className="text-[#145048] text-xs font-bold mr-3">Edit</button>
+                  <button onClick={() => hapus(r)} className="text-red-600 text-xs font-bold">Hapus</button>
+                </td>}
+              </tr>
+            ))}
+            {tersaring.length === 0 && <tr><td colSpan={kolom.length + 1}><Empty text="Belum ada data." /></td></tr>}
+          </tbody>
+        </table>
+      </Card>
+      {form && <ModulKustomForm modul={modul} initial={form.id ? form : null} santriRows={santriT.rows} onCancel={() => setForm(null)} onSubmit={simpan} />}
+    </div>
+  );
+}
+function ModulKustomForm({ modul, initial, santriRows, onCancel, onSubmit }) {
+  const [f, setF] = useState(initial?.data || {});
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title={`${initial ? "Edit" : "Tambah"} — ${modul.nama}`} onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f, initial?.id); }}>
+        {(modul.kolom || []).map((c) => (
+          <Field key={c.key} label={c.label}>
+            {c.tipe === "teks_panjang" ? <textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={3} value={f[c.key] ?? ""} onChange={set(c.key)} />
+              : c.tipe === "pilihan" ? <Select value={f[c.key] ?? ""} onChange={set(c.key)}><option value="">— Pilih —</option>{(c.opsi || []).map((o) => <option key={o}>{o}</option>)}</Select>
+              : c.tipe === "santri" ? <Select value={f[c.key] ?? ""} onChange={set(c.key)}><option value="">— Pilih mahasantri —</option>{santriRows.map((x) => <option key={x.nim} value={x.nim}>{x.nama} — {x.nim}</option>)}</Select>
+              : <Input type={c.tipe === "angka" || c.tipe === "rupiah" ? "number" : c.tipe === "tanggal" ? "date" : "text"} value={f[c.key] ?? ""} onChange={set(c.key)} />}
+          </Field>
+        ))}
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+function MenuKustomManager({ onChanged }) {
+  const modulT = useTable("modul_kustom");
+  const [editing, setEditing] = useState(null);
+  const [msg, setMsg] = useState("");
+  async function simpan(f) {
+    const payload = { nama: f.nama.trim(), ikon: f.ikon || "📄", kolom: f.kolom, peran_lihat: [...new Set([...f.peran_lihat, ...f.peran_edit])], peran_edit: f.peran_edit };
+    const { error } = f.id ? await supabase.from("modul_kustom").update(payload).eq("id", f.id) : await supabase.from("modul_kustom").insert(payload);
+    if (error) { alert(error.message); return; }
+    setEditing(null); setMsg(f.id ? "Menu berhasil diperbarui." : "Menu baru berhasil dibuat dan sudah muncul di sidebar."); modulT.reload(); onChanged && onChanged();
+  }
+  async function hapus(m) {
+    if (!confirm(`Hapus menu "${m.nama}" beserta SEMUA datanya? Tindakan ini tidak bisa dibatalkan.`)) return;
+    const { error } = await supabase.from("modul_kustom").delete().eq("id", m.id);
+    if (error) alert(error.message); else { setMsg("Menu dihapus."); modulT.reload(); onChanged && onChanged(); }
+  }
+  return (
+    <Card className="mb-5">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold">Menu Tambahan</h3>
+        <Btn onClick={() => setEditing("new")}>+ Buat Menu Baru</Btn>
+      </div>
+      <p className="text-xs text-stone-500 mb-4">Buat menu baru sendiri (misalnya Inventaris, Data Alumni, Absensi Kegiatan) tanpa perlu pengembang. Menu langsung muncul di sidebar sesuai peran yang Anda pilih.</p>
+      {msg && <div className="text-sm mb-3 p-3 rounded-xl bg-[#E9F1EE] text-[#0F4A44] font-medium">{msg}</div>}
+      <div className="space-y-2">
+        {modulT.rows.sort((a, b) => a.id - b.id).map((m) => (
+          <div key={m.id} className="flex items-center justify-between border border-stone-200 rounded-xl px-4 py-3">
+            <div><div className="font-bold text-sm">{m.ikon || "📄"} {m.nama}</div><div className="text-xs text-stone-400">{(m.kolom || []).length} kolom · dilihat: {(m.peran_lihat || []).map((r) => ROLE_LABEL[r] || r).join(", ") || "hanya Administrator"}</div></div>
+            <div className="whitespace-nowrap"><button onClick={() => setEditing(m)} className="text-[#145048] text-xs font-bold mr-3">Edit</button><button onClick={() => hapus(m)} className="text-red-600 text-xs font-bold">Hapus</button></div>
+          </div>
+        ))}
+        {modulT.rows.length === 0 && <div className="text-sm text-stone-400 py-3">Belum ada menu tambahan.</div>}
+      </div>
+      {editing && <MenuKustomForm initial={editing === "new" ? null : editing} onCancel={() => setEditing(null)} onSubmit={simpan} />}
+    </Card>
+  );
+}
+function MenuKustomForm({ initial, onCancel, onSubmit }) {
+  const [f, setF] = useState(initial ? { ...initial, kolom: (initial.kolom || []).map((c) => ({ ...c, opsiText: (c.opsi || []).join(", ") })), peran_lihat: initial.peran_lihat || [], peran_edit: initial.peran_edit || [] } : { nama: "", ikon: "📄", kolom: [{ key: "k" + Date.now().toString(36), label: "", tipe: "teks", opsiText: "" }], peran_lihat: [], peran_edit: [] });
+  const peran = Object.entries(ROLE_LABEL).filter(([k]) => k !== "admin");
+  const setKol = (i, patch) => setF({ ...f, kolom: f.kolom.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
+  const geser = (i, d) => { const k = [...f.kolom]; const j = i + d; if (j < 0 || j >= k.length) return; [k[i], k[j]] = [k[j], k[i]]; setF({ ...f, kolom: k }); };
+  const toggle = (field, r) => setF({ ...f, [field]: f[field].includes(r) ? f[field].filter((x) => x !== r) : [...f[field], r] });
+  function kirim(e) {
+    e.preventDefault();
+    const kolom = f.kolom.filter((c) => c.label.trim()).map((c) => ({ key: c.key, label: c.label.trim(), tipe: c.tipe, ...(c.tipe === "pilihan" ? { opsi: (c.opsiText || "").split(",").map((o) => o.trim()).filter(Boolean) } : {}) }));
+    if (!f.nama.trim()) { alert("Isi nama menu."); return; }
+    if (kolom.length === 0) { alert("Tambahkan minimal satu kolom."); return; }
+    onSubmit({ ...f, kolom });
+  }
+  return (
+    <Modal title={initial ? "Edit Menu Tambahan" : "Buat Menu Baru"} onClose={onCancel}>
+      <form onSubmit={kirim}>
+        <div className="grid grid-cols-4 gap-3">
+          <div className="col-span-3"><Field label="Nama Menu"><Input value={f.nama} onChange={(e) => setF({ ...f, nama: e.target.value })} placeholder="mis. Inventaris" /></Field></div>
+          <Field label="Ikon (emoji)"><Input value={f.ikon} onChange={(e) => setF({ ...f, ikon: e.target.value })} /></Field>
+        </div>
+        <div className="text-xs font-extrabold text-[#B8935A] uppercase tracking-[0.1em] mb-2">Kolom Isian</div>
+        {f.kolom.map((c, i) => (
+          <div key={c.key} className="border border-stone-200 rounded-xl p-3 mb-2 bg-stone-50/60">
+            <div className="flex gap-2 items-center">
+              <Input value={c.label} onChange={(e) => setKol(i, { label: e.target.value })} placeholder={`Nama kolom ${i + 1}`} />
+              <Select value={c.tipe} onChange={(e) => setKol(i, { tipe: e.target.value })} className="max-w-[170px]">{TIPE_KOLOM.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</Select>
+              <button type="button" onClick={() => geser(i, -1)} className="text-stone-500 px-1">↑</button>
+              <button type="button" onClick={() => geser(i, 1)} className="text-stone-500 px-1">↓</button>
+              <button type="button" onClick={() => { if (!c.label || confirm("Hapus kolom ini? Data lama di kolom ini tidak tampil lagi.")) setF({ ...f, kolom: f.kolom.filter((_, j) => j !== i) }); }} className="text-red-600 px-1">✕</button>
+            </div>
+            {c.tipe === "pilihan" && <div className="mt-2"><Input value={c.opsiText} onChange={(e) => setKol(i, { opsiText: e.target.value })} placeholder="Daftar pilihan, pisahkan dengan koma. mis. Baik, Rusak, Hilang" /></div>}
+          </div>
+        ))}
+        <Btn tone="ghost" onClick={() => setF({ ...f, kolom: [...f.kolom, { key: "k" + Date.now().toString(36), label: "", tipe: "teks", opsiText: "" }] })}>+ Tambah Kolom</Btn>
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div>
+            <div className="text-xs font-extrabold text-stone-500 uppercase mb-1.5">Boleh melihat</div>
+            {peran.map(([k, l]) => <label key={k} className="flex items-center gap-2 text-sm py-0.5"><input type="checkbox" checked={f.peran_lihat.includes(k) || f.peran_edit.includes(k)} disabled={f.peran_edit.includes(k)} onChange={() => toggle("peran_lihat", k)} />{l}</label>)}
+          </div>
+          <div>
+            <div className="text-xs font-extrabold text-stone-500 uppercase mb-1.5">Boleh mengisi / mengubah</div>
+            {peran.map(([k, l]) => <label key={k} className="flex items-center gap-2 text-sm py-0.5"><input type="checkbox" checked={f.peran_edit.includes(k)} onChange={() => toggle("peran_edit", k)} />{l}</label>)}
+          </div>
+        </div>
+        <div className="text-xs text-stone-400 mt-2">Administrator selalu bisa melihat dan mengisi. Hati-hati: jika "Mahasantri / Wali" diberi akses lihat, mereka melihat semua baris, bukan hanya milik sendiri.</div>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan Menu</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+
+/* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
+const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Menu Tambahan buatan sendiri", isi: "Administrator bisa membuat menu baru lengkap dengan kolom isiannya (misalnya Inventaris, Data Alumni, Absensi Kegiatan) tanpa pengembang dan tanpa deploy.", lokasi: "Pengaturan → Menu Tambahan" },
+  { tgl: "Okt 2026", judul: "Terakhir Masuk di Kelola Akun", isi: "Kolom baru yang menunjukkan kapan tiap akun terakhir masuk, supaya terlihat siapa yang sudah aktif hari ini.", lokasi: "Menu Kelola Akun" },
+  { tgl: "Okt 2026", judul: "Nominal SPP per santri + pembayaran gabungan", isi: "Nominal SPP kini diisi sekali di data santri dan otomatis dipakai saat membuat iuran. Satu transfer bisa dipecah otomatis, misalnya Rp1.500.000 menjadi SPP Rp1.000.000 dan cicilan koperasi Rp500.000.", lokasi: "Data Mahasantri (isi nominal) dan Iuran SPP → pilih santri → Terima Pembayaran" },
+  { tgl: "Okt 2026", judul: "Cicilan Koperasi", isi: "Catatan tagihan dan cicilan koperasi per mahasantri, lengkap dengan sisa tagihan.", lokasi: "Iuran SPP → pilih santri → kartu Cicilan Koperasi" },
+  { tgl: "Okt 2026", judul: "Pratinjau langsung halaman login", isi: "Saat mengubah identitas pondok, tampilan halaman login terlihat langsung sebelum disimpan.", lokasi: "Pengaturan → Identitas Pondok" },
+];
+function PanduanAdmin() {
+  const Bagian = ({ judul, children }) => (
+    <details className="border border-stone-200 rounded-xl mb-2 bg-white">
+      <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-[#0B3B36]">{judul}</summary>
+      <div className="px-4 pb-4 text-sm text-stone-600 leading-relaxed">{children}</div>
+    </details>
+  );
+  return (
+    <Card className="mb-5 border-[#EDD9A0] bg-[#FBF3DF]/40">
+      <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-1">Panduan Administrator</h3>
+      <p className="text-xs text-stone-500 mb-4">Ringkasan cara memakai SIAKAD dan daftar fitur yang pernah ditambahkan. Klik judul untuk membuka.</p>
+      <Bagian judul="🆕 Riwayat Pembaruan (apa saja yang baru)">
+        <div className="space-y-3">
+          {RIWAYAT_PEMBARUAN.map((r, i) => (
+            <div key={i} className="border-l-4 border-[#B8935A] pl-3">
+              <div className="text-[0.6875rem] text-stone-400">{r.tgl}</div>
+              <div className="font-bold text-[#0B3B36]">{r.judul}</div>
+              <div>{r.isi}</div>
+              <div className="text-xs text-[#8A6A2A] mt-0.5">📍 {r.lokasi}</div>
+            </div>
+          ))}
+        </div>
+      </Bagian>
+      <Bagian judul="➕ Ingin menambah menu atau kolom sendiri?">
+        Gunakan kartu <b>Menu Tambahan</b> di bawah panduan ini. Anda bisa membuat menu baru, menentukan kolomnya (teks, angka, rupiah, tanggal, pilihan, atau pilih mahasantri), dan mengatur peran mana yang boleh melihat atau mengisi. Menu langsung muncul di sidebar tanpa perlu pengembang. Fitur yang butuh perhitungan atau logika khusus (seperti pembayaran gabungan SPP) tetap perlu pengembang.
+      </Bagian>
+      <Bagian judul="📅 Tugas rutin administrator">
+        <ul className="list-disc pl-5 space-y-1">
+          <li><b>Awal bulan:</b> bendahara membuka Iuran SPP lalu klik "+ Buat Iuran Bulan Ini". Nominal otomatis dari data masing-masing santri.</li>
+          <li><b>Santri baru:</b> tambahkan di Data Mahasantri (isi Nominal SPP), lalu buat akun loginnya di Kelola Akun.</li>
+          <li><b>Setiap hari / pekan:</b> buka Kelola Akun dan lihat kolom "Terakhir Masuk" untuk mengetahui staf yang sudah aktif.</li>
+          <li><b>Staf pindah tugas:</b> ubah peran akunnya lewat tombol Edit di Kelola Akun, jangan buat akun baru.</li>
+        </ul>
+      </Bagian>
+      <Bagian judul="👥 Siapa bisa melakukan apa">
+        <ul className="list-disc pl-5 space-y-1">
+          <li><b>Administrator:</b> semua menu, termasuk Kelola Akun dan Pengaturan identitas pondok.</li>
+          <li><b>Bendahara:</b> Iuran SPP dan cicilan koperasi.</li>
+          <li><b>Staf Akademik:</b> kurikulum, akademik, rapor, kalender.</li>
+          <li><b>Musyrif / Musyrifah:</b> capaian Al-Qur'an dan ibadah santri bimbingannya.</li>
+          <li><b>Pimpinan:</b> hanya melihat data, tanpa mengubah.</li>
+          <li><b>Mahasantri / Wali:</b> melihat data milik sendiri.</li>
+        </ul>
+      </Bagian>
+      <Bagian judul="🔑 Lupa kata sandi atau akun bermasalah">
+        Pemilik akun bisa memakai "Lupa Kata Sandi" di halaman login (butuh email aktif yang terdaftar di akun). Kalau email salah, buat ulang akun lewat Kelola Akun. Peran dan nama bisa diubah lewat tombol Edit.
+      </Bagian>
+      <Bagian judul="🛠 Kalau butuh fitur baru atau ada yang error">
+        Catat: <b>menu mana</b>, <b>apa yang diklik</b>, dan <b>pesan error yang muncul</b> (sertakan tangkapan layar), lalu sampaikan ke pengembang. Setiap fitur baru akan ditambahkan ke Riwayat Pembaruan di atas supaya administrator tahu apa yang berubah.
+      </Bagian>
+    </Card>
+  );
+}
+function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSize, setUiSize, onModulChanged }) {
   const [nama, setNama] = useState(profile.nama);
   const [newPw, setNewPw] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -3311,6 +3558,9 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSi
         </form>
       </Card>
 
+      {profile.role === "admin" && <PanduanAdmin />}
+      {profile.role === "admin" && <MenuKustomManager onChanged={onModulChanged} />}
+
       {profile.role === "admin" && (
         <Card className="border-[#EDD9A0] bg-[#FBF3DF]/40">
           <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-1">Identitas Pondok (Branding)</h3>
@@ -3562,6 +3812,7 @@ export default function App() {
   const [recovery, setRecovery] = useState(false);
   const { brand, reloadBrand } = useBrand();
   const [uiSize, setUiSize] = useState(loadUiSize);
+  const modulT = useTable("modul_kustom", [session]);
 
   useEffect(() => {
     document.documentElement.style.fontSize = uiSize + "px";
@@ -3586,7 +3837,13 @@ export default function App() {
   function loadProfile() {
     if (session) {
       supabase.from("profiles").select("*").eq("id", session.user.id).single()
-        .then(({ data }) => setProfile(data));
+        .then(({ data }) => {
+          setProfile(data);
+          // Catat waktu masuk (maks. sekali per 5 menit agar tidak menulis berlebihan)
+          if (data && (!data.last_login || Date.now() - new Date(data.last_login).getTime() > 5 * 60 * 1000)) {
+            supabase.from("profiles").update({ last_login: new Date().toISOString() }).eq("id", data.id).then(() => {});
+          }
+        });
     } else {
       setProfile(null);
     }
@@ -3598,7 +3855,15 @@ export default function App() {
   if (!session) return <BrandContext.Provider value={brand}><LoginScreen brand={brand} /></BrandContext.Provider>;
   if (!profile) return <div className="min-h-screen flex items-center justify-center text-stone-500">Memuat profil…</div>;
 
+  const modulTampil = modulT.rows.filter((m) => profile.role === "admin" || (m.peran_lihat || []).includes(profile.role)).sort((a, b) => a.id - b.id);
+  const extraMenu = modulTampil.map((m) => [`kustom:${m.id}`, `${m.ikon || "📄"} ${m.nama}`]);
+  const extraTitles = Object.fromEntries(modulTampil.map((m) => [`kustom:${m.id}`, m.nama]));
+
   function renderView() {
+    if (view.startsWith("kustom:")) {
+      const m = modulTampil.find((x) => `kustom:${x.id}` === view);
+      return m ? <ModulKustomPage key={m.id} modul={m} profile={profile} /> : null;
+    }
     if (view === "dashboard") return <Dashboard profile={profile} />;
     if (view === "santri" && ["admin","pimpinan"].includes(profile.role)) return <DataSantriPage profile={profile} />;
     if (view === "akademik") return profile.role === "santri" ? <AkademikSantriPage profile={profile} /> : <AkademikStaffPage profile={profile} />;
@@ -3611,13 +3876,13 @@ export default function App() {
     if (view === "ibadah") return <IbadahPage profile={profile} />;
     if (view === "spp") return <SppPage profile={profile} />;
     if (view === "akun" && profile.role === "admin") return <KelolaAkunPage />;
-    if (view === "pengaturan") return <PengaturanPage profile={profile} onProfileUpdated={loadProfile} brand={brand} onBrandUpdated={reloadBrand} uiSize={uiSize} setUiSize={setUiSize} />;
+    if (view === "pengaturan") return <PengaturanPage profile={profile} onProfileUpdated={loadProfile} brand={brand} onBrandUpdated={reloadBrand} uiSize={uiSize} setUiSize={setUiSize} onModulChanged={modulT.reload} />;
     return null;
   }
 
   return (
     <BrandContext.Provider value={brand}>
-      <Shell profile={profile} view={view} setView={setView} brand={brand}>{renderView()}</Shell>
+      <Shell profile={profile} view={view} setView={setView} brand={brand} extraMenu={extraMenu} extraTitles={extraTitles}>{renderView()}</Shell>
     </BrandContext.Provider>
   );
 }
