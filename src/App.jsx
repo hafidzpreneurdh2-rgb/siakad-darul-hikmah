@@ -789,7 +789,7 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
     nik: "", tempat_lahir: "", tanggal_lahir: "", no_hp: "", alamat: "",
     target_hafalan: "30 Juz", status: "Aktif",
     nama_ayah: "", nama_ibu: "", no_hp_ortu: "", pekerjaan_ortu: "", alamat_wali: "",
-    tanggal_masuk: "", status_spp: "Lunas",
+    tanggal_masuk: "", status_spp: "Lunas", nominal_spp: "", tagihan_koperasi: "",
     golongan_darah: "", kontak_darurat: "", riwayat_penyakit: "",
     foto_url: "", dok_kk_url: "", dok_akta_url: "", dok_ijazah_url: "", dok_ktp_url: "", dok_bpjs_url: "",
   });
@@ -900,7 +900,10 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
         <div className="grid grid-cols-2 gap-3">
           <Field label="Tanggal Masuk Pondok"><Input type="date" value={f.tanggal_masuk} onChange={set("tanggal_masuk")} /></Field>
           <Field label="Status SPP"><Select value={f.status_spp} onChange={set("status_spp")}><option>Lunas</option><option>Menunggak</option></Select></Field>
+          <Field label="Nominal SPP per Bulan (Rp)"><Input type="number" value={f.nominal_spp ?? ""} onChange={set("nominal_spp")} placeholder="mis. 1000000" /></Field>
+          <Field label="Total Tagihan Koperasi (Rp)"><Input type="number" value={f.tagihan_koperasi ?? ""} onChange={set("tagihan_koperasi")} placeholder="kosongkan jika tidak ada" /></Field>
         </div>
+        <div className="text-xs text-stone-400 mb-2">Nominal SPP ini otomatis dipakai saat membuat Iuran SPP. Tagihan koperasi dikurangi cicilan yang tercatat di menu Iuran SPP.</div>
         <div className="mb-1">
           <DokRow label="Kartu Keluarga (KK)" field="dok_kk_url" />
           <DokRow label="Akta Kelahiran" field="dok_akta_url" />
@@ -2544,6 +2547,9 @@ function SppPage({ profile }) {
   const santriT = useTable("santri");
   const sppT = useTable("spp");
   const profilesT = useTable("profiles");
+  const koperasiT = useTable("koperasi_cicilan");
+  const [showGabungan, setShowGabungan] = useState(false);
+  const [showKoperasi, setShowKoperasi] = useState(false);
   const [nim, setNim] = useState(isViewer ? "" : profile.nim);
   const [showForm, setShowForm] = useState(false);
   const brand = useContext(BrandContext);
@@ -2554,12 +2560,45 @@ function SppPage({ profile }) {
   const santri = santriT.rows.find((s) => s.nim === nim);
   const rows = sppT.rows.filter((r) => r.nim === nim).sort((a, b) => b.tahun - a.tahun || BULAN.indexOf(b.bulan) - BULAN.indexOf(a.bulan));
   const bulanIni = BULAN[new Date().getMonth()];
+  const cicilan = koperasiT.rows.filter((c) => c.nim === nim).sort((a, b) => String(b.tanggal).localeCompare(String(a.tanggal)));
+  const totalCicilan = cicilan.reduce((a, c) => a + Number(c.jumlah || 0), 0);
+  const tagihanKoperasi = Number(santri?.tagihan_koperasi || 0);
+  const sisaKoperasi = Math.max(0, tagihanKoperasi - totalCicilan);
+
+  async function terimaGabungan(f) {
+    const target = rows.find((r) => String(r.id) === String(f.sppId));
+    if (!target) { alert("Pilih iuran SPP yang dibayar."); return; }
+    const total = Number(f.total), nominalSpp = Number(target.nominal || 0), untukKoperasi = total - nominalSpp;
+    if (!(total > 0)) { alert("Isi jumlah yang diterima."); return; }
+    if (untukKoperasi < 0) { alert(`Jumlah yang diterima kurang dari SPP (${formatRupiah(nominalSpp)}).`); return; }
+    if (untukKoperasi > 0 && tagihanKoperasi > 0 && untukKoperasi > sisaKoperasi && !confirm(`Cicilan koperasi ${formatRupiah(untukKoperasi)} melebihi sisa tagihan (${formatRupiah(sisaKoperasi)}). Tetap simpan?`)) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const pencatat = profile.nama || profile.username;
+    const { error } = await supabase.from("spp").update({ status: "Lunas", metode_bayar: f.metode, tanggal_bayar: today, total_diterima: untukKoperasi > 0 ? total : null, dicatat_oleh: pencatat, dicatat_oleh_username: profile.username }).eq("id", target.id);
+    if (error) { alert(error.message); return; }
+    if (untukKoperasi > 0) {
+      const { error: e2 } = await supabase.from("koperasi_cicilan").insert({ nim, jumlah: untukKoperasi, tanggal: today, metode_bayar: f.metode, spp_id: String(target.id), catatan: `Dari pembayaran gabungan ${formatRupiah(total)} (SPP ${target.bulan} ${target.tahun})`, dicatat_oleh: pencatat, dicatat_oleh_username: profile.username });
+      if (e2) alert("SPP tersimpan, tetapi cicilan koperasi gagal dicatat: " + e2.message);
+    }
+    setShowGabungan(false); sppT.reload(); koperasiT.reload();
+  }
+  async function catatKoperasi(f) {
+    const jumlah = Number(f.jumlah);
+    if (!(jumlah > 0)) { alert("Isi jumlah cicilan."); return; }
+    const { error } = await supabase.from("koperasi_cicilan").insert({ nim, jumlah, tanggal: f.tanggal, metode_bayar: f.metode, catatan: f.catatan || null, dicatat_oleh: profile.nama || profile.username, dicatat_oleh_username: profile.username });
+    if (error) alert(error.message); else { setShowKoperasi(false); koperasiT.reload(); }
+  }
+  async function hapusCicilan(c) {
+    if (!confirm(`Hapus cicilan koperasi ${formatRupiah(c.jumlah)}?`)) return;
+    const { error } = await supabase.from("koperasi_cicilan").delete().eq("id", c.id);
+    if (error) alert(error.message); else koperasiT.reload();
+  }
 
   async function addRecord(f) {
     const today = new Date().toISOString().slice(0, 10);
     const pencatat = profile.nama || profile.username;
     if (f.id) {
-      const { error } = await supabase.from("spp").update({ bulan: f.bulan, tahun: Number(f.tahun), nominal: Number(f.nominal), status: f.status, metode_bayar: f.metode_bayar, tanggal_bayar: f.status === "Lunas" ? (f.tanggal_bayar || today) : null, dicatat_oleh: f.status === "Lunas" ? pencatat : null, dicatat_oleh_username: f.status === "Lunas" ? profile.username : null }).eq("id", f.id);
+      const { error } = await supabase.from("spp").update({ bulan: f.bulan, tahun: Number(f.tahun), nominal: Number(f.nominal), status: f.status, metode_bayar: f.metode_bayar, ...(f.status !== "Lunas" ? { total_diterima: null } : {}), tanggal_bayar: f.status === "Lunas" ? (f.tanggal_bayar || today) : null, dicatat_oleh: f.status === "Lunas" ? pencatat : null, dicatat_oleh_username: f.status === "Lunas" ? profile.username : null }).eq("id", f.id);
       if (error) alert(error.message); else { setEditingRow(null); sppT.reload(); }
       return;
     }
@@ -2576,7 +2615,7 @@ function SppPage({ profile }) {
   async function buatIuranBulanan(f) {
     const tahun = Number(f.tahun);
     const sudahAda = new Set(sppT.rows.filter((r) => r.bulan === f.bulan && Number(r.tahun) === tahun).map((r) => r.nim));
-    const baru = santriT.rows.filter((s) => !sudahAda.has(s.nim)).map((s) => ({ nim: s.nim, bulan: f.bulan, tahun, nominal: Number(f.nominal), status: "Belum Lunas", tanggal_bayar: null }));
+    const baru = santriT.rows.filter((s) => !sudahAda.has(s.nim)).map((s) => ({ nim: s.nim, bulan: f.bulan, tahun, nominal: Number(s.nominal_spp) > 0 ? Number(s.nominal_spp) : Number(f.nominal), status: "Belum Lunas", tanggal_bayar: null }));
     if (baru.length === 0) { alert("Semua santri sudah punya iuran untuk bulan itu."); setShowBulk(false); return; }
     const { error } = await supabase.from("spp").insert(baru);
     if (error) { alert(error.message); return; }
@@ -2585,7 +2624,7 @@ function SppPage({ profile }) {
   }
   async function toggle(r) {
     const jadiLunas = r.status !== "Lunas";
-    const { error } = await supabase.from("spp").update({ status: jadiLunas ? "Lunas" : "Belum Lunas", tanggal_bayar: jadiLunas ? new Date().toISOString().slice(0, 10) : null, dicatat_oleh: jadiLunas ? (profile.nama || profile.username) : null, dicatat_oleh_username: jadiLunas ? profile.username : null }).eq("id", r.id);
+    const { error } = await supabase.from("spp").update({ status: jadiLunas ? "Lunas" : "Belum Lunas", total_diterima: null, tanggal_bayar: jadiLunas ? new Date().toISOString().slice(0, 10) : null, dicatat_oleh: jadiLunas ? (profile.nama || profile.username) : null, dicatat_oleh_username: jadiLunas ? profile.username : null }).eq("id", r.id);
     if (!error) sppT.reload();
   }
 
@@ -2644,10 +2683,11 @@ function SppPage({ profile }) {
     <div>
       {isViewer && <BackBar onBack={() => setNim("")} />}
       <PageHeader title={isViewer ? (santri?.nama || "Iuran SPP") : "Iuran SPP"}
-        actions={<div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Tambah Iuran</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
-      <div className="grid grid-cols-2 gap-4 mb-5 max-w-lg">
+        actions={<div className="flex gap-2">{editable && isViewer && <Btn tone="gold" onClick={() => setShowGabungan(true)}>💰 Terima Pembayaran</Btn>}{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Tambah Iuran</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
+      <div className={`grid ${tagihanKoperasi > 0 ? "grid-cols-3" : "grid-cols-2"} gap-4 mb-5 max-w-2xl`}>
         <StatCard label="Total Tunggakan" value={formatRupiah(rows.filter((r) => r.status !== "Lunas").reduce((a, r) => a + Number(r.nominal || 0), 0))} />
         <StatCard label="Bulan Belum Lunas" value={rows.filter((r) => r.status !== "Lunas").length} />
+        {tagihanKoperasi > 0 && <StatCard label="Sisa Tagihan Koperasi" value={formatRupiah(sisaKoperasi)} />}
       </div>
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
@@ -2683,7 +2723,33 @@ function SppPage({ profile }) {
           </tbody>
         </table>
       </Card>
-      {showForm && <SppForm onCancel={() => setShowForm(false)} onSubmit={addRecord} />}
+      {(cicilan.length > 0 || tagihanKoperasi > 0 || editable) && (
+        <Card className="p-0 overflow-hidden mt-6">
+          <div className="flex items-center justify-between p-4 border-b border-stone-100">
+            <div>
+              <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold">Cicilan Koperasi</h3>
+              <div className="text-xs text-stone-500">{tagihanKoperasi > 0 ? `Tagihan ${formatRupiah(tagihanKoperasi)} · Terbayar ${formatRupiah(totalCicilan)} · Sisa ${formatRupiah(sisaKoperasi)}` : `Total cicilan tercatat ${formatRupiah(totalCicilan)}`}</div>
+            </div>
+            {editable && isViewer && <Btn onClick={() => setShowKoperasi(true)}>+ Catat Cicilan</Btn>}
+          </div>
+          <table className="w-full text-sm">
+            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase text-stone-500"><th className="p-3">Tanggal</th><th className="p-3">Jumlah</th><th className="p-3">Metode</th><th className="p-3">Catatan</th>{editable && <th className="p-3 text-right">Aksi</th>}</tr></thead>
+            <tbody>
+              {cicilan.map((c) => (
+                <tr key={c.id} className="border-t border-stone-100">
+                  <td className="p-3">{c.tanggal ? new Date(c.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "-"}</td>
+                  <td className="p-3 font-bold">{formatRupiah(c.jumlah)}</td><td className="p-3">{c.metode_bayar || "-"}</td><td className="p-3 text-xs text-stone-500">{c.catatan || "-"}</td>
+                  {editable && <td className="p-3 text-right"><button onClick={() => hapusCicilan(c)} className="text-red-600 text-xs font-bold">Hapus</button></td>}
+                </tr>
+              ))}
+              {cicilan.length === 0 && <tr><td colSpan={editable ? 5 : 4}><Empty text="Belum ada cicilan koperasi." /></td></tr>}
+            </tbody>
+          </table>
+        </Card>
+      )}
+      {showGabungan && <BayarGabunganForm rows={rows} defaultNominal={santri?.nominal_spp} sisaKoperasi={sisaKoperasi} onCancel={() => setShowGabungan(false)} onSubmit={terimaGabungan} />}
+      {showKoperasi && <KoperasiForm onCancel={() => setShowKoperasi(false)} onSubmit={catatKoperasi} />}
+      {showForm && <SppForm defaultNominal={santri?.nominal_spp} onCancel={() => setShowForm(false)} onSubmit={addRecord} />}
       {editingRow && <SppForm initial={editingRow} onCancel={() => setEditingRow(null)} onSubmit={addRecord} />}
       {kuitansi && <KuitansiSpp row={kuitansi} santri={santri} brand={brand} penandaTangan={profilesT.rows.find((p) => p.username === kuitansi.dicatat_oleh_username)} onClose={() => setKuitansi(null)} />}
     </div>
@@ -2730,8 +2796,10 @@ function KuitansiSpp({ row, santri, brand, penandaTangan, onClose }) {
         <table style={{ width: "100%", fontSize: 12, lineHeight: 1.7 }}><tbody>
           <tr><td style={{ width: 130 }}>Telah terima dari</td><td>: {santri?.nama || row.nim} (NIM {row.nim})</td></tr>
           <tr><td>Untuk pembayaran</td><td>: Iuran SPP bulan {row.bulan} {row.tahun}</td></tr>
-          <tr><td>Uang sejumlah</td><td>: <b>{formatRupiah(row.nominal)}</b></td></tr>
+          {row.total_diterima > row.nominal && <tr><td>Total diterima</td><td>: {formatRupiah(row.total_diterima)}</td></tr>}
+          <tr><td>Uang sejumlah</td><td>: <b>{formatRupiah(row.nominal)}</b>{row.total_diterima > row.nominal ? " (SPP)" : ""}</td></tr>
           <tr><td>Terbilang</td><td>: <i style={{ textTransform: "capitalize" }}>{terbilang(row.nominal)} rupiah</i></td></tr>
+          {row.total_diterima > row.nominal && <tr><td>Cicilan koperasi</td><td>: {formatRupiah(Number(row.total_diterima) - Number(row.nominal))}</td></tr>}
           <tr><td>Metode Pembayaran</td><td>: {row.metode_bayar || "-"}</td></tr>
         </tbody></table>
         <div style={{ textAlign: "right", marginTop: 26, fontSize: 12 }}>
@@ -2766,15 +2834,57 @@ function BuatIuranBulanan({ onCancel, onSubmit, jumlah }) {
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Bulan"><Select value={f.bulan} onChange={set("bulan")}>{BULAN.map((b) => <option key={b}>{b}</option>)}</Select></Field>
         <Field label="Tahun"><Input type="number" value={f.tahun} onChange={set("tahun")} /></Field>
-        <Field label="Nominal per Santri"><Input type="number" value={f.nominal} onChange={set("nominal")} /></Field>
-        <div className="text-xs text-stone-500 mb-1">Sistem membuat iuran berstatus "Belum Lunas" untuk semua santri ({jumlah} santri) yang belum punya iuran bulan itu. Yang sudah ada dilewati. Nominal santri tertentu bisa diedit setelahnya.</div>
+        <Field label="Nominal Default (bila santri belum punya nominal SPP)"><Input type="number" value={f.nominal} onChange={set("nominal")} /></Field>
+        <div className="text-xs text-stone-500 mb-1">Sistem membuat iuran berstatus "Belum Lunas" untuk semua santri ({jumlah} santri) yang belum punya iuran bulan itu. Yang sudah ada dilewati. Nominal otomatis diambil dari Data Mahasantri (Nominal SPP per Bulan); angka di atas hanya dipakai untuk santri yang belum diisi.</div>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Buat Iuran</Btn></div>
       </form>
     </Modal>
   );
 }
-function SppForm({ initial, onCancel, onSubmit }) {
-  const [f, setF] = useState(initial || { bulan: BULAN[new Date().getMonth()], tahun: nowYear, nominal: 500000, status: "Belum Lunas", metode_bayar: "Transfer Bank" });
+function BayarGabunganForm({ rows, defaultNominal, sisaKoperasi, onCancel, onSubmit }) {
+  const belum = rows.filter((r) => r.status !== "Lunas").sort((a, b) => a.tahun - b.tahun || BULAN.indexOf(a.bulan) - BULAN.indexOf(b.bulan));
+  const [f, setF] = useState({ sppId: belum[0]?.id ?? "", total: belum[0] ? Number(belum[0].nominal) : Number(defaultNominal) || "", metode: "Transfer Bank" });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const target = belum.find((r) => String(r.id) === String(f.sppId));
+  const untukSpp = target ? Number(target.nominal || 0) : 0;
+  const untukKop = Number(f.total || 0) - untukSpp;
+  return (
+    <Modal title="Terima Pembayaran" onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        {belum.length === 0 ? <div className="text-sm text-stone-500 mb-3">Semua iuran SPP santri ini sudah lunas. Gunakan "+ Catat Cicilan" untuk cicilan koperasi saja.</div> : <>
+          <Field label="Iuran SPP yang dibayar"><Select value={f.sppId} onChange={set("sppId")}>{belum.map((r) => <option key={r.id} value={r.id}>{r.bulan} {r.tahun} — {formatRupiah(r.nominal)}</option>)}</Select></Field>
+          <Field label="Total uang yang diterima (Rp)"><Input type="number" value={f.total} onChange={set("total")} /></Field>
+          <Field label="Metode Pembayaran"><Select value={f.metode} onChange={set("metode")}><option>Transfer Bank</option><option>Tunai</option></Select></Field>
+          <div className="rounded-xl bg-[#E9F1EE] p-3 text-sm mb-1">
+            <div className="flex justify-between"><span>Untuk SPP</span><b>{formatRupiah(untukSpp)}</b></div>
+            <div className="flex justify-between"><span>Untuk cicilan koperasi</span><b className={untukKop < 0 ? "text-red-600" : ""}>{formatRupiah(untukKop)}</b></div>
+            {sisaKoperasi > 0 && <div className="text-xs text-stone-500 mt-1">Sisa tagihan koperasi saat ini {formatRupiah(sisaKoperasi)}</div>}
+            {untukKop < 0 && <div className="text-xs text-red-600 mt-1">Jumlah diterima kurang dari nominal SPP.</div>}
+          </div>
+          <div className="text-xs text-stone-400">SPP otomatis ditandai Lunas; selisihnya dicatat sebagai cicilan koperasi.</div>
+        </>}
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn>{belum.length > 0 && <Btn type="submit">Simpan</Btn>}</div>
+      </form>
+    </Modal>
+  );
+}
+function KoperasiForm({ onCancel, onSubmit }) {
+  const [f, setF] = useState({ jumlah: "", tanggal: new Date().toISOString().slice(0, 10), metode: "Transfer Bank", catatan: "" });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title="Catat Cicilan Koperasi" onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <Field label="Jumlah (Rp)"><Input type="number" value={f.jumlah} onChange={set("jumlah")} /></Field>
+        <Field label="Tanggal"><Input type="date" value={f.tanggal} onChange={set("tanggal")} /></Field>
+        <Field label="Metode Pembayaran"><Select value={f.metode} onChange={set("metode")}><option>Transfer Bank</option><option>Tunai</option></Select></Field>
+        <Field label="Catatan (opsional)"><Input value={f.catatan} onChange={set("catatan")} /></Field>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+function SppForm({ initial, defaultNominal, onCancel, onSubmit }) {
+  const [f, setF] = useState(initial || { bulan: BULAN[new Date().getMonth()], tahun: nowYear, nominal: Number(defaultNominal) > 0 ? Number(defaultNominal) : 500000, status: "Belum Lunas", metode_bayar: "Transfer Bank" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
     <Modal title={initial ? "Edit Iuran SPP" : "Tambah Iuran SPP"} onClose={onCancel}>
