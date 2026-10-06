@@ -2543,6 +2543,20 @@ function IbadahForm({ initial, onCancel, onSubmit }) {
 /* ---------------------------------------------------------------------- */
 /* Iuran SPP — overview semua santri + drill-down                        */
 /* ---------------------------------------------------------------------- */
+function noWa(hp) {
+  let d = String(hp || "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.startsWith("0")) d = "62" + d.slice(1); else if (d.startsWith("8")) d = "62" + d;
+  return d;
+}
+function linkWaTunggakan({ santri, rows, sisaKop, namaPondok }) {
+  const hp = noWa(santri?.no_hp_ortu || santri?.no_hp);
+  if (!hp || rows.length === 0) return null;
+  const urut = [...rows].sort((a, b) => a.tahun - b.tahun || BULAN.indexOf(a.bulan) - BULAN.indexOf(b.bulan));
+  const total = urut.reduce((a, r) => a + Number(r.nominal || 0), 0);
+  const teks = `Assalamu'alaikum warahmatullahi wabarakatuh.\n\nYth. Bapak/Ibu wali dari ananda ${santri.nama}. Kami dari ${namaPondok || "pondok"} mengingatkan bahwa iuran SPP berikut belum kami terima:\n${urut.map((r) => `- ${r.bulan} ${r.tahun}: ${formatRupiah(r.nominal)}`).join("\n")}\n\nTotal: ${formatRupiah(total)}` + (sisaKop > 0 ? `\nSisa tagihan koperasi: ${formatRupiah(sisaKop)}` : "") + `\n\nMohon kesediaannya menyelesaikan pembayaran. Apabila sudah membayar, mohon abaikan pesan ini atau kirimkan bukti transfernya.\n\nJazakumullahu khairan.`;
+  return `https://wa.me/${hp}?text=${encodeURIComponent(teks)}`;
+}
 function SppPage({ profile }) {
   const editable = canEdit(profile.role, "spp");
   const isViewer = profile.role !== "santri";
@@ -2550,12 +2564,15 @@ function SppPage({ profile }) {
   const sppT = useTable("spp");
   const profilesT = useTable("profiles");
   const koperasiT = useTable("koperasi_cicilan");
+  const [showRekap, setShowRekap] = useState(false);
+  const [hanyaBelum, setHanyaBelum] = useState(false);
   const [showGabungan, setShowGabungan] = useState(false);
   const [showKoperasi, setShowKoperasi] = useState(false);
   const [nim, setNim] = useState(isViewer ? "" : profile.nim);
   const [showForm, setShowForm] = useState(false);
   const brand = useContext(BrandContext);
   const [kuitansi, setKuitansi] = useState(null);
+  const [kuitansiKop, setKuitansiKop] = useState(null);
   const [editingRow, setEditingRow] = useState(null);
   const [showBulk, setShowBulk] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
@@ -2644,35 +2661,44 @@ function SppPage({ profile }) {
 
   const [q, setQ] = useState("");
 
+  if (isViewer && !nim && showRekap) {
+    return <RekapSpp santriRows={santriT.rows} sppRows={sppT.rows} koperasiRows={koperasiT.rows} brand={brand} onBack={() => setShowRekap(false)} />;
+  }
   if (isViewer && !nim) {
     const withStatus = santriT.rows.map((s) => {
       const row = sppT.rows.find((r) => r.nim === s.nim && r.bulan === bulanIni && r.tahun === nowYear);
-      return { s, row };
-    }).filter(({ s }) => !q || s.nama.toLowerCase().includes(q.toLowerCase()) || s.nim.includes(q));
+      return { s, row, tunggak: sppT.rows.filter((r) => r.nim === s.nim && r.status !== "Lunas") };
+    }).filter(({ s }) => !q || s.nama.toLowerCase().includes(q.toLowerCase()) || s.nim.includes(q)).filter(({ tunggak }) => !hanyaBelum || tunggak.length > 0);
     const lunas = withStatus.filter(({ row }) => row?.status === "Lunas").length;
     const belumLunas = withStatus.filter(({ row }) => row && row.status !== "Lunas").length;
     const totalTertunggak = withStatus.filter(({ row }) => row && row.status !== "Lunas").reduce((a, { row }) => a + Number(row.nominal || 0), 0);
 
     return (
       <div>
-        <PageHeader title="Iuran SPP" sub={`Status pembayaran bulan ${bulanIni} — klik santri untuk kelola.`} actions={editable && <Btn onClick={() => setShowBulk(true)}>+ Buat Iuran Bulan Ini</Btn>} />
+        <PageHeader title="Iuran SPP" sub={`Status pembayaran bulan ${bulanIni} — klik santri untuk kelola.`} actions={<div className="flex gap-2"><Btn tone="ghost" onClick={() => setShowRekap(true)}>📊 Rekap Bulanan</Btn>{editable && <Btn onClick={() => setShowBulk(true)}>+ Buat Iuran Bulan Ini</Btn>}</div>} />
         <div className="grid grid-cols-3 gap-4 mb-5">
           <StatCard label={`Lunas Bulan ${bulanIni}`} value={lunas} />
           <StatCard label="Belum Lunas" value={belumLunas} />
           <StatCard label="Total Tertunggak" value={formatRupiah(totalTertunggak)} />
         </div>
-        <div className="mb-4 max-w-xs"><Input placeholder="Cari nama atau NIM..." value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <div className="mb-4 flex items-center gap-4 flex-wrap"><div className="max-w-xs w-full"><Input placeholder="Cari nama atau NIM..." value={q} onChange={(e) => setQ(e.target.value)} /></div><label className="flex items-center gap-2 text-sm text-stone-600"><input type="checkbox" checked={hanyaBelum} onChange={(e) => setHanyaBelum(e.target.checked)} />Hanya yang punya tunggakan</label></div>
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Status Bulan Ini</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Status Bulan Ini</th><th className="p-3.5">Tunggakan</th>{editable && <th className="p-3.5 text-right">Pengingat</th>}</tr></thead>
             <tbody>
-              {withStatus.map(({ s, row }) => (
+              {withStatus.map(({ s, row, tunggak }) => {
+                const sisaKop = Math.max(0, Number(s.tagihan_koperasi || 0) - koperasiT.rows.filter((c) => c.nim === s.nim).reduce((a, c) => a + Number(c.jumlah || 0), 0));
+                const linkWa = linkWaTunggakan({ santri: s, rows: tunggak, sisaKop, namaPondok: brand.nama_pondok });
+                return (
                 <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
                   <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[0.6875rem] text-stone-400">{s.nim}</div></div></div></td>
                   <td className="p-3.5">{row ? <Badge tone={row.status === "Lunas" ? "green" : "red"}>{row.status}</Badge> : <Badge tone="grey">Belum ada iuran</Badge>}</td>
+                  <td className="p-3.5 text-xs">{tunggak.length > 0 ? <span className="font-bold text-red-700">{tunggak.length} bln · {formatRupiah(tunggak.reduce((a, r) => a + Number(r.nominal || 0), 0))}</span> : <span className="text-stone-400">-</span>}</td>
+                  {editable && <td className="p-3.5 text-right">{tunggak.length === 0 ? <span className="text-stone-300">-</span> : linkWa ? <a href={linkWa} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-xs font-bold text-green-700 border border-green-300 rounded-lg px-2.5 py-1 hover:bg-green-50">📲 Ingatkan</a> : <span className="text-[0.6875rem] text-stone-400">No. HP wali kosong</span>}</td>}
                 </tr>
-              ))}
-              {withStatus.length === 0 && <tr><td colSpan={2}><Empty text="Tidak ada santri yang cocok." /></td></tr>}
+                );
+              })}
+              {withStatus.length === 0 && <tr><td colSpan={editable ? 4 : 3}><Empty text="Tidak ada santri yang cocok." /></td></tr>}
             </tbody>
           </table>
         </Card>
@@ -2685,7 +2711,7 @@ function SppPage({ profile }) {
     <div>
       {isViewer && <BackBar onBack={() => setNim("")} />}
       <PageHeader title={isViewer ? (santri?.nama || "Iuran SPP") : "Iuran SPP"}
-        actions={<div className="flex gap-2">{editable && isViewer && <Btn tone="gold" onClick={() => setShowGabungan(true)}>💰 Terima Pembayaran</Btn>}{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Tambah Iuran</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
+        actions={<div className="flex gap-2">{editable && isViewer && (() => { const l = linkWaTunggakan({ santri, rows: rows.filter((r) => r.status !== "Lunas"), sisaKop: sisaKoperasi, namaPondok: brand.nama_pondok }); return l ? <a href={l} target="_blank" rel="noreferrer" className="px-4 py-2.5 rounded-xl text-sm font-bold border border-green-300 text-green-700 hover:bg-green-50">📲 Ingatkan Wali</a> : null; })()}{editable && isViewer && <Btn tone="gold" onClick={() => setShowGabungan(true)}>💰 Terima Pembayaran</Btn>}{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Tambah Iuran</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
       <div className={`grid ${tagihanKoperasi > 0 ? "grid-cols-3" : "grid-cols-2"} gap-4 mb-5 max-w-2xl`}>
         <StatCard label="Total Tunggakan" value={formatRupiah(rows.filter((r) => r.status !== "Lunas").reduce((a, r) => a + Number(r.nominal || 0), 0))} />
         <StatCard label="Bulan Belum Lunas" value={rows.filter((r) => r.status !== "Lunas").length} />
@@ -2735,16 +2761,17 @@ function SppPage({ profile }) {
             {editable && isViewer && <Btn onClick={() => setShowKoperasi(true)}>+ Catat Cicilan</Btn>}
           </div>
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase text-stone-500"><th className="p-3">Tanggal</th><th className="p-3">Jumlah</th><th className="p-3">Metode</th><th className="p-3">Catatan</th>{editable && <th className="p-3 text-right">Aksi</th>}</tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase text-stone-500"><th className="p-3">Tanggal</th><th className="p-3">Jumlah</th><th className="p-3">Metode</th><th className="p-3">Catatan</th><th className="p-3">Bukti</th>{editable && <th className="p-3 text-right">Aksi</th>}</tr></thead>
             <tbody>
               {cicilan.map((c) => (
                 <tr key={c.id} className="border-t border-stone-100">
                   <td className="p-3">{c.tanggal ? new Date(c.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "-"}</td>
                   <td className="p-3 font-bold">{formatRupiah(c.jumlah)}</td><td className="p-3">{c.metode_bayar || "-"}</td><td className="p-3 text-xs text-stone-500">{c.catatan || "-"}</td>
+                  <td className="p-3 whitespace-nowrap">{c.spp_id ? (() => { const rs = rows.find((r) => String(r.id) === String(c.spp_id)); return rs ? <button onClick={() => setKuitansi(rs)} className="text-[#145048] text-xs font-bold">🧾 Bukti SPP + Koperasi</button> : <span className="text-stone-300">-</span>; })() : <button onClick={() => setKuitansiKop(c)} className="text-[#145048] text-xs font-bold">🧾 Cetak Bukti</button>}</td>
                   {editable && <td className="p-3 text-right"><button onClick={() => hapusCicilan(c)} className="text-red-600 text-xs font-bold">Hapus</button></td>}
                 </tr>
               ))}
-              {cicilan.length === 0 && <tr><td colSpan={editable ? 5 : 4}><Empty text="Belum ada cicilan koperasi." /></td></tr>}
+              {cicilan.length === 0 && <tr><td colSpan={editable ? 6 : 5}><Empty text="Belum ada cicilan koperasi." /></td></tr>}
             </tbody>
           </table>
         </Card>
@@ -2753,6 +2780,7 @@ function SppPage({ profile }) {
       {showKoperasi && <KoperasiForm onCancel={() => setShowKoperasi(false)} onSubmit={catatKoperasi} />}
       {showForm && <SppForm defaultNominal={santri?.nominal_spp} onCancel={() => setShowForm(false)} onSubmit={addRecord} />}
       {editingRow && <SppForm initial={editingRow} onCancel={() => setEditingRow(null)} onSubmit={addRecord} />}
+      {kuitansiKop && <KuitansiKoperasi cicilan={kuitansiKop} santri={santri} brand={brand} penandaTangan={profilesT.rows.find((p) => p.username === kuitansiKop.dicatat_oleh_username)} sisaSetelah={tagihanKoperasi > 0 ? Math.max(0, tagihanKoperasi - cicilan.filter((x) => String(x.tanggal) < String(kuitansiKop.tanggal) || (String(x.tanggal) === String(kuitansiKop.tanggal) && Number(x.id) <= Number(kuitansiKop.id))).reduce((a, x) => a + Number(x.jumlah || 0), 0)) : null} onClose={() => setKuitansiKop(null)} />}
       {kuitansi && <KuitansiSpp row={kuitansi} santri={santri} brand={brand} penandaTangan={profilesT.rows.find((p) => p.username === kuitansi.dicatat_oleh_username)} onClose={() => setKuitansi(null)} />}
     </div>
   );
@@ -2774,6 +2802,9 @@ function terbilang(n) {
 function KuitansiSpp({ row, santri, brand, penandaTangan, onClose }) {
   const tglBayar = row.tanggal_bayar ? new Date(row.tanggal_bayar) : new Date();
   const noKuitansi = `BKT-${row.nim}-${row.tahun}${String(BULAN.indexOf(row.bulan) + 1).padStart(2, "0")}`;
+  const gabungan = Number(row.total_diterima) > Number(row.nominal);
+  const totalBayar = gabungan ? Number(row.total_diterima) : Number(row.nominal);
+  const kopBagian = totalBayar - Number(row.nominal);
   return (
     <Modal title="Bukti Pembayaran Iuran SPP" onClose={onClose}>
       <style>{`
@@ -2793,17 +2824,25 @@ function KuitansiSpp({ row, santri, brand, penandaTangan, onClose }) {
             <div style={{ fontSize: 9.5, color: "#44544D", fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
           </td>
         </tr></tbody></table>
-        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 14, marginBottom: 2 }}>BUKTI PEMBAYARAN IURAN SPP</div>
+        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{gabungan ? "BUKTI PEMBAYARAN IURAN SPP & KOPERASI" : "BUKTI PEMBAYARAN IURAN SPP"}</div>
         <div style={{ textAlign: "center", fontSize: 10, color: "#555", marginBottom: 14 }}>No. {noKuitansi}</div>
         <table style={{ width: "100%", fontSize: 12, lineHeight: 1.7 }}><tbody>
           <tr><td style={{ width: 130 }}>Telah terima dari</td><td>: {santri?.nama || row.nim} (NIM {row.nim})</td></tr>
-          <tr><td>Untuk pembayaran</td><td>: Iuran SPP bulan {row.bulan} {row.tahun}</td></tr>
-          {row.total_diterima > row.nominal && <tr><td>Total diterima</td><td>: {formatRupiah(row.total_diterima)}</td></tr>}
-          <tr><td>Uang sejumlah</td><td>: <b>{formatRupiah(row.nominal)}</b>{row.total_diterima > row.nominal ? " (SPP)" : ""}</td></tr>
-          <tr><td>Terbilang</td><td>: <i style={{ textTransform: "capitalize" }}>{terbilang(row.nominal)} rupiah</i></td></tr>
-          {row.total_diterima > row.nominal && <tr><td>Cicilan koperasi</td><td>: {formatRupiah(Number(row.total_diterima) - Number(row.nominal))}</td></tr>}
+          {!gabungan && <tr><td>Untuk pembayaran</td><td>: Iuran SPP bulan {row.bulan} {row.tahun}</td></tr>}
+          {gabungan && <tr><td>Untuk pembayaran</td><td>: Iuran SPP bulan {row.bulan} {row.tahun} + Cicilan Koperasi (satu bukti, rincian di bawah)</td></tr>}
+          {!gabungan && <tr><td>Uang sejumlah</td><td>: <b>{formatRupiah(row.nominal)}</b></td></tr>}
+          {!gabungan && <tr><td>Terbilang</td><td>: <i style={{ textTransform: "capitalize" }}>{terbilang(row.nominal)} rupiah</i></td></tr>}
           <tr><td>Metode Pembayaran</td><td>: {row.metode_bayar || "-"}</td></tr>
         </tbody></table>
+        {gabungan && (
+          <table style={{ width: "100%", fontSize: 12, marginTop: 8, borderCollapse: "collapse" }}><tbody>
+            <tr style={{ background: "#E9F1EE" }}><td style={{ border: "1px solid #999", padding: "5px 8px", fontWeight: 700 }}>Rincian Pembayaran</td><td style={{ border: "1px solid #999", padding: "5px 8px", fontWeight: 700, textAlign: "right", width: 140 }}>Jumlah</td></tr>
+            <tr><td style={{ border: "1px solid #999", padding: "5px 8px" }}>Iuran SPP bulan {row.bulan} {row.tahun}</td><td style={{ border: "1px solid #999", padding: "5px 8px", textAlign: "right" }}>{formatRupiah(row.nominal)}</td></tr>
+            <tr><td style={{ border: "1px solid #999", padding: "5px 8px" }}>Cicilan Koperasi</td><td style={{ border: "1px solid #999", padding: "5px 8px", textAlign: "right" }}>{formatRupiah(kopBagian)}</td></tr>
+            <tr><td style={{ border: "1px solid #999", padding: "5px 8px", fontWeight: 700 }}>TOTAL DITERIMA</td><td style={{ border: "1px solid #999", padding: "5px 8px", textAlign: "right", fontWeight: 700 }}>{formatRupiah(totalBayar)}</td></tr>
+            <tr><td colSpan={2} style={{ border: "1px solid #999", padding: "5px 8px", fontSize: 11 }}>Terbilang: <i style={{ textTransform: "capitalize" }}>{terbilang(totalBayar)} rupiah</i></td></tr>
+          </tbody></table>
+        )}
         <div style={{ textAlign: "right", marginTop: 26, fontSize: 12 }}>
           <div>{tglBayar.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
           <div>Bendahara</div>
@@ -2818,6 +2857,62 @@ function KuitansiSpp({ row, santri, brand, penandaTangan, onClose }) {
           )}
           <div style={{ borderTop: "1px solid #999", paddingTop: 2 }}>{row.dicatat_oleh || "( ............................ )"}</div>
           {row.dicatat_oleh && <div style={{ fontSize: 9, color: "#888", marginTop: 2 }}>Ditandatangani secara digital di SIAKAD</div>}
+        </div>
+        <div style={{ textAlign: "center", fontSize: 8.5, color: "#888", marginTop: 16, borderTop: "1px dashed #ccc", paddingTop: 8 }}>No. {noKuitansi} — Dicetak {new Date().toLocaleString("id-ID")}</div>
+      </div>
+      <div className="flex justify-end gap-2 mt-5">
+        <Btn tone="ghost" onClick={onClose}>Tutup</Btn>
+        <Btn onClick={() => window.print()}>🖨 Cetak</Btn>
+      </div>
+    </Modal>
+  );
+}
+function KuitansiKoperasi({ cicilan, santri, brand, penandaTangan, sisaSetelah, onClose }) {
+  const tglBayar = cicilan.tanggal ? new Date(cicilan.tanggal) : new Date();
+  const noKuitansi = `KOP-${cicilan.nim}-${String(cicilan.id).padStart(5, "0")}`;
+  return (
+    <Modal title="Bukti Pembayaran Cicilan Koperasi" onClose={onClose}>
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .kuitansi-print, .kuitansi-print * { visibility: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .kuitansi-print { position: absolute; top: 0; left: 0; width: 100%; padding: 24px 32px; }
+        }
+      `}</style>
+      <div className="kuitansi-print" style={{ fontSize: 12, color: "#111" }}>
+        <table style={{ width: "100%", marginBottom: 14, borderBottom: "2px solid #0B3B36", paddingBottom: 10 }}><tbody><tr>
+          <td style={{ width: 70, verticalAlign: "middle" }}>{(brand.logo_dokumen_url || brand.logo_url) && <img src={brand.logo_dokumen_url || brand.logo_url} alt="logo" style={{ width: 60 }} />}</td>
+          <td style={{ verticalAlign: "middle" }}>
+            <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36" }}>{brand.yayasan_nama}</div>
+            <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36" }}>PONDOK TAHFIDZ QURAN DAN ENTREPRENEUR {brand.nama_pondok?.toUpperCase()}</div>
+            <div style={{ fontSize: 9.5, color: "#44544D" }}>{brand.alamat_pondok}</div>
+            <div style={{ fontSize: 9.5, color: "#44544D", fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
+          </td>
+        </tr></tbody></table>
+        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 14, marginBottom: 2 }}>BUKTI PEMBAYARAN CICILAN KOPERASI</div>
+        <div style={{ textAlign: "center", fontSize: 10, color: "#555", marginBottom: 14 }}>No. {noKuitansi}</div>
+        <table style={{ width: "100%", fontSize: 12, lineHeight: 1.7 }}><tbody>
+          <tr><td style={{ width: 130 }}>Telah terima dari</td><td>: {santri?.nama || cicilan.nim} (NIM {cicilan.nim})</td></tr>
+          <tr><td>Untuk pembayaran</td><td>: Cicilan Koperasi{cicilan.catatan ? ` — ${cicilan.catatan}` : ""}</td></tr>
+          <tr><td>Uang sejumlah</td><td>: <b>{formatRupiah(cicilan.jumlah)}</b></td></tr>
+          <tr><td>Terbilang</td><td>: <i style={{ textTransform: "capitalize" }}>{terbilang(cicilan.jumlah)} rupiah</i></td></tr>
+          <tr><td>Metode Pembayaran</td><td>: {cicilan.metode_bayar || "-"}</td></tr>
+          {sisaSetelah != null && <tr><td>Sisa tagihan koperasi</td><td>: {formatRupiah(sisaSetelah)}</td></tr>}
+        </tbody></table>
+        <div style={{ textAlign: "right", marginTop: 26, fontSize: 12 }}>
+          <div>{tglBayar.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
+          <div>Bendahara</div>
+          {cicilan.dicatat_oleh ? (
+            penandaTangan?.tanda_tangan_url ? (
+              <img src={penandaTangan.tanda_tangan_url} alt="Tanda tangan" style={{ height: 48, marginBottom: -4 }} />
+            ) : (
+              <div style={{ fontFamily: "cursive", fontSize: 20, color: "#0B3B36", display: "inline-block", paddingTop: 8 }}>{cicilan.dicatat_oleh}</div>
+            )
+          ) : (
+            <div style={{ height: 44 }}></div>
+          )}
+          <div style={{ borderTop: "1px solid #999", paddingTop: 2 }}>{cicilan.dicatat_oleh || "( ............................ )"}</div>
+          {cicilan.dicatat_oleh && <div style={{ fontSize: 9, color: "#888", marginTop: 2 }}>Ditandatangani secara digital di SIAKAD</div>}
         </div>
         <div style={{ textAlign: "center", fontSize: 8.5, color: "#888", marginTop: 16, borderTop: "1px dashed #ccc", paddingTop: 8 }}>No. {noKuitansi} — Dicetak {new Date().toLocaleString("id-ID")}</div>
       </div>
@@ -3224,8 +3319,144 @@ function MenuKustomForm({ initial, onCancel, onSubmit }) {
   );
 }
 
+const NAMA_BULAN_ID = BULAN;
+function RekapSpp({ santriRows, sppRows, koperasiRows, brand, onBack }) {
+  const [bulan, setBulan] = useState(BULAN[new Date().getMonth()]);
+  const [tahun, setTahun] = useState(nowYear);
+  const mm = String(BULAN.indexOf(bulan) + 1).padStart(2, "0");
+  const sppBulan = sppRows.filter((r) => r.bulan === bulan && Number(r.tahun) === Number(tahun));
+  const baris = [...santriRows].sort((a, b) => a.nama.localeCompare(b.nama)).map((s) => {
+    const r = sppBulan.find((x) => x.nim === s.nim);
+    const cicilBulan = koperasiRows.filter((c) => c.nim === s.nim && String(c.tanggal || "").startsWith(`${tahun}-${mm}`)).reduce((a, c) => a + Number(c.jumlah || 0), 0);
+    const totalCicil = koperasiRows.filter((c) => c.nim === s.nim).reduce((a, c) => a + Number(c.jumlah || 0), 0);
+    const sisa = Math.max(0, Number(s.tagihan_koperasi || 0) - totalCicil);
+    return { nim: s.nim, nama: s.nama, nominal: r ? Number(r.nominal || 0) : 0, status: r ? r.status : "Belum ada iuran", tglBayar: r?.tanggal_bayar || "", metode: r?.metode_bayar || "", cicilBulan, sisa };
+  });
+  const tertagih = baris.reduce((a, b) => a + b.nominal, 0);
+  const diterima = baris.filter((b) => b.status === "Lunas").reduce((a, b) => a + b.nominal, 0);
+  const jmlLunas = baris.filter((b) => b.status === "Lunas").length;
+  const jmlBelum = baris.filter((b) => b.status !== "Lunas" && b.status !== "Belum ada iuran").length;
+  const koperasiMasuk = baris.reduce((a, b) => a + b.cicilBulan, 0);
+  const koperasiSisa = baris.reduce((a, b) => a + b.sisa, 0);
+  const tgl = (v) => v ? new Date(v).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "-";
+  async function unduhExcel() {
+    const mod = await import("xlsx"); const XLSX = mod.default?.utils ? mod.default : mod;
+    const aoa = [
+      [`Rekap Iuran SPP & Koperasi — ${bulan} ${tahun}`], [brand.nama_pondok || ""], [],
+      ["Jumlah santri", baris.length], ["Sudah lunas", jmlLunas], ["Belum lunas", jmlBelum],
+      ["Total tertagih SPP", tertagih], ["SPP diterima", diterima], ["SPP belum diterima", tertagih - diterima],
+      ["Cicilan koperasi masuk bulan ini", koperasiMasuk], ["Total sisa tagihan koperasi", koperasiSisa], [],
+      ["NIM", "Nama", "Nominal SPP", "Status", "Tanggal Bayar", "Metode", "Cicilan Koperasi Bulan Ini", "Sisa Tagihan Koperasi"],
+      ...baris.map((b) => [b.nim, b.nama, b.nominal, b.status, b.tglBayar, b.metode, b.cicilBulan, b.sisa]),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [{ wch: 14 }, { wch: 30 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 24 }, { wch: 22 }];
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, `Rekap ${bulan} ${tahun}`.slice(0, 31));
+    XLSX.writeFile(wb, `Rekap-SPP-${bulan}-${tahun}.xlsx`);
+  }
+  return (
+    <div>
+      <BackBar onBack={onBack} />
+      <PageHeader title="Rekap Bulanan SPP & Koperasi" sub="Ringkasan pembayaran per bulan untuk laporan." actions={<div className="flex gap-2"><Btn tone="ghost" onClick={unduhExcel}>⬇ Unduh Excel</Btn><Btn tone="gold" onClick={() => window.print()}>🖨 Cetak / PDF</Btn></div>} />
+      <div className="flex gap-3 mb-5 max-w-sm print:hidden">
+        <Select value={bulan} onChange={(e) => setBulan(e.target.value)}>{BULAN.map((b) => <option key={b}>{b}</option>)}</Select>
+        <Input type="number" value={tahun} onChange={(e) => setTahun(e.target.value)} />
+      </div>
+      <style>{`@media print { body * { visibility: hidden; } .rekap-print, .rekap-print * { visibility: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .rekap-print { position: absolute; top: 0; left: 0; width: 100%; padding: 16px 24px; } }`}</style>
+      <div className="rekap-print">
+        <div className="hidden print:block mb-3" style={{ borderBottom: "2px solid #0B3B36", paddingBottom: 8 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: "#0B3B36" }}>{brand.nama_pondok}</div>
+          <div style={{ fontWeight: 700, fontSize: 13 }}>Rekap Iuran SPP &amp; Koperasi — {bulan} {tahun}</div>
+        </div>
+        <div className="grid grid-cols-4 gap-3 mb-5">
+          <StatCard label="Lunas / Total Santri" value={`${jmlLunas} / ${baris.length}`} />
+          <StatCard label="SPP Diterima" value={formatRupiah(diterima)} sub={`dari ${formatRupiah(tertagih)}`} />
+          <StatCard label="SPP Belum Diterima" value={formatRupiah(tertagih - diterima)} />
+          <StatCard label="Cicilan Koperasi Masuk" value={formatRupiah(koperasiMasuk)} sub={`Sisa tagihan ${formatRupiah(koperasiSisa)}`} />
+        </div>
+        <Card className="p-0 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3">Mahasantri</th><th className="p-3">SPP</th><th className="p-3">Status</th><th className="p-3">Tgl Bayar</th><th className="p-3">Cicilan Koperasi</th><th className="p-3">Sisa Koperasi</th></tr></thead>
+            <tbody>
+              {baris.map((b) => (
+                <tr key={b.nim} className="border-t border-stone-100">
+                  <td className="p-3"><div className="font-bold">{b.nama}</div><div className="text-[0.6875rem] text-stone-400">{b.nim}</div></td>
+                  <td className="p-3">{formatRupiah(b.nominal)}</td>
+                  <td className="p-3"><Badge tone={b.status === "Lunas" ? "green" : b.status === "Belum ada iuran" ? "grey" : "red"}>{b.status}</Badge></td>
+                  <td className="p-3">{tgl(b.tglBayar)}</td>
+                  <td className="p-3">{b.cicilBulan ? formatRupiah(b.cicilBulan) : "-"}</td>
+                  <td className="p-3">{b.sisa ? formatRupiah(b.sisa) : "-"}</td>
+                </tr>
+              ))}
+              {baris.length === 0 && <tr><td colSpan={6}><Empty text="Belum ada santri." /></td></tr>}
+            </tbody>
+          </table>
+        </Card>
+        <div className="hidden print:block text-[10px] text-stone-500 mt-3">Dicetak {new Date().toLocaleString("id-ID")} dari SIAKAD</div>
+      </div>
+    </div>
+  );
+}
+async function ambilSemuaBaris(tabel, kolom = "*") {
+  const hasil = []; let dari = 0;
+  for (;;) {
+    const { data, error } = await supabase.from(tabel).select(kolom).range(dari, dari + 999);
+    if (error) throw new Error(`${tabel}: ${error.message}`);
+    hasil.push(...(data || []));
+    if (!data || data.length < 1000) break;
+    dari += 1000;
+  }
+  return hasil;
+}
+function BackupDataCard() {
+  const [proses, setProses] = useState(false);
+  const [msg, setMsg] = useState("");
+  async function unduh() {
+    setProses(true); setMsg("");
+    try {
+      const mod = await import("xlsx"); const XLSX = mod.default?.utils ? mod.default : mod;
+      const datar = (rows) => rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v !== null && typeof v === "object" ? JSON.stringify(v) : v])));
+      const lembar = [
+        ["Mahasantri", "santri"], ["Akademik", "akademik"], ["Kurikulum", "kurikulum"], ["Iuran SPP", "spp"], ["Cicilan Koperasi", "koperasi_cicilan"],
+        ["Capaian Quran", "quran_log"], ["Ibadah", "ibadah_log"], ["Kalender Akademik", "kalender_akademik"], ["Pengumuman", "pengumuman"],
+      ];
+      const wb = XLSX.utils.book_new(); const gagal = [];
+      for (const [nama, tabel] of lembar) {
+        try { const rows = await ambilSemuaBaris(tabel); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datar(rows)), nama.slice(0, 31)); }
+        catch (e) { gagal.push(nama); }
+      }
+      try {
+        const prof = await ambilSemuaBaris("profiles", "username,nama,role,nim,last_login");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prof), "Akun");
+      } catch (e) { gagal.push("Akun"); }
+      try {
+        const moduls = await ambilSemuaBaris("modul_kustom"); const isi = await ambilSemuaBaris("modul_kustom_data");
+        moduls.forEach((m) => {
+          const baris = isi.filter((d) => d.modul_id === m.id).map((d) => Object.fromEntries((m.kolom || []).map((c) => [c.label, d.data?.[c.key] ?? ""])));
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(baris), `Menu ${m.nama}`.replace(/[\\/?*\[\]:]/g, " ").slice(0, 31));
+        });
+      } catch (e) { /* menu tambahan belum dipasang */ }
+      XLSX.writeFile(wb, `Cadangan-SIAKAD-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      setMsg(gagal.length ? `Cadangan diunduh, tetapi bagian ini gagal diambil: ${gagal.join(", ")}.` : "Cadangan berhasil diunduh.");
+    } catch (e) { setMsg("Gagal membuat cadangan: " + e.message); }
+    setProses(false);
+  }
+  return (
+    <Card className="mb-5">
+      <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-1">Cadangan Data (Backup)</h3>
+      <p className="text-xs text-stone-500 mb-4">Unduh seluruh data SIAKAD ke satu file Excel (satu lembar per jenis data). Lakukan rutin, misalnya sebulan sekali. File berisi data pribadi santri, jadi simpan di tempat yang aman dan jangan dibagikan sembarangan.</p>
+      {msg && <div className="text-sm mb-3 p-3 rounded-xl bg-[#E9F1EE] text-[#0F4A44] font-medium">{msg}</div>}
+      <Btn tone="gold" onClick={unduh} disabled={proses}>{proses ? "Menyiapkan file…" : "⬇ Unduh Semua Data (Excel)"}</Btn>
+    </Card>
+  );
+}
+
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Bukti pembayaran: satu bon untuk SPP + koperasi, dan bukti cicilan koperasi", isi: "Pembayaran gabungan kini tercetak dalam satu bukti dengan rincian SPP dan koperasi. Cicilan koperasi yang dibayar terpisah juga punya bukti cetak sendiri (menampilkan sisa tagihan).", lokasi: "Iuran SPP → pilih santri → Cetak Bukti Bayar / kartu Cicilan Koperasi" },
+  { tgl: "Okt 2026", judul: "Rekap Bulanan SPP & Koperasi", isi: "Ringkasan pembayaran per bulan (lunas, belum, total diterima, cicilan koperasi) yang bisa diunduh ke Excel atau dicetak sebagai PDF untuk laporan ke pimpinan.", lokasi: "Iuran SPP → tombol Rekap Bulanan" },
+  { tgl: "Okt 2026", judul: "Cadangan Data (Backup) ke Excel", isi: "Satu tombol untuk mengunduh seluruh data SIAKAD ke satu file Excel sebagai cadangan.", lokasi: "Pengaturan → Cadangan Data" },
+  { tgl: "Okt 2026", judul: "Pengingat tunggakan lewat WhatsApp", isi: "Daftar santri kini menampilkan tunggakan, dan tombol Ingatkan membuka WhatsApp wali dengan pesan siap kirim. Perlu No. HP Orang Tua/Wali terisi di Data Mahasantri.", lokasi: "Iuran SPP → kolom Pengingat" },
   { tgl: "Okt 2026", judul: "Menu Tambahan buatan sendiri", isi: "Administrator bisa membuat menu baru lengkap dengan kolom isiannya (misalnya Inventaris, Data Alumni, Absensi Kegiatan) tanpa pengembang dan tanpa deploy.", lokasi: "Pengaturan → Menu Tambahan" },
   { tgl: "Okt 2026", judul: "Terakhir Masuk di Kelola Akun", isi: "Kolom baru yang menunjukkan kapan tiap akun terakhir masuk, supaya terlihat siapa yang sudah aktif hari ini.", lokasi: "Menu Kelola Akun" },
   { tgl: "Okt 2026", judul: "Nominal SPP per santri + pembayaran gabungan", isi: "Nominal SPP kini diisi sekali di data santri dan otomatis dipakai saat membuat iuran. Satu transfer bisa dipecah otomatis, misalnya Rp1.500.000 menjadi SPP Rp1.000.000 dan cicilan koperasi Rp500.000.", lokasi: "Data Mahasantri (isi nominal) dan Iuran SPP → pilih santri → Terima Pembayaran" },
@@ -3262,6 +3493,8 @@ function PanduanAdmin() {
         <ul className="list-disc pl-5 space-y-1">
           <li><b>Awal bulan:</b> bendahara membuka Iuran SPP lalu klik "+ Buat Iuran Bulan Ini". Nominal otomatis dari data masing-masing santri.</li>
           <li><b>Santri baru:</b> tambahkan di Data Mahasantri (isi Nominal SPP), lalu buat akun loginnya di Kelola Akun.</li>
+          <li><b>Sebulan sekali:</b> buka Pengaturan lalu klik "Unduh Semua Data" untuk cadangan, dan simpan file-nya di tempat aman (misalnya Google Drive pribadi pondok).</li>
+          <li><b>Awal bulan / akhir bulan:</b> bendahara membuka Iuran SPP → Rekap Bulanan untuk laporan ke pimpinan, dan memakai tombol Ingatkan bagi yang menunggak.</li>
           <li><b>Setiap hari / pekan:</b> buka Kelola Akun dan lihat kolom "Terakhir Masuk" untuk mengetahui staf yang sudah aktif.</li>
           <li><b>Staf pindah tugas:</b> ubah peran akunnya lewat tombol Edit di Kelola Akun, jangan buat akun baru.</li>
         </ul>
@@ -3560,6 +3793,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSi
 
       {profile.role === "admin" && <PanduanAdmin />}
       {profile.role === "admin" && <MenuKustomManager onChanged={onModulChanged} />}
+      {profile.role === "admin" && <BackupDataCard />}
 
       {profile.role === "admin" && (
         <Card className="border-[#EDD9A0] bg-[#FBF3DF]/40">
