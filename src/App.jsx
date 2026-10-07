@@ -2125,6 +2125,17 @@ function RaporBulananPage({ profile }) {
 /* ---------------------------------------------------------------------- */
 /* Kartu Tanda Mahasantri (KTS)                                                 */
 /* ---------------------------------------------------------------------- */
+const KTS_TEKS = [
+  ["judul", "Judul kartu (KARTU TANDA MAHASANTRI)", { size: 6.5, bold: false, italic: false, color: "#D5E6E1", font: "" }],
+  ["pondok", "Nama pondok (header)", { size: 9, bold: true, italic: false, color: "#FFFFFF", font: "" }],
+  ["nama", "Nama mahasantri", { size: 11, bold: true, italic: false, color: "#0B3B36", font: "" }],
+  ["nim", "NIM", { size: 8, bold: true, italic: false, color: "#B8935A", font: "" }],
+  ["data", "Angkatan, TTL, Gol. Darah", { size: 7.5, bold: false, italic: false, color: "#44544D", font: "" }],
+  ["foot", "Tulisan bawah (sisi depan)", { size: 6, bold: false, italic: true, color: "#8A7F5E", font: "" }],
+  ["yayasan", "Nama yayasan (sisi belakang)", { size: 8, bold: true, italic: false, color: "#0B3B36", font: "" }],
+  ["alamat", "Alamat & kontak (sisi belakang)", { size: 7, bold: false, italic: false, color: "#44544D", font: "" }],
+  ["pernyataan", "Pernyataan (sisi belakang)", { size: 6.3, bold: false, italic: false, color: "#6B7280", font: "" }],
+];
 function KartuSantriPage({ profile }) {
   const brand = useContext(BrandContext);
   const santriT = useTable("santri");
@@ -2135,7 +2146,7 @@ function KartuSantriPage({ profile }) {
     skala: "100", marginAtas: "10", marginKiri: "10", jarak: "5", susunan: "kolom",
     hdrAlign: "tengah", hdrSusunan: "atas", logoUkuran: "26",
     fotoPos: "kiri", dataAlign: "kiri", footAlign: "tengah", belAlign: "tengah",
-    qrPos: "kiri", qrUkuran: "38", qrTampil: "ya", ttdPos: "kanan", ttdUkuran: "22", ttdBentuk: "gambar",
+    qrPos: "kiri", qrUkuran: "38", qrTampil: "ya", ttdPos: "kanan", ttdUkuran: "22", ttdBentuk: "gambar", teks: {},
   };
   const [cfg, setCfg] = useState(() => {
     try { return { ...KTS_DEFAULT, ...JSON.parse(localStorage.getItem("siakad_kartu_cfg") || "{}") }; } catch { return KTS_DEFAULT; }
@@ -2151,6 +2162,9 @@ function KartuSantriPage({ profile }) {
   const FX = { kiri: "flex-start", tengah: "center", kanan: "flex-end" };
   const clamp = (v, d, lo, hi) => Math.min(hi, Math.max(lo, num(v, d)));
   const logoPx = clamp(cfg.logoUkuran, 26, 12, 60);
+  const tv = (k) => ({ ...KTS_TEKS.find((x) => x[0] === k)[2], ...((cfg.teks || {})[k] || {}) });
+  const ts = (k) => { const v = tv(k); return { fontSize: clamp(v.size, 8, 3, 30), fontWeight: v.bold ? 700 : 400, fontStyle: v.italic ? "italic" : "normal", color: v.color, ...(v.font && FONT_OPTIONS[v.font] ? { fontFamily: FONT_OPTIONS[v.font].heading } : {}) }; };
+  const setT = (k, patch) => setCfg((c) => ({ ...c, teks: { ...(c.teks || {}), [k]: { ...((c.teks || {})[k] || {}), ...patch } } }));
   const qrPx = clamp(cfg.qrUkuran, 38, 20, 70);
   const ttdPx = clamp(cfg.ttdUkuran, 22, 10, 70);
   const seg = (k, opts) => (
@@ -2293,6 +2307,31 @@ function KartuSantriPage({ profile }) {
                 ))}
               </div>
             </div>
+            <div className="border-t border-stone-100 mt-4 pt-4">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div className="text-[0.6875rem] font-extrabold text-[#B8935A] uppercase tracking-[0.1em]">Gaya Tulisan (ukuran, font, tebal, miring, warna)</div>
+                <Btn tone="ghost" onClick={() => setCfg((c) => ({ ...c, teks: {} }))}>Kembalikan gaya tulisan</Btn>
+              </div>
+              <div className="grid gap-2">
+                {KTS_TEKS.map(([k, label]) => {
+                  const v = tv(k);
+                  return (
+                    <div key={k} className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm text-stone-600 w-60">{label}</span>
+                      <input type="number" step="0.5" min="3" max="30" value={v.size} onChange={(e) => setT(k, { size: e.target.value })} title="Ukuran huruf (px)" className="w-20 px-2 py-1.5 border border-stone-300 rounded-lg text-sm" />
+                      <select value={v.font || ""} onChange={(e) => setT(k, { font: e.target.value })} className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm bg-white">
+                        <option value="">Font bawaan</option>
+                        {Object.entries(FONT_OPTIONS).map(([key, f]) => <option key={key} value={key}>{f.label}</option>)}
+                      </select>
+                      <button type="button" onClick={() => setT(k, { bold: !v.bold })} title="Tebal" className={`w-8 h-8 rounded-lg border text-sm font-extrabold ${v.bold ? "bg-[#0B3B36] text-white border-[#0B3B36]" : "bg-white text-stone-600 border-stone-300"}`}>B</button>
+                      <button type="button" onClick={() => setT(k, { italic: !v.italic })} title="Miring" className={`w-8 h-8 rounded-lg border text-sm italic font-semibold ${v.italic ? "bg-[#0B3B36] text-white border-[#0B3B36]" : "bg-white text-stone-600 border-stone-300"}`}>I</button>
+                      <input type="color" value={v.color} onChange={(e) => setT(k, { color: e.target.value })} title="Warna tulisan" className="w-9 h-8 p-0 border border-stone-300 rounded-lg cursor-pointer bg-white" />
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[0.625rem] text-stone-400 mt-2">Ukuran dalam piksel pada kartu (contoh nama 11, data 7,5). Perubahan langsung terlihat pada pratinjau di bawah.</p>
+            </div>
             <p className="text-xs text-stone-400 mt-3">Pengaturan tersimpan di perangkat ini. Saat jendela cetak muncul, pastikan opsi <b>Margin</b> di browser diatur ke <b>Bawaan</b> atau <b>Tidak ada</b>.</p>
           </Card>
           {isViewer && <BackBar onBack={() => setNim("")} />}
@@ -2311,8 +2350,8 @@ function KartuSantriPage({ profile }) {
               <div style={{ background: `linear-gradient(120deg, ${brand.warna_utama || "#0B3B36"}, #04100a)`, padding: "6px 10px", display: "flex", flexDirection: cfg.hdrSusunan === "samping" ? "row" : "column", alignItems: cfg.hdrSusunan === "samping" ? "center" : FX[cfg.hdrAlign], justifyContent: cfg.hdrSusunan === "samping" ? FX[cfg.hdrAlign] : "center", gap: cfg.hdrSusunan === "samping" ? 7 : 3, textAlign: TA[cfg.hdrAlign], borderBottom: "2px solid #B8935A" }}>
                 {brand.logo_url && <img src={brand.logo_url} alt="logo" style={{ width: logoPx, height: logoPx, objectFit: "contain" }} />}
                 <div style={{ lineHeight: 1.15, color: "#fff" }}>
-                  <div style={{ fontSize: 6.5, letterSpacing: 1, opacity: 0.75 }}>KARTU TANDA MAHASANTRI</div>
-                  <div style={{ fontSize: 9, fontWeight: 700 }}>{brand.nama_pondok || "Darul Hikmah"}</div>
+                  <div style={{ letterSpacing: 1, ...ts("judul") }}>KARTU TANDA MAHASANTRI</div>
+                  <div style={ts("pondok")}>{brand.nama_pondok || "Darul Hikmah"}</div>
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: cfg.fotoPos === "kanan" ? "row-reverse" : "row", gap: 10, padding: "9px 10px", flex: 1 }}>
@@ -2320,16 +2359,16 @@ function KartuSantriPage({ profile }) {
                   {santri.foto_url ? <img src={santri.foto_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div className="w-full h-full flex items-center justify-center text-[1.125rem] font-bold text-[#B8935A]">{initials(santri.nama)}</div>}
                 </div>
                 <div style={{ flex: 1, minWidth: 0, textAlign: TA[cfg.dataAlign] }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, color: "#0B3B36" }}>{santri.nama}</div>
-                  <div style={{ fontSize: 8, color: "#B8935A", fontWeight: 700, marginBottom: 5 }}>NIM {santri.nim}</div>
-                  <div style={{ fontSize: 7.5, color: "#44544D", lineHeight: 1.6 }}>
+                  <div style={{ lineHeight: 1.2, ...ts("nama") }}>{santri.nama}</div>
+                  <div style={{ marginBottom: 5, ...ts("nim") }}>NIM {santri.nim}</div>
+                  <div style={{ lineHeight: 1.6, ...ts("data") }}>
                     <div>Angkatan: {santri.angkatan || "-"}</div>
                     <div>TTL: {santri.tempat_lahir || "-"}, {fmtTgl(santri.tanggal_lahir)}</div>
                     <div>Gol. Darah: {santri.golongan_darah || "-"}</div>
                   </div>
                 </div>
               </div>
-              <div style={{ borderTop: "1px solid #E7DFCB", padding: "3px 10px", fontSize: 6, color: "#8A7F5E", fontStyle: "italic", textAlign: TA[cfg.footAlign] }}>Berlaku selama aktif sebagai mahasantri</div>
+              <div style={{ borderTop: "1px solid #E7DFCB", padding: "3px 10px", textAlign: TA[cfg.footAlign], ...ts("foot") }}>Berlaku selama aktif sebagai mahasantri</div>
             </div>
 
             </div>
@@ -2343,12 +2382,12 @@ function KartuSantriPage({ profile }) {
               display: "flex", flexDirection: "column", justifyContent: "space-between",
             }}>
               <div style={{ borderTop: "3px solid #B8935A" }}></div>
-              <div style={{ padding: "8px 10px 0", fontSize: 7, color: "#44544D", lineHeight: 1.5, textAlign: TA[cfg.belAlign] }}>
-                <div style={{ fontWeight: 700, color: "#0B3B36", fontSize: 8, marginBottom: 2 }}>{brand.yayasan_nama}</div>
-                <div>{brand.alamat_pondok}</div>
-                <div style={{ fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
+              <div style={{ padding: "8px 10px 0", lineHeight: 1.5, textAlign: TA[cfg.belAlign] }}>
+                <div style={{ marginBottom: 2, ...ts("yayasan") }}>{brand.yayasan_nama}</div>
+                <div style={ts("alamat")}>{brand.alamat_pondok}</div>
+                <div style={{ ...ts("alamat"), fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
               </div>
-              <div style={{ padding: "0 10px", fontSize: 6.3, color: "#6B7280", lineHeight: 1.5, textAlign: TA[cfg.belAlign] }}>
+              <div style={{ padding: "0 10px", lineHeight: 1.5, textAlign: TA[cfg.belAlign], ...ts("pernyataan") }}>
                 Kartu ini adalah identitas resmi mahasantri Pondok Tahfidz Qur'an dan Entrepreneur Darul Hikmah.
                 Jika ditemukan, mohon dikembalikan ke alamat pondok di atas.
               </div>
@@ -3868,6 +3907,7 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Gaya tulisan Kartu Tanda Mahasantri bisa diatur", isi: "Ukuran huruf, jenis font, tebal, miring, dan warna setiap tulisan pada kartu (nama, NIM, data, nama pondok, alamat, dll.) bisa diubah dan langsung terlihat di pratinjau.", lokasi: "Kartu Tanda Mahasantri → Gaya Tulisan" },
   { tgl: "Okt 2026", judul: "Rekap Pencapaian Seluruh Santri (per bulan dan per pekan)", isi: "Satu halaman untuk memaparkan hasil evaluasi semua santri, bisa dipilih per bulan (dengan tren 6 bulan) atau per pekan (siapa yang belum mencapai target): grafik persentase santri yang mencapai target hafalan dan ibadah, tabel per santri, serta unduh Excel dan cetak/PDF.", lokasi: "Menu Rekap Pencapaian (di bawah Rapor Bulanan)" },
   { tgl: "Okt 2026", judul: "Warna grafik baru dan tema siap pakai", isi: "Warna bawaan grafik diganti dengan palet yang lebih lembut. Tersedia 5 tema (Zamrud Lembut, Hijau Pondok & Emas, Biru Tenang, Pastel Lembut, Klasik) yang bisa dipilih sekali klik lalu disesuaikan.", lokasi: "Pengaturan → Warna Grafik" },
   { tgl: "Okt 2026", judul: "Grafik pencapaian per pekan + target mingguan", isi: "Dua grafik (hafalan baru dan ibadah) per pekan terhadap target tiap santri, lengkap dengan status Tercapai / Belum tercapai. Muncul di Rapor Bulanan (ikut tercetak), halaman Al-Qur'an, dan halaman Ibadah. Target diisi di Data Mahasantri.", lokasi: "Rapor Bulanan, Al-Qur'an, Ibadah; target di Data Mahasantri" },
