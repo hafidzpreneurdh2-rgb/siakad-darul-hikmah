@@ -19,7 +19,16 @@ const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih 
 const BIDANG_BISNIS = ["Bakery", "Fashion", "Kuliner", "Kerajinan", "Digital/Online", "Lainnya"];
 const JENIS_IBADAH = ["Sholat Berjamaah", "Sholat Rawatib", "Sholat Dhuha", "Sholat Tahajud", "Al-Ma'tsurat", "Membaca Al-Kahfi", "Puasa Sunnah"];
 const JENIS_SETORAN_QURAN = ["Ziyadah", "Murajaah", "Tilawah", "Tahsin", "Talaqqi"];
-const JENIS_SETORAN_QURAN_COLOR = { Ziyadah: "#0B4D30", Murajaah: "#B8935A", Tilawah: "#3F6C8A", Tahsin: "#8A4A3A", Talaqqi: "#5C4A8A" };
+const PALET_GRAFIK = [
+  { nama: "Zamrud Lembut", warna: { hafalan: "#2A9D8F", ibadah_baik: "#2A9D8F", ibadah_sebagian: "#E9C46A", ibadah_kurang: "#E76F51", spp_lunas: "#2A9D8F", spp_belum: "#E76F51", Ziyadah: "#2A9D8F", Murajaah: "#E9C46A", Tilawah: "#457B9D", Tahsin: "#B5838D", Talaqqi: "#6D597A" } },
+  { nama: "Hijau Pondok & Emas", warna: { hafalan: "#1B7F5C", ibadah_baik: "#1B7F5C", ibadah_sebagian: "#D4A650", ibadah_kurang: "#C8553D", spp_lunas: "#1B7F5C", spp_belum: "#C8553D", Ziyadah: "#1B7F5C", Murajaah: "#D4A650", Tilawah: "#3E7CB1", Tahsin: "#A0526B", Talaqqi: "#6B5CA5" } },
+  { nama: "Biru Tenang", warna: { hafalan: "#3B82C4", ibadah_baik: "#3B82C4", ibadah_sebagian: "#F2B84B", ibadah_kurang: "#E4695B", spp_lunas: "#3B82C4", spp_belum: "#E4695B", Ziyadah: "#3B82C4", Murajaah: "#F2B84B", Tilawah: "#2A9D8F", Tahsin: "#9B7EBD", Talaqqi: "#6C7A89" } },
+  { nama: "Pastel Lembut", warna: { hafalan: "#7FB89E", ibadah_baik: "#7FB89E", ibadah_sebagian: "#F0D08C", ibadah_kurang: "#E39A8E", spp_lunas: "#7FB89E", spp_belum: "#E39A8E", Ziyadah: "#7FB89E", Murajaah: "#F0D08C", Tilawah: "#8FB5D6", Tahsin: "#C9A0B4", Talaqqi: "#A99CCB" } },
+  { nama: "Klasik (versi lama)", warna: { hafalan: "#0B4D30", ibadah_baik: "#0B4D30", ibadah_sebagian: "#B8935A", ibadah_kurang: "#DC2626", spp_lunas: "#0B4D30", spp_belum: "#DC2626", Ziyadah: "#0B4D30", Murajaah: "#B8935A", Tilawah: "#3F6C8A", Tahsin: "#8A4A3A", Talaqqi: "#5C4A8A" } },
+];
+const GRAFIK_DEFAULT = PALET_GRAFIK[0].warna;
+function warnaGrafik(brand) { return { ...GRAFIK_DEFAULT, ...((brand && brand.warna_grafik) || {}) }; }
+const JENIS_SETORAN_QURAN_COLOR = { Ziyadah: "#2A9D8F", Murajaah: "#E9C46A", Tilawah: "#457B9D", Tahsin: "#B5838D", Talaqqi: "#6D597A" };
 const CAPAIAN_OPTIONS = {
   "Sholat Berjamaah": ["Berjamaah", "Sendiri", "Tidak Sholat"],
   "Sholat Rawatib": ["Lengkap", "Sebagian", "Tidak Dikerjakan"],
@@ -513,7 +522,7 @@ function PageHeader({ eyebrow, title, sub, actions }) {
   );
 }
 function Empty({ text }) { return <div className="text-center text-stone-400 text-sm py-10">{text}</div>; }
-function StackedBarChart({ data }) {
+function StackedBarChart({ data, warna = GRAFIK_DEFAULT }) {
   // data: [{ label, lunas, belum }]
   return (
     <div className="flex items-end gap-3 h-40">
@@ -524,8 +533,8 @@ function StackedBarChart({ data }) {
         return (
           <div key={d.label} className="flex-1 flex flex-col items-center gap-2 h-full">
             <div className="w-full flex-1 rounded-lg overflow-hidden flex flex-col justify-end bg-stone-100">
-              {belumPct > 0 && <div style={{ height: `${belumPct}%`, backgroundColor: "#DC2626" }} />}
-              {lunasPct > 0 && <div style={{ height: `${lunasPct}%`, backgroundColor: "#0B4D30" }} />}
+              {belumPct > 0 && <div style={{ height: `${belumPct}%`, backgroundColor: warna.spp_belum }} />}
+              {lunasPct > 0 && <div style={{ height: `${lunasPct}%`, backgroundColor: warna.spp_lunas }} />}
             </div>
             <div className="text-[0.6875rem] font-bold text-stone-500">{d.label}</div>
           </div>
@@ -631,11 +640,137 @@ function PengumumanTerbaru({ rows, onLihat }) {
     </Card>
   );
 }
+function halamanLog(l) { return Math.max(0, Number(l.halaman_sampai || 0) - Number(l.halaman_dari || 0) + 1); }
+function ymOf(m) { return `${m.tahun}-${String(BULAN.indexOf(m.bulan) + 1).padStart(2, "0")}`; }
+function VerticalBars({ data, color = "#2A9D8F", satuan = "" }) {
+  const max = Math.max(1, ...data.map((d) => d.value));
+  return (
+    <div className="flex items-end gap-3 h-44">
+      {data.map((d) => (
+        <div key={d.label} className="flex-1 flex flex-col items-center gap-1.5 h-full">
+          <div className="text-[0.6875rem] font-extrabold text-stone-700">{d.value > 0 ? d.value.toLocaleString("id-ID") : ""}</div>
+          <div className="w-full flex-1 rounded-lg bg-stone-100 flex flex-col justify-end overflow-hidden">
+            <div style={{ height: `${(d.value / max) * 100}%`, backgroundColor: color, minHeight: d.value > 0 ? 6 : 0 }} className="rounded-t-lg transition-all" />
+          </div>
+          <div className="text-[0.6875rem] font-bold text-stone-500">{d.label}</div>
+        </div>
+      ))}
+      {satuan && <div className="sr-only">{satuan}</div>}
+    </div>
+  );
+}
+function IbadahStacked({ logs, warna = GRAFIK_DEFAULT }) {
+  const baris = JENIS_IBADAH.map((j) => {
+    const it = logs.filter((l) => l.jenis === j);
+    const kurang = it.filter((l) => CAPAIAN_NEGATIF.includes(l.capaian)).length;
+    const netral = it.filter((l) => CAPAIAN_NETRAL.includes(l.capaian)).length;
+    return { j, total: it.length, kurang, netral, baik: it.length - kurang - netral };
+  });
+  return (
+    <div className="flex flex-col gap-3">
+      {baris.map((b) => (
+        <div key={b.j} className="flex items-center gap-3">
+          <div className="w-32 text-xs font-bold text-stone-600 flex-shrink-0">{b.j}</div>
+          <div className="flex-1 h-5 bg-stone-100 rounded-full overflow-hidden flex">
+            {b.total > 0 && <><div style={{ width: `${(b.baik / b.total) * 100}%`, backgroundColor: warna.ibadah_baik }} /><div style={{ width: `${(b.netral / b.total) * 100}%`, backgroundColor: warna.ibadah_sebagian }} /><div style={{ width: `${(b.kurang / b.total) * 100}%`, backgroundColor: warna.ibadah_kurang }} /></>}
+          </div>
+          <div className="w-12 text-right text-xs font-extrabold text-stone-700 flex-shrink-0">{b.total > 0 ? `${Math.round((b.baik / b.total) * 100)}%` : "-"}</div>
+        </div>
+      ))}
+      <div className="flex items-center gap-4 mt-1 text-xs font-semibold text-stone-500 flex-wrap">
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: warna.ibadah_baik }} /> Terpenuhi</div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: warna.ibadah_sebagian }} /> Sebagian / sendiri</div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: warna.ibadah_kurang }} /> Tidak dikerjakan</div>
+      </div>
+    </div>
+  );
+}
+/* Grafik pencapaian per pekan (4 pekan: tgl 1-7, 8-14, 15-21, 22-akhir bulan) */
+function infoPekan(periode) {
+  const [y, m] = periode.split("-").map(Number);
+  const hari = new Date(y, m, 0).getDate();
+  const sekarang = new Date();
+  return [0, 1, 2, 3].map((i) => {
+    const awal = i * 7 + 1, akhir = i === 3 ? hari : i * 7 + 7;
+    return { i, label: `Pekan ${i + 1}`, rentang: `${awal}–${akhir}`, berjalan: new Date(y, m - 1, awal) <= sekarang };
+  });
+}
+function pekanDari(tanggal) { return Math.min(3, Math.floor((Number(String(tanggal).slice(8, 10)) - 1) / 7)); }
+function GrafikBatangPekan({ data, target, satuan, max, warnaOk, warnaGagal }) {
+  const t = Number(target) || 0;
+  const batas = Math.max(1, max || 0, t, ...data.map((p) => p.nilai || 0)) * 1.15;
+  const dinilai = data.filter((p) => p.berjalan && p.nilai != null);
+  const lolos = (p) => t > 0 && p.nilai != null && p.nilai >= t;
+  const tercapai = dinilai.filter(lolos).length;
+  return (
+    <div>
+      <div className="text-xs text-stone-500 mb-3">
+        {t > 0 ? <>Target <b>{t}{satuan}</b> per pekan · <b className="text-stone-800">Tercapai {tercapai} dari {dinilai.length} pekan</b></> : "Target per pekan belum diisi di Data Mahasantri."}
+      </div>
+      <div className="relative h-40">
+        {t > 0 && <div className="absolute left-0 right-0 border-t-2 border-dashed border-stone-500 z-10" style={{ bottom: `${(t / batas) * 100}%` }}><span className="absolute right-0 -top-4 text-[0.625rem] font-bold text-stone-600 bg-white px-1">Target</span></div>}
+        <div className="flex items-end gap-4 h-full">
+          {data.map((p) => {
+            const warna = !p.berjalan || p.nilai == null ? "#D6D3D1" : t > 0 ? (lolos(p) ? warnaOk : warnaGagal) : warnaOk;
+            return (
+              <div key={p.i} className="flex-1 flex flex-col items-center justify-end h-full">
+                <div className="text-[0.6875rem] font-extrabold text-stone-700 mb-1">{p.berjalan && p.nilai != null ? `${p.nilai}${satuan === "%" ? "%" : ""}` : ""}</div>
+                <div style={{ height: `${((p.nilai || 0) / batas) * 100}%`, backgroundColor: warna, minHeight: p.nilai > 0 ? 5 : 0 }} className="w-full rounded-t-lg" />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="flex gap-4 mt-1.5 border-t border-stone-200 pt-1.5">
+        {data.map((p) => (
+          <div key={p.i} className="flex-1 text-center">
+            <div className="text-[0.6875rem] font-bold text-stone-600">{p.label}</div>
+            <div className="text-[0.625rem] text-stone-400">tgl {p.rentang}</div>
+            <div className="text-[0.625rem] font-bold" style={{ color: !p.berjalan || p.nilai == null || t === 0 ? "#A8A29E" : lolos(p) ? warnaOk : warnaGagal }}>{!p.berjalan ? "belum berjalan" : p.nilai == null ? "tanpa data" : t === 0 ? "" : lolos(p) ? "Tercapai" : "Belum tercapai"}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+function GrafikPekananQuran({ logs, periode, target, warna = GRAFIK_DEFAULT }) {
+  const data = infoPekan(periode).map((p) => ({ ...p, nilai: logs.filter((l) => l.jenis === "Ziyadah" && l.tanggal?.slice(0, 7) === periode && pekanDari(l.tanggal) === p.i).reduce((a, l) => a + halamanLog(l), 0) }));
+  return <GrafikBatangPekan data={data} target={target} satuan=" hlm" warnaOk={warna.hafalan} warnaGagal={warna.ibadah_kurang} />;
+}
+function GrafikPekananIbadah({ logs, periode, target, warna = GRAFIK_DEFAULT }) {
+  const data = infoPekan(periode).map((p) => {
+    const it = logs.filter((l) => l.tanggal?.slice(0, 7) === periode && pekanDari(l.tanggal) === p.i);
+    return { ...p, nilai: it.length ? Math.round((it.filter((l) => !CAPAIAN_NEGATIF.includes(l.capaian)).length / it.length) * 100) : null };
+  });
+  return <GrafikBatangPekan data={data} target={Number(target) > 0 ? target : 80} satuan="%" max={100} warnaOk={warna.ibadah_baik} warnaGagal={warna.ibadah_kurang} />;
+}
+function GrafikPekananPanel({ kind, logs, santri }) {
+  const wg = warnaGrafik(useContext(BrandContext));
+  const [bulan, setBulan] = useState(BULAN[new Date().getMonth()]);
+  const [tahun, setTahun] = useState(nowYear);
+  const periode = `${tahun}-${String(BULAN.indexOf(bulan) + 1).padStart(2, "0")}`;
+  return (
+    <Card className="mb-5">
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold">Grafik Pencapaian per Pekan — {kind === "quran" ? "Hafalan Baru (Ziyadah)" : "Ibadah"}</h3>
+        <div className="flex gap-2">
+          <Select value={bulan} onChange={(e) => setBulan(e.target.value)} className="!w-auto py-1.5 text-xs">{BULAN.map((b) => <option key={b}>{b}</option>)}</Select>
+          <Select value={tahun} onChange={(e) => setTahun(Number(e.target.value))} className="!w-auto py-1.5 text-xs">{[nowYear - 1, nowYear, nowYear + 1].map((t) => <option key={t} value={t}>{t}</option>)}</Select>
+        </div>
+      </div>
+      {kind === "quran" ? <GrafikPekananQuran logs={logs} periode={periode} target={santri?.target_halaman_pekan} warna={wg} /> : <GrafikPekananIbadah logs={logs} periode={periode} target={santri?.target_ibadah_persen} warna={wg} />}
+    </Card>
+  );
+}
 function Dashboard({ profile }) {
   const santriT = useTable("santri");
   const sppT = useTable("spp");
   const quranT = useTable("quran_log");
+  const ibadahT = useTable("ibadah_log");
   const pengT = useTable("pengumuman");
+  const wg = warnaGrafik(useContext(BrandContext));
+  const ymIni = new Date().toISOString().slice(0, 7);
+  const trenZiyadah = (nim) => monthsBack(6).map((m) => ({ label: m.label, value: quranT.rows.filter((l) => (!nim || l.nim === nim) && l.jenis === "Ziyadah" && l.tanggal?.slice(0, 7) === ymOf(m)).reduce((a, l) => a + halamanLog(l), 0) }));
 
   if (profile.role === "santri") {
     const s = santriT.rows.find((x) => x.nim === profile.nim);
@@ -650,6 +785,17 @@ function Dashboard({ profile }) {
           <StatCard label="Setoran Bulan Ini" value={setoranBulanIni} icon="🕋" />
           <StatCard label="Status SPP Bulan Ini" value={sppBulanIni?.status || "Belum Ada Data"} icon="💳" />
         </div>
+        <div className="grid grid-cols-2 gap-4 mt-6">
+          <Card>
+            <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-4">Hafalan Baru per Bulan (halaman)</h3>
+            <VerticalBars data={trenZiyadah(profile.nim)} color={wg.hafalan} />
+            <div className="text-xs text-stone-400 mt-3">Jumlah halaman setoran Ziyadah dalam 6 bulan terakhir.</div>
+          </Card>
+          <Card>
+            <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-4">Ibadah Bulan Ini</h3>
+            <IbadahStacked warna={wg} logs={ibadahT.rows.filter((l) => l.nim === profile.nim && l.tanggal?.slice(0, 7) === ymIni)} />
+          </Card>
+        </div>
         <PengumumanTerbaru rows={pengT.rows} />
       </div>
     );
@@ -660,7 +806,7 @@ function Dashboard({ profile }) {
   const jenisCounts = JENIS_SETORAN_QURAN.map((j) => ({
     label: j,
     value: quranT.rows.filter((l) => l.jenis === j).length,
-    color: JENIS_SETORAN_QURAN_COLOR[j],
+    color: wg[j] || JENIS_SETORAN_QURAN_COLOR[j],
   }));
   const totalSantri = santriT.rows.length;
   const santriAktif = santriT.rows.filter((s) => s.status === "Aktif" || !s.status).length;
@@ -700,15 +846,52 @@ function Dashboard({ profile }) {
           {showSppChart && (
             <Card>
               <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-4">Tren Pembayaran SPP (6 Bulan)</h3>
-              <StackedBarChart data={sppTrend} />
+              <StackedBarChart data={sppTrend} warna={wg} />
               <div className="flex items-center gap-4 mt-4 text-xs font-semibold text-stone-500">
-                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: "#0B4D30" }} /> Lunas</div>
-                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: "#DC2626" }} /> Belum Lunas</div>
+                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: wg.spp_lunas }} /> Lunas</div>
+                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: wg.spp_belum }} /> Belum Lunas</div>
               </div>
             </Card>
           )}
         </div>
       )}
+
+      <SectionLabel>Tren Al-Qur'an &amp; Ibadah</SectionLabel>
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <Card>
+          <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-4">Hafalan Baru per Bulan (halaman)</h3>
+          <VerticalBars data={trenZiyadah(null)} color={wg.hafalan} />
+          <div className="text-xs text-stone-400 mt-3">Total halaman setoran Ziyadah seluruh mahasantri, 6 bulan terakhir.</div>
+        </Card>
+        <Card>
+          <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-4">Kepatuhan Ibadah Bulan Ini</h3>
+          <IbadahStacked warna={wg} logs={ibadahT.rows.filter((l) => l.tanggal?.slice(0, 7) === ymIni)} />
+        </Card>
+      </div>
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <Card>
+          <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Setoran Terbanyak Bulan Ini</h3>
+          {(() => {
+            const per = {};
+            quranT.rows.filter((l) => l.jenis === "Ziyadah" && l.tanggal?.slice(0, 7) === ymIni).forEach((l) => { per[l.nim] = (per[l.nim] || 0) + halamanLog(l); });
+            const top = Object.entries(per).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            return top.length === 0 ? <div className="text-sm text-stone-400">Belum ada setoran Ziyadah bulan ini.</div> : top.map(([nim, hal], i) => (
+              <div key={nim} className="flex items-center justify-between py-1.5 border-b border-stone-100 last:border-0 text-sm"><span><b className="text-[#B8935A] mr-2">{i + 1}</b>{santriT.rows.find((x) => x.nim === nim)?.nama || nim}</span><b>{hal} hlm</b></div>
+            ));
+          })()}
+        </Card>
+        <Card>
+          <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Perlu Perhatian (Ibadah)</h3>
+          {(() => {
+            const per = {};
+            ibadahT.rows.filter((l) => l.tanggal?.slice(0, 7) === ymIni && CAPAIAN_NEGATIF.includes(l.capaian)).forEach((l) => { per[l.nim] = (per[l.nim] || 0) + 1; });
+            const daftar = Object.entries(per).filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            return daftar.length === 0 ? <div className="text-sm text-stone-400">Tidak ada santri dengan 2 catatan kurang atau lebih bulan ini.</div> : daftar.map(([nim, n]) => (
+              <div key={nim} className="flex items-center justify-between py-1.5 border-b border-stone-100 last:border-0 text-sm"><span>{santriT.rows.find((x) => x.nim === nim)?.nama || nim}</span><b className="text-red-600">{n}× tidak terpenuhi</b></div>
+            ));
+          })()}
+        </Card>
+      </div>
 
       <SectionLabel>Administrasi &amp; Keuangan</SectionLabel>
       <Card className="bg-[#FAF8F2] border-stone-200/70 mb-8">
@@ -791,7 +974,7 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
     nik: "", tempat_lahir: "", tanggal_lahir: "", no_hp: "", alamat: "",
     target_hafalan: "30 Juz", status: "Aktif",
     nama_ayah: "", nama_ibu: "", no_hp_ortu: "", pekerjaan_ortu: "", alamat_wali: "",
-    tanggal_masuk: "", status_spp: "Lunas", nominal_spp: "", tagihan_koperasi: "",
+    tanggal_masuk: "", status_spp: "Lunas", nominal_spp: "", tagihan_koperasi: "", target_halaman_pekan: "", target_ibadah_persen: "",
     golongan_darah: "", kontak_darurat: "", riwayat_penyakit: "",
     foto_url: "", dok_kk_url: "", dok_akta_url: "", dok_ijazah_url: "", dok_ktp_url: "", dok_bpjs_url: "",
   });
@@ -882,6 +1065,10 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
         <div className="grid grid-cols-2 gap-3">
           <Field label="Musyrif/ah (username)"><Input value={f.musyrif_username} onChange={set("musyrif_username")} placeholder="cth: musyrif1" /></Field>
           <Field label="Target Hafalan"><Input value={f.target_hafalan} onChange={set("target_hafalan")} /></Field>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Target Hafalan Baru per Pekan (halaman)"><Input type="number" value={f.target_halaman_pekan ?? ""} onChange={set("target_halaman_pekan")} placeholder="mis. 10" /></Field>
+          <Field label="Target Ibadah Terpenuhi per Pekan (%)"><Input type="number" value={f.target_ibadah_persen ?? ""} onChange={set("target_ibadah_persen")} placeholder="kosong = 80" /></Field>
         </div>
         <Field label="Status">
           <Select value={f.status} onChange={set("status")}><option>Aktif</option><option>Cuti</option><option>Lulus</option><option>Keluar</option></Select>
@@ -1721,6 +1908,12 @@ function RaporBulananPage({ profile }) {
               </tbody>
             </table>
 
+            <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36", marginBottom: 8 }}>Grafik Pencapaian per Pekan</div>
+            <div className="grid grid-cols-2 gap-6 mb-5">
+              <div><div className="text-[11px] font-bold text-stone-600 mb-2">Hafalan baru (Ziyadah)</div><GrafikPekananQuran logs={quranBulan} periode={periode} target={santri.target_halaman_pekan} warna={warnaGrafik(brand)} /></div>
+              <div><div className="text-[11px] font-bold text-stone-600 mb-2">Ibadah (capaian terpenuhi)</div><GrafikPekananIbadah logs={ibadahBulan} periode={periode} target={santri.target_ibadah_persen} warna={warnaGrafik(brand)} /></div>
+            </div>
+
             <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36", marginBottom: 6 }}>Catatan Musyrif/Musyrifah</div>
             <table style={{ width: "100%", fontSize: 10.5, marginBottom: 18 }}><tbody>
               <tr><td style={{ width: 110, verticalAlign: "top" }}>Al-Qur'an</td><td style={{ verticalAlign: "top" }}>: {santri.catatan_quran || "-"}</td></tr>
@@ -2294,6 +2487,7 @@ function QuranPage({ profile }) {
             return <StatCard key={j} label={j} value={`${hal} hal`} sub={`~${(hal / 20).toFixed(1)} juz`} />;
           })}
         </div>
+        <GrafikPekananPanel kind="quran" logs={logs} santri={santri} />
         <div className="grid grid-cols-[0.85fr_1.3fr] gap-4 items-start">
           <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Peta Hafalan</h3><JuzTracker juz={santri.juz_dikuasai || []} /></Card>
           <Card className="p-0 overflow-hidden">
@@ -2482,6 +2676,7 @@ function IbadahPage({ profile }) {
           </div>
         );
       })()}
+      <GrafikPekananPanel kind="ibadah" logs={logs} santri={santri} />
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
           <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase text-stone-500"><th className="p-3">Tanggal</th><th className="p-3">Jenis Ibadah</th><th className="p-3">Capaian</th><th className="p-3">Catatan</th>{editable && isViewer && <th className="p-3 text-right">Aksi</th>}</tr></thead>
@@ -3408,6 +3603,51 @@ async function ambilSemuaBaris(tabel, kolom = "*") {
   }
   return hasil;
 }
+function WarnaGrafikCard({ brand, onBrandUpdated }) {
+  const [w, setW] = useState(warnaGrafik(brand));
+  const [msg, setMsg] = useState("");
+  const kelompok = [
+    ["Hafalan baru per bulan", [["hafalan", "Batang hafalan"]]],
+    ["Kepatuhan ibadah", [["ibadah_baik", "Terpenuhi"], ["ibadah_sebagian", "Sebagian / sendiri"], ["ibadah_kurang", "Tidak dikerjakan"]]],
+    ["Tren pembayaran SPP", [["spp_lunas", "Lunas"], ["spp_belum", "Belum lunas"]]],
+    ["Setoran Al-Qur'an per jenis", JENIS_SETORAN_QURAN.map((j) => [j, j])],
+  ];
+  async function simpan() {
+    const { error } = await supabase.from("pengaturan_pondok").update({ warna_grafik: w }).eq("id", 1);
+    if (error) setMsg("Gagal: " + error.message + " (pastikan SQL 11-warna-grafik.sql sudah dijalankan)"); else { setMsg("Warna grafik disimpan."); onBrandUpdated && onBrandUpdated(); }
+  }
+  return (
+    <Card className="mb-5">
+      <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-1">Warna Grafik</h3>
+      <p className="text-xs text-stone-500 mb-4">Ubah warna batang pada grafik di Dashboard. Klik kotak warna untuk memilih.</p>
+      {msg && <div className="text-sm mb-3 p-3 rounded-xl bg-[#E9F1EE] text-[#0F4A44] font-medium">{msg}</div>}
+      <div className="text-xs font-extrabold text-stone-500 uppercase tracking-wide mb-2">Tema siap pakai</div>
+      <div className="flex flex-wrap gap-2 mb-5">
+        {PALET_GRAFIK.map((p) => (
+          <button key={p.nama} type="button" onClick={() => setW({ ...p.warna })} className="flex items-center gap-2 border border-stone-200 rounded-xl px-3 py-2 hover:border-[#B8935A] hover:bg-[#FBF3DF]/50 text-left">
+            <span className="flex -space-x-1">{[p.warna.hafalan, p.warna.ibadah_sebagian, p.warna.ibadah_kurang, p.warna.Tilawah].map((c, i) => <span key={i} className="w-4 h-4 rounded-full border border-white inline-block" style={{ backgroundColor: c }} />)}</span>
+            <span className="text-xs font-bold text-stone-700">{p.nama}</span>
+          </button>
+        ))}
+      </div>
+      <div className="text-xs text-stone-400 mb-4">Pilih tema untuk mengisi semua warna sekaligus, lalu sesuaikan satu per satu bila perlu. Jangan lupa klik Simpan Warna.</div>
+      <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+        {kelompok.map(([judul, items]) => (
+          <div key={judul}>
+            <div className="text-xs font-extrabold text-stone-500 uppercase tracking-wide mb-2">{judul}</div>
+            {items.map(([k, label]) => (
+              <label key={k} className="flex items-center justify-between gap-3 py-1 text-sm">
+                <span>{label}</span>
+                <span className="flex items-center gap-2"><span className="text-[0.6875rem] text-stone-400 font-mono">{w[k]}</span><input type="color" value={w[k]} onChange={(e) => setW({ ...w, [k]: e.target.value })} className="w-9 h-7 p-0 border border-stone-300 rounded cursor-pointer bg-white" /></span>
+              </label>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2 mt-5"><Btn tone="gold" onClick={simpan}>Simpan Warna</Btn><Btn tone="ghost" onClick={() => setW({ ...GRAFIK_DEFAULT })}>Kembalikan ke bawaan</Btn></div>
+    </Card>
+  );
+}
 function BackupDataCard() {
   const [proses, setProses] = useState(false);
   const [msg, setMsg] = useState("");
@@ -3453,6 +3693,10 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Warna grafik baru dan tema siap pakai", isi: "Warna bawaan grafik diganti dengan palet yang lebih lembut. Tersedia 5 tema (Zamrud Lembut, Hijau Pondok & Emas, Biru Tenang, Pastel Lembut, Klasik) yang bisa dipilih sekali klik lalu disesuaikan.", lokasi: "Pengaturan → Warna Grafik" },
+  { tgl: "Okt 2026", judul: "Grafik pencapaian per pekan + target mingguan", isi: "Dua grafik (hafalan baru dan ibadah) per pekan terhadap target tiap santri, lengkap dengan status Tercapai / Belum tercapai. Muncul di Rapor Bulanan (ikut tercetak), halaman Al-Qur'an, dan halaman Ibadah. Target diisi di Data Mahasantri.", lokasi: "Rapor Bulanan, Al-Qur'an, Ibadah; target di Data Mahasantri" },
+  { tgl: "Okt 2026", judul: "Warna grafik bisa diubah", isi: "Administrator dapat mengganti warna batang pada semua grafik Dashboard (hafalan, ibadah, SPP, setoran per jenis) tanpa pengembang.", lokasi: "Pengaturan → Warna Grafik" },
+  { tgl: "Okt 2026", judul: "Grafik capaian Al-Qur'an dan ibadah di Dashboard", isi: "Grafik hafalan baru per bulan, kepatuhan ibadah per jenis, daftar setoran terbanyak, dan santri yang perlu perhatian. Dashboard mahasantri/wali menampilkan grafik milik sendiri.", lokasi: "Dashboard" },
   { tgl: "Okt 2026", judul: "Bukti pembayaran: satu bon untuk SPP + koperasi, dan bukti cicilan koperasi", isi: "Pembayaran gabungan kini tercetak dalam satu bukti dengan rincian SPP dan koperasi. Cicilan koperasi yang dibayar terpisah juga punya bukti cetak sendiri (menampilkan sisa tagihan).", lokasi: "Iuran SPP → pilih santri → Cetak Bukti Bayar / kartu Cicilan Koperasi" },
   { tgl: "Okt 2026", judul: "Rekap Bulanan SPP & Koperasi", isi: "Ringkasan pembayaran per bulan (lunas, belum, total diterima, cicilan koperasi) yang bisa diunduh ke Excel atau dicetak sebagai PDF untuk laporan ke pimpinan.", lokasi: "Iuran SPP → tombol Rekap Bulanan" },
   { tgl: "Okt 2026", judul: "Cadangan Data (Backup) ke Excel", isi: "Satu tombol untuk mengunduh seluruh data SIAKAD ke satu file Excel sebagai cadangan.", lokasi: "Pengaturan → Cadangan Data" },
@@ -3794,6 +4038,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSi
       {profile.role === "admin" && <PanduanAdmin />}
       {profile.role === "admin" && <MenuKustomManager onChanged={onModulChanged} />}
       {profile.role === "admin" && <BackupDataCard />}
+      {profile.role === "admin" && <WarnaGrafikCard brand={brand} onBrandUpdated={onBrandUpdated} />}
 
       {profile.role === "admin" && (
         <Card className="border-[#EDD9A0] bg-[#FBF3DF]/40">
