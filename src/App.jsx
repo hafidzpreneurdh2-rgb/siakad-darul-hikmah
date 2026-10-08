@@ -121,15 +121,15 @@ function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 const AKADEMIK_GROUP = { label: "Akademik", items: [["akademik","KRS & KHS"],["kurikulum","Kurikulum"],["kalender","Kalender Akademik"],["rapor","Rapor Bulanan"],["rekap","Rekap Pencapaian"]] };
 const KARTU_MENU = ["kartu", "Kartu Tanda Mahasantri"];
 const MENUS = {
-  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, KARTU_MENU, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["akun","Kelola Akun"],["pengaturan","Pengaturan"]],
+  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, KARTU_MENU, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["akun","Kelola Akun"],["log","Log Aktivitas"],["pengaturan","Pengaturan"]],
   musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["rapor","Rapor Bulanan"],["rekap","Rekap Pencapaian"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["rapor","Rapor Bulanan"],["rekap","Rekap Pencapaian"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   keuangan: [["dashboard","Dashboard"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   akademik: [["dashboard","Dashboard"], AKADEMIK_GROUP, KARTU_MENU, ["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
-  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, KARTU_MENU, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
+  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, KARTU_MENU, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["log","Log Aktivitas"],["pengaturan","Pengaturan"]],
   santri: [["dashboard","Dashboard"], AKADEMIK_GROUP, KARTU_MENU, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", rapor: "Rapor Bulanan", rekap: "Rekap Pencapaian", kartu: "Kartu Tanda Mahasantri", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", rapor: "Rapor Bulanan", rekap: "Rekap Pencapaian", log: "Log Aktivitas", kartu: "Kartu Tanda Mahasantri", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
@@ -3432,6 +3432,121 @@ function infoMasuk(ts) {
   if (selisih < 7) return { text: `${selisih} hari lalu`, tone: "grey", hariIni: false };
   return { text: d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }), tone: "grey", hariIni: false };
 }
+const LABEL_TABEL_LOG = { santri: "Data Mahasantri", spp: "Iuran SPP", koperasi_cicilan: "Cicilan Koperasi", akademik: "Akademik", quran_log: "Capaian Al-Qur'an", ibadah_log: "Ibadah", profiles: "Akun", pengaturan_pondok: "Pengaturan", modul_kustom: "Menu Tambahan", modul_kustom_data: "Data Menu Tambahan", pengumuman: "Pengumuman", kurikulum: "Kurikulum", kalender_akademik: "Kalender Akademik" };
+const LABEL_AKSI_LOG = { INSERT: ["Tambah", "green"], UPDATE: ["Ubah", "gold"], DELETE: ["Hapus", "red"] };
+function ringkasLog(l, namaSantri) {
+  const r = l.konteks || l.data_baru || l.data_lama || {};
+  const sn = r.nim ? (namaSantri(r.nim) || r.nim) : "";
+  const ganti = l.aksi === "UPDATE" && l.data_baru ? Object.keys(l.data_baru) : [];
+  let t = "";
+  if (l.tabel === "spp") t = `SPP ${r.bulan || ""} ${r.tahun || ""} — ${sn}` + (l.aksi === "UPDATE" && l.data_baru?.status ? ` (status ${l.data_lama?.status ?? "?"} → ${l.data_baru.status})` : "");
+  else if (l.tabel === "koperasi_cicilan") t = `${sn}: cicilan koperasi ${formatRupiah(r.jumlah)}`;
+  else if (l.tabel === "santri") t = r.nama || sn;
+  else if (l.tabel === "quran_log") t = `${sn}: ${r.jenis || ""} ${r.halaman_dari ? `hlm ${r.halaman_dari}–${r.halaman_sampai}` : ""}`;
+  else if (l.tabel === "ibadah_log") t = `${sn}: ${r.jenis || ""}${r.capaian ? ` (${r.capaian})` : ""}`;
+  else if (l.tabel === "akademik") t = `${sn}: ${r.mata_kuliah || ""}`;
+  else if (l.tabel === "profiles") t = `Akun ${r.username || r.nama || ""}`;
+  else t = r.judul || r.nama || `ID ${l.id_baris || "-"}`;
+  if (ganti.length && l.tabel !== "spp") t += ` · diubah: ${ganti.slice(0, 4).join(", ")}${ganti.length > 4 ? ", …" : ""}`;
+  return t.trim();
+}
+function LogAktivitasPage() {
+  const santriT = useTable("santri");
+  const [rows, setRows] = useState([]);
+  const [muat, setMuat] = useState(true);
+  const [galat, setGalat] = useState("");
+  const [rentang, setRentang] = useState("hari");
+  const [fUser, setFUser] = useState("");
+  const [fTabel, setFTabel] = useState("");
+  const [fAksi, setFAksi] = useState("");
+  const [buka, setBuka] = useState(null);
+  const namaSantri = (nim) => santriT.rows.find((x) => x.nim === nim)?.nama;
+  async function load() {
+    setMuat(true); setGalat("");
+    let q = supabase.from("log_aktivitas").select("*").order("waktu", { ascending: false }).limit(1000);
+    const d = new Date();
+    if (rentang === "hari") { d.setHours(0, 0, 0, 0); q = q.gte("waktu", d.toISOString()); }
+    else if (rentang === "7") { d.setDate(d.getDate() - 7); q = q.gte("waktu", d.toISOString()); }
+    else if (rentang === "30") { d.setDate(d.getDate() - 30); q = q.gte("waktu", d.toISOString()); }
+    const { data, error } = await q;
+    if (error) setGalat(error.message); else setRows(data || []);
+    setMuat(false);
+  }
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [rentang]);
+  const awalHari = new Date(); awalHari.setHours(0, 0, 0, 0);
+  const hariIni = rows.filter((l) => new Date(l.waktu) >= awalHari);
+  const perUser = {};
+  hariIni.forEach((l) => { const k = l.nama || l.username || "Sistem / SQL Editor"; perUser[k] = perUser[k] || { n: 0, peran: l.peran }; perUser[k].n += 1; });
+  const daftarUser = [...new Set(rows.map((l) => l.username || ""))];
+  const tersaring = rows.filter((l) => (!fUser || (l.username || "") === fUser) && (!fTabel || l.tabel === fTabel) && (!fAksi || l.aksi === fAksi));
+  const fmtWaktu = (w) => new Date(w).toLocaleString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const nilai = (v) => { const t = v === null || v === undefined ? "(kosong)" : typeof v === "object" ? JSON.stringify(v) : String(v); return t.length > 90 ? t.slice(0, 90) + "…" : t; };
+  async function unduh() {
+    const mod = await import("xlsx"); const XLSX = mod.default?.utils ? mod.default : mod;
+    const data = tersaring.map((l) => ({ Waktu: fmtWaktu(l.waktu), Pengguna: l.nama || l.username || "Sistem / SQL Editor", Peran: l.peran || "", Data: LABEL_TABEL_LOG[l.tabel] || l.tabel, Aksi: (LABEL_AKSI_LOG[l.aksi] || [l.aksi])[0], Keterangan: ringkasLog(l, namaSantri), "Nilai lama": l.data_lama ? JSON.stringify(l.data_lama) : "", "Nilai baru": l.data_baru ? JSON.stringify(l.data_baru) : "" }));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Log Aktivitas");
+    XLSX.writeFile(wb, `Log-Aktivitas-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+  return (
+    <div>
+      <PageHeader eyebrow="Keamanan" title="Log Aktivitas" sub="Jejak siapa menambah, mengubah, dan menghapus data. Dicatat otomatis oleh database dan tidak bisa diubah dari aplikasi." actions={<Btn tone="ghost" onClick={unduh}>⬇ Unduh Excel</Btn>} />
+      {galat && <Card className="mb-4 border-red-200"><div className="text-sm text-red-700">Gagal memuat log: {galat}. Pastikan file <b>14-log-aktivitas.sql</b> sudah dijalankan di Supabase.</div></Card>}
+      <Card className="mb-4">
+        <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-2">Siapa yang mengubah data hari ini</h3>
+        {Object.keys(perUser).length === 0 ? <div className="text-sm text-stone-400">Belum ada perubahan data hari ini.</div> : (
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(perUser).sort((a, b) => b[1].n - a[1].n).map(([k, v]) => (
+              <span key={k} className="inline-flex items-center gap-2 rounded-xl bg-[#E9F1EE] px-3 py-1.5 text-sm"><b className="text-[#0B3B36]">{k}</b>{v.peran && <span className="text-xs text-stone-500">{ROLE_LABEL[v.peran] || v.peran}</span>}<span className="text-xs font-bold text-[#145048]">{v.n} perubahan</span></span>
+            ))}
+          </div>
+        )}
+      </Card>
+      <div className="flex gap-2 mb-4 flex-wrap items-center">
+        <Select value={rentang} onChange={(e) => setRentang(e.target.value)} className="!w-auto"><option value="hari">Hari ini</option><option value="7">7 hari terakhir</option><option value="30">30 hari terakhir</option><option value="semua">Semua (maks. 1.000 terbaru)</option></Select>
+        <Select value={fUser} onChange={(e) => setFUser(e.target.value)} className="!w-auto"><option value="">Semua pengguna</option>{daftarUser.map((u) => <option key={u} value={u}>{u || "Sistem / SQL Editor"}</option>)}</Select>
+        <Select value={fTabel} onChange={(e) => setFTabel(e.target.value)} className="!w-auto"><option value="">Semua data</option>{Object.entries(LABEL_TABEL_LOG).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</Select>
+        <Select value={fAksi} onChange={(e) => setFAksi(e.target.value)} className="!w-auto"><option value="">Semua aksi</option><option value="INSERT">Tambah</option><option value="UPDATE">Ubah</option><option value="DELETE">Hapus</option></Select>
+        <Btn tone="ghost" onClick={load}>↻ Muat ulang</Btn>
+        <span className="text-xs text-stone-400">{tersaring.length} catatan</span>
+      </div>
+      <Card className="p-0 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3">Waktu</th><th className="p-3">Pengguna</th><th className="p-3">Aksi</th><th className="p-3">Data</th><th className="p-3">Keterangan</th></tr></thead>
+          <tbody>
+            {tersaring.map((l) => {
+              const [labelAksi, tone] = LABEL_AKSI_LOG[l.aksi] || [l.aksi, "grey"];
+              const detail = l.aksi === "UPDATE" ? Object.keys(l.data_baru || {}).map((k) => [k, l.data_lama?.[k], l.data_baru[k]]) : Object.entries(l.data_baru || l.data_lama || {}).filter(([, v]) => v !== null && v !== "").map(([k, v]) => [k, null, v]);
+              return (
+                <React.Fragment key={l.id}>
+                  <tr className="border-t border-stone-100 cursor-pointer hover:bg-stone-50/60" onClick={() => setBuka(buka === l.id ? null : l.id)}>
+                    <td className="p-3 whitespace-nowrap text-xs text-stone-500">{fmtWaktu(l.waktu)}</td>
+                    <td className="p-3"><div className="font-bold">{l.nama || l.username || "Sistem / SQL Editor"}</div>{l.peran && <div className="text-[0.6875rem] text-stone-400">{ROLE_LABEL[l.peran] || l.peran}</div>}</td>
+                    <td className="p-3"><Badge tone={tone}>{labelAksi}</Badge></td>
+                    <td className="p-3">{LABEL_TABEL_LOG[l.tabel] || l.tabel}</td>
+                    <td className="p-3 text-stone-600">{ringkasLog(l, namaSantri)}</td>
+                  </tr>
+                  {buka === l.id && (
+                    <tr className="bg-stone-50/70"><td colSpan={5} className="px-4 py-3">
+                      <div className="text-[0.6875rem] font-bold uppercase text-stone-500 mb-1.5">{l.aksi === "UPDATE" ? "Perubahan (lama → baru)" : l.aksi === "INSERT" ? "Data yang ditambahkan" : "Data yang dihapus"}</div>
+                      <div className="grid gap-1 text-xs">
+                        {detail.map(([k, lama, baru]) => (
+                          <div key={k} className="flex gap-2"><span className="w-40 text-stone-500 flex-shrink-0">{k}</span>{l.aksi === "UPDATE" ? <span><span className="text-red-600 line-through">{nilai(lama)}</span> <span className="text-stone-400">→</span> <b className="text-[#145048]">{nilai(baru)}</b></span> : <span>{nilai(baru)}</span>}</div>
+                        ))}
+                        {detail.length === 0 && <span className="text-stone-400">Tidak ada rincian.</span>}
+                      </div>
+                    </td></tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+            {!muat && tersaring.length === 0 && <tr><td colSpan={5}><Empty text="Tidak ada catatan pada pilihan ini." /></td></tr>}
+            {muat && <tr><td colSpan={5}><Empty text="Memuat…" /></td></tr>}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
 function KelolaAkunPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingAkun, setEditingAkun] = useState(null);
@@ -3907,6 +4022,7 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Log Aktivitas", isi: "Jejak otomatis siapa menambah, mengubah, dan menghapus data (SPP, koperasi, data santri, Al-Qur'an, ibadah, akun, dan lainnya), lengkap dengan nilai lama dan baru. Dicatat oleh database sehingga tidak bisa diubah dari aplikasi. Ada ringkasan siapa yang mengubah data hari ini.", lokasi: "Menu Log Aktivitas (Administrator dan Pimpinan)" },
   { tgl: "Okt 2026", judul: "Gaya tulisan Kartu Tanda Mahasantri bisa diatur", isi: "Ukuran huruf, jenis font, tebal, miring, dan warna setiap tulisan pada kartu (nama, NIM, data, nama pondok, alamat, dll.) bisa diubah dan langsung terlihat di pratinjau.", lokasi: "Kartu Tanda Mahasantri → Gaya Tulisan" },
   { tgl: "Okt 2026", judul: "Rekap Pencapaian Seluruh Santri (per bulan dan per pekan)", isi: "Satu halaman untuk memaparkan hasil evaluasi semua santri, bisa dipilih per bulan (dengan tren 6 bulan) atau per pekan (siapa yang belum mencapai target): grafik persentase santri yang mencapai target hafalan dan ibadah, tabel per santri, serta unduh Excel dan cetak/PDF.", lokasi: "Menu Rekap Pencapaian (di bawah Rapor Bulanan)" },
   { tgl: "Okt 2026", judul: "Warna grafik baru dan tema siap pakai", isi: "Warna bawaan grafik diganti dengan palet yang lebih lembut. Tersedia 5 tema (Zamrud Lembut, Hijau Pondok & Emas, Biru Tenang, Pastel Lembut, Klasik) yang bisa dipilih sekali klik lalu disesuaikan.", lokasi: "Pengaturan → Warna Grafik" },
@@ -3955,7 +4071,7 @@ function PanduanAdmin() {
           <li><b>Santri baru:</b> tambahkan di Data Mahasantri (isi Nominal SPP), lalu buat akun loginnya di Kelola Akun.</li>
           <li><b>Sebulan sekali:</b> buka Pengaturan lalu klik "Unduh Semua Data" untuk cadangan, dan simpan file-nya di tempat aman (misalnya Google Drive pribadi pondok).</li>
           <li><b>Awal bulan / akhir bulan:</b> bendahara membuka Iuran SPP → Rekap Bulanan untuk laporan ke pimpinan, dan memakai tombol Ingatkan bagi yang menunggak.</li>
-          <li><b>Setiap hari / pekan:</b> buka Kelola Akun dan lihat kolom "Terakhir Masuk" untuk mengetahui staf yang sudah aktif.</li>
+          <li><b>Setiap hari / pekan:</b> buka Log Aktivitas untuk melihat siapa yang mengubah data hari ini, dan Kelola Akun (kolom "Terakhir Masuk") untuk melihat staf yang sudah aktif.</li>
           <li><b>Staf pindah tugas:</b> ubah peran akunnya lewat tombol Edit di Kelola Akun, jangan buat akun baru.</li>
         </ul>
       </Bagian>
@@ -4572,6 +4688,7 @@ export default function App() {
     if (view === "ibadah") return <IbadahPage profile={profile} />;
     if (view === "spp") return <SppPage profile={profile} />;
     if (view === "akun" && profile.role === "admin") return <KelolaAkunPage />;
+    if (view === "log" && (profile.role === "admin" || profile.role === "pimpinan")) return <LogAktivitasPage />;
     if (view === "pengaturan") return <PengaturanPage profile={profile} onProfileUpdated={loadProfile} brand={brand} onBrandUpdated={reloadBrand} uiSize={uiSize} setUiSize={setUiSize} onModulChanged={modulT.reload} />;
     return null;
   }
