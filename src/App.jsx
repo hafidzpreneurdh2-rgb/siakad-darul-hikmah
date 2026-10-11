@@ -129,17 +129,20 @@ const CAN_EDIT = {
 };
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
+const AKADEMIK_GROUP = { label: "Akademik", items: [["akademik","KRS & KHS"],["akhir","Tugas Akhir & Ujian"],["kalender","Kalender Akademik"],["rekap","Rekap Pencapaian"]] };
+const AKADEMIK_GROUP_SANTRI = { label: "Akademik", items: [["akademik","KRS & KHS"],["akhir","Tugas Akhir & Ujian"],["kalender","Kalender Akademik"]] };
 const KARTU_MENU = ["kartu", "Kartu Tanda Mahasantri"];
+const QURAN_MENU = ["quran","Capaian Al-Qur'an"];
 const MENUS = {
-  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],KARTU_MENU,["rekap","Rekap Pencapaian"],["kalender","Kalender Akademik"],["pengumuman","Pengumuman"],["akun","Kelola Akun"],["log","Log Aktivitas"],["pengaturan","Pengaturan"]],
-  musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["rekap","Rekap Pencapaian"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
-  musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["rekap","Rekap Pencapaian"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, QURAN_MENU,["ibadah","Ibadah"],["spp","Iuran SPP"], KARTU_MENU,["pengumuman","Pengumuman"],["akun","Kelola Akun"],["log","Log Aktivitas"],["pengaturan","Pengaturan"]],
+  musyrif: [["dashboard","Dashboard"], QURAN_MENU,["ibadah","Ibadah"],["rekap","Rekap Pencapaian"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  musyrifah: [["dashboard","Dashboard"], QURAN_MENU,["ibadah","Ibadah"],["rekap","Rekap Pencapaian"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   keuangan: [["dashboard","Dashboard"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
-  akademik: [["dashboard","Dashboard"],["akademik","Akademik"],KARTU_MENU,["rekap","Rekap Pencapaian"],["kalender","Kalender Akademik"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
-  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],KARTU_MENU,["rekap","Rekap Pencapaian"],["kalender","Kalender Akademik"],["pengumuman","Pengumuman"],["log","Log Aktivitas"],["pengaturan","Pengaturan"]],
-  santri: [["dashboard","Dashboard"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],KARTU_MENU,["kalender","Kalender Akademik"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
+  akademik: [["dashboard","Dashboard"], AKADEMIK_GROUP, KARTU_MENU,["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
+  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, QURAN_MENU,["ibadah","Ibadah"],["spp","Iuran SPP"], KARTU_MENU,["pengumuman","Pengumuman"],["log","Log Aktivitas"],["pengaturan","Pengaturan"]],
+  santri: [["dashboard","Dashboard"], AKADEMIK_GROUP_SANTRI, QURAN_MENU,["ibadah","Ibadah"],["spp","Iuran SPP"], KARTU_MENU,["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", rekap: "Rekap Pencapaian", log: "Log Aktivitas", kartu: "Kartu Tanda Mahasantri", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "KRS & KHS", akhir: "Tugas Akhir & Ujian", rekap: "Rekap Pencapaian", log: "Log Aktivitas", kartu: "Kartu Tanda Mahasantri", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
@@ -1129,13 +1132,13 @@ function SantriForm({ initial, daftarAngkatan = [], onCancel, onSubmit }) {
 /* ---------------------------------------------------------------------- */
 /* Input Akademik — overview semua santri + drill-down                     */
 /* ---------------------------------------------------------------------- */
-function AkademikStaffPage({ profile }) {
+function AkademikStaffPage({ profile, tabAwal = "krs" }) {
   const editable = canEdit(profile.role, "akademik");
   const brand = useContext(BrandContext);
   const santriT = useTable("santri");
   const akT = useTable("akademik");
   const tahapT = useTable("tahapan_akhir");
-  const [tab, setTab] = useState("krs");
+  const [tab, setTab] = useState(tabAwal);
   const quranLogT = useTable("quran_log");
   const profilesT = useTable("profiles");
   const [nim, setNim] = useState("");
@@ -1147,7 +1150,7 @@ function AkademikStaffPage({ profile }) {
   const pembimbing = profilesT.rows.find((p) => p.username === santri?.musyrif_username);
   const semesters = [...new Set(records.map((r) => `${r.tahun_ajaran}|${r.semester}`))].sort().reverse();
   const [pilihan, setPilihan] = useState("");
-  useEffect(() => { setPilihan(""); setTab("krs"); }, [nim]);
+  useEffect(() => { setPilihan(""); setTab(tabAwal); }, [nim]);
   useEffect(() => { if (!pilihan && semesters[0]) setPilihan(semesters[0]); }, [semesters.join(","), nim]);
   const pilihanAktif = pilihan || semesters[0] || "";
   const [taPilih, semPilih] = pilihanAktif ? pilihanAktif.split("|") : [null, null];
@@ -1509,36 +1512,51 @@ function AkademikForm({ initial, nim, onCancel, onSubmit }) {
 }
 
 /* ---------------------------------------------------------------------- */
+/* Kurikulum Mahasantri                                                    */
+/* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
 /* Tugas Akhir & Ujian — alur tahapan akhir mahasantri                      */
-/* KPM → Magang → Sidang Akhir Bisnis | Sidang Munaqasyah → Pengambilan Sanad */
+/* KPM → Magang → Sidang Akhir Bisnis | Sidang Munaqasyah → Syahadah Kubro → Sanad */
+/* Bobot penilaian & daftar berkas di bawah mudah diubah sesuai ketentuan pondok.   */
 /* ---------------------------------------------------------------------- */
 const ALUR_PROGRAM = ["Diajukan", "Disetujui", "Berjalan", "Lulus"];
 const ALUR_SIDANG = ["Diajukan", "Disetujui", "Terjadwal", "Lulus"];
 const TAHAPAN_AKHIR = [
-  { kode: "KPM", nama: "KPM", lengkap: "Kuliah Pengabdian Masyarakat", ikon: "🤝", prasyarat: [], alur: ALUR_PROGRAM,
+  { kode: "KPM", nama: "KPM", lengkap: "Kuliah Pengabdian Masyarakat", ikon: "🤝", prasyarat: [], alur: ALUR_PROGRAM, lblSelesai: "Tanggal Selesai",
     syarat: "Berstatus mahasantri aktif, sudah menempuh minimal 4 semester, dan mengikuti pembekalan KPM.",
     langkah: "Mengajukan program dan lokasi → disetujui akademik → pelaksanaan di lapangan → laporan dan penilaian pembimbing.",
+    berkas: ["Proposal / Surat Pengajuan Program", "Laporan KPM", "Dokumentasi Kegiatan", "Lembar Penilaian Pembimbing Lapangan"],
+    komponen: [{ kode: "lapangan", label: "Kinerja di Lapangan", bobot: 40 }, { kode: "laporan", label: "Laporan KPM", bobot: 40 }, { kode: "sikap", label: "Sikap & Adab", bobot: 20 }],
     lbl: { judul: "Tema / Program Pengabdian", pembimbing: "Pembimbing Lapangan", penguji: "Penilai", lokasi: "Lokasi / Mitra", tgl: "Tanggal Mulai" } },
-  { kode: "Magang", nama: "Magang", lengkap: "Magang Usaha / Profesi", ikon: "💼", prasyarat: ["KPM"], alur: ALUR_PROGRAM,
+  { kode: "Magang", nama: "Magang", lengkap: "Magang Usaha / Profesi", ikon: "💼", prasyarat: ["KPM"], alur: ALUR_PROGRAM, lblSelesai: "Tanggal Selesai",
     syarat: "KPM sudah dinyatakan lulus, serta ada surat penerimaan dari tempat magang.",
     langkah: "Mengajukan tempat dan rencana magang → disetujui akademik → pelaksanaan dan logbook → laporan, penilaian pembimbing dan mitra.",
-    lbl: { judul: "Bidang / Posisi Magang", pembimbing: "Pembimbing Pondok", penguji: "Pembimbing Mitra", lokasi: "Tempat Magang", tgl: "Tanggal Mulai" } },
+    berkas: ["Surat Penerimaan dari Mitra", "Logbook Harian", "Laporan Magang", "Penilaian Pembimbing Mitra"],
+    komponen: [{ kode: "mitra", label: "Penilaian Pembimbing Mitra", bobot: 40 }, { kode: "laporan", label: "Laporan Magang", bobot: 30 }, { kode: "pondok", label: "Penilaian Pembimbing Pondok", bobot: 30 }],
+    lbl: { judul: "Bidang / Posisi Magang", pembimbing: "Pembimbing Pondok", penguji: "Pembimbing Mitra", lokasi: "Tempat Magang (Perusahaan / Mitra)", tgl: "Tanggal Mulai" } },
   { kode: "Sidang Akhir Bisnis", nama: "Sidang Akhir Bisnis", lengkap: "Sidang Akhir Bisnis (Tugas Akhir Kewirausahaan)", ikon: "📈", prasyarat: ["Magang"], alur: ALUR_SIDANG,
     syarat: "Magang sudah lulus, laporan bisnis disetujui pembimbing, dan nilai matakuliah kewirausahaan sudah lengkap.",
     langkah: "Mengajukan sidang beserta laporan bisnis → persetujuan pembimbing → penjadwalan → presentasi dan tanya jawab → penilaian (lulus / revisi / mengulang).",
+    berkas: ["Logo Brand", "Foto Produk 1", "Foto Produk 2", "Foto Produk 3", "Proposal / Rencana Bisnis", "Laporan Akhir Bisnis", "Slide Presentasi", "Berita Acara Sidang"],
+    foto: ["Logo Brand", "Foto Produk 1", "Foto Produk 2", "Foto Produk 3"], fotoWajib: ["Logo Brand", "Foto Produk 1"],
+    karya: [{ kode: "nama_brand", label: "Nama Brand" }, { kode: "bidang", label: "Bidang / Jenis Usaha", ph: "cth. Kuliner, Fashion Muslim, Jasa" }, { kode: "tagline", label: "Tagline / Slogan" }, { kode: "produk", label: "Produk / Layanan Utama", ph: "cth. Madu hutan 250 ml, kemasan botol" }, { kode: "tautan", label: "Tautan Media Sosial / Marketplace", ph: "https://instagram.com/..." }],
+    komponen: [{ kode: "laporan", label: "Laporan Bisnis", bobot: 40 }, { kode: "presentasi", label: "Presentasi", bobot: 30 }, { kode: "tanyajawab", label: "Tanya Jawab", bobot: 30 }],
     lbl: { judul: "Nama Usaha & Judul Laporan Bisnis", pembimbing: "Dosen Pembimbing", penguji: "Tim Penguji", lokasi: "Tempat Sidang", tgl: "Tanggal Sidang" } },
   { kode: "Sidang Munaqasyah", nama: "Sidang Munaqasyah", lengkap: "Sidang Munaqasyah Tahfidz", ikon: "📖", prasyarat: [], alur: ALUR_SIDANG, cekQuran: true,
     syarat: "Hafalan memenuhi target kelulusan, sudah mengikuti Tasmi', dan memiliki Syahadah (tercatat di menu Capaian Al-Qur'an).",
     langkah: "Mengajukan munaqasyah → verifikasi hafalan oleh musyrif → penjadwalan → ujian lisan di hadapan tim penguji → penilaian.",
+    berkas: ["Surat Rekomendasi Musyrif", "Berita Acara Munaqasyah"],
+    komponen: [{ kode: "hafalan", label: "Kelancaran Hafalan", bobot: 50 }, { kode: "tajwid", label: "Tajwid & Makhraj", bobot: 30 }, { kode: "adab", label: "Adab & Sikap Ujian", bobot: 20 }],
     lbl: { judul: "Materi / Cakupan Ujian", pembimbing: "Musyrif Pembimbing", penguji: "Tim Penguji", lokasi: "Tempat Ujian", tgl: "Tanggal Ujian" } },
-  { kode: "Syahadah Kubro", nama: "Syahadah Kubro", lengkap: "Syahadah Kubro (Setoran 30 Juz Sekali Duduk)", ikon: "🏅", prasyarat: ["Sidang Munaqasyah"], alur: ALUR_SIDANG, duaHari: true,
+  { kode: "Syahadah Kubro", nama: "Syahadah Kubro", lengkap: "Syahadah Kubro (Setoran 30 Juz Sekali Duduk)", ikon: "🏅", prasyarat: ["Sidang Munaqasyah"], alur: ALUR_SIDANG, duaHari: true, lblSelesai: "Tanggal Selesai (Hari ke-2)",
     syarat: "Sidang Munaqasyah sudah lulus dan hafalan 30 juz siap disetorkan.",
     langkah: "Mengajukan Syahadah Kubro → verifikasi kesiapan oleh musyrif → penjadwalan 2 hari → setoran 30 juz sekali duduk (hari ke-1 dan hari ke-2) di hadapan tim penyimak → penilaian dan penyerahan syahadah.",
+    berkas: ["Berita Acara Syahadah Kubro", "Dokumentasi Pelaksanaan", "Salinan Syahadah"],
     lbl: { judul: "Nomor Syahadah / Keterangan", pembimbing: "Musyrif Pembimbing", penguji: "Tim Penyimak / Penguji", lokasi: "Tempat Pelaksanaan", tgl: "Tanggal Mulai (Hari ke-1)" } },
   { kode: "Pengambilan Sanad", nama: "Pengambilan Sanad", lengkap: "Pengambilan Sanad Al-Qur'an", ikon: "📜", prasyarat: ["Sidang Munaqasyah"], alur: ALUR_SIDANG,
     syarat: "Sidang Munaqasyah sudah lulus dan mendapat izin dari guru pemberi sanad.",
     langkah: "Mengajukan pengambilan sanad → izin guru pemberi sanad → penjadwalan talaqqi → prosesi dan penyimakan → pencatatan sanad.",
+    berkas: ["Surat Izin Guru Pemberi Sanad", "Salinan Sanad"],
     lbl: { judul: "Jalur / Riwayat Sanad", pembimbing: "Guru Pemberi Sanad", penguji: "Saksi / Penyimak", lokasi: "Tempat Pengambilan", tgl: "Tanggal Pengambilan" } },
 ];
 const STATUS_TAHAP_TONE = { Diajukan: "blue", Disetujui: "gold", Terjadwal: "gold", Berjalan: "gold", Revisi: "gold", Lulus: "green", "Tidak Lulus": "red", Ditolak: "red" };
@@ -1554,6 +1572,12 @@ function langkahBerikut(cfg, status) {
   return i >= 0 && i < cfg.alur.length - 1 ? cfg.alur[i + 1] : null;
 }
 function tglPendek(t) { return t ? new Date(t).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : ""; }
+function nilaiAkhirKomponen(cfg, kom) {
+  if (!cfg.komponen) return null;
+  if (!cfg.komponen.every((k) => kom && kom[k.kode] !== undefined && kom[k.kode] !== "" && kom[k.kode] !== null)) return null;
+  const tot = cfg.komponen.reduce((a, k) => a + k.bobot, 0);
+  return Math.round((cfg.komponen.reduce((a, k) => a + Number(kom[k.kode]) * k.bobot, 0) / tot) * 10) / 10;
+}
 
 function TabAkademik({ tab, setTab, rows }) {
   return (
@@ -1573,17 +1597,23 @@ function TugasAkhirPanel({ nim, profile, rows, reload }) {
   const lulus = jumlahTahapLulus(mine);
   const syahadah = quranT.rows.filter((l) => l.nim === nim && l.jenis === "Syahadah").length;
   const tasmi = quranT.rows.filter((l) => l.nim === nim && l.jenis === "Tasmi'").length;
-  const hariIni = new Date().toISOString().slice(0, 10);
 
   async function simpan(cfg, f, id) {
-    const angka = f.nilai_angka === "" || f.nilai_angka == null ? null : Number(f.nilai_angka);
-    const payload = {
-      jenis: cfg.kode, status: f.status || "Diajukan", judul: f.judul || null, pembimbing: f.pembimbing || null, penguji: f.penguji || null, lokasi: f.lokasi || null,
-      tanggal_pengajuan: f.tanggal_pengajuan || null, tanggal_pelaksanaan: f.tanggal_pelaksanaan || null, nilai_angka: angka, catatan: f.catatan || null, berkas_url: f.berkas_url || null,
-      tanggal_selesai: cfg.duaHari ? f.tanggal_selesai || null : null, capaian_hari1: cfg.duaHari ? f.capaian_hari1 || null : null, capaian_hari2: cfg.duaHari ? f.capaian_hari2 || null : null,
-      diperbarui_oleh: profile.username || null,
-    };
-    const { error } = id ? await supabase.from("tahapan_akhir").update(payload).eq("id", id) : await supabase.from("tahapan_akhir").insert({ ...payload, nim });
+    let error;
+    if (!staff && id) {
+      ({ error } = await supabase.from("tahapan_akhir").update({ judul: f.judul || null, lokasi: f.lokasi || null, berkas: f.berkas || {}, karya: f.karya || {} }).eq("id", id));
+    } else {
+      const angka = nilaiAkhirKomponen(cfg, f.komponen) ?? (f.nilai_angka === "" || f.nilai_angka == null ? null : Number(f.nilai_angka));
+      const payload = {
+        jenis: cfg.kode, status: f.status || "Diajukan", judul: f.judul || null, pembimbing: f.pembimbing || null, penguji: f.penguji || null, lokasi: f.lokasi || null,
+        tanggal_pengajuan: f.tanggal_pengajuan || null, tanggal_pelaksanaan: f.tanggal_pelaksanaan || null,
+        tanggal_selesai: cfg.lblSelesai ? f.tanggal_selesai || null : null,
+        capaian_hari1: cfg.duaHari ? f.capaian_hari1 || null : null, capaian_hari2: cfg.duaHari ? f.capaian_hari2 || null : null,
+        nilai_angka: angka, komponen: cfg.komponen ? f.komponen || {} : {}, berkas: f.berkas || {}, karya: cfg.karya ? f.karya || {} : {}, catatan: f.catatan || null,
+        diperbarui_oleh: profile.username || null,
+      };
+      ({ error } = id ? await supabase.from("tahapan_akhir").update(payload).eq("id", id) : await supabase.from("tahapan_akhir").insert({ ...payload, nim }));
+    }
     if (error) alert(error.message); else { setForm(null); reload(); }
   }
   async function lanjut(r, cfg, next) {
@@ -1599,95 +1629,162 @@ function TugasAkhirPanel({ nim, profile, rows, reload }) {
 
   return (
     <div>
-      <Card className="mb-4">
+      <Card className="mb-5">
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold">Alur Tugas Akhir & Ujian</h3>
-            <p className="text-xs text-stone-500 mt-1">Urutan: KPM → Magang → Sidang Akhir Bisnis. Sidang Munaqasyah berjalan paralel (butuh Syahadah), lalu Syahadah Kubro dan Pengambilan Sanad setelah Munaqasyah lulus.</p>
+          <div className="max-w-xl">
+            <h3 className="font-serif-dh text-lg text-[#0B3B36] font-semibold">Perjalanan Tugas Akhir & Ujian</h3>
+            <p className="text-xs text-stone-500 mt-1 leading-relaxed">KPM → Magang → Sidang Akhir Bisnis. Sidang Munaqasyah berjalan paralel (butuh Syahadah), lalu Syahadah Kubro dan Pengambilan Sanad setelah Munaqasyah lulus.</p>
           </div>
-          <div className="text-right"><div className="text-2xl font-extrabold text-[#0B3B36]">{lulus}<span className="text-sm text-stone-400">/{TAHAPAN_AKHIR.length}</span></div><div className="text-[0.6875rem] text-stone-400">tahap lulus</div></div>
+          <div className="text-right"><div className="text-3xl font-extrabold text-[#0B3B36] leading-none">{lulus}<span className="text-base text-stone-400 font-bold">/{TAHAPAN_AKHIR.length}</span></div><div className="text-[0.6875rem] text-stone-400 mt-1 uppercase tracking-wider">tahap lulus</div></div>
         </div>
-        <div className="h-2 bg-stone-100 rounded-full mt-3 overflow-hidden"><div className="h-full bg-[#2A9D8F]" style={{ width: `${(lulus / TAHAPAN_AKHIR.length) * 100}%` }} /></div>
-        {lulus === TAHAPAN_AKHIR.length && <div className="mt-3 text-sm font-bold text-[#0F4A44] bg-[#E9F1EE] rounded-xl px-3 py-2">✅ Seluruh tahapan akhir sudah lulus — mahasantri layak diproses untuk kelulusan.</div>}
+        <div className="h-1.5 bg-stone-100 rounded-full mt-4 overflow-hidden"><div className="h-full bg-gradient-to-r from-[#2A9D8F] to-[#C9A227] transition-all" style={{ width: `${(lulus / TAHAPAN_AKHIR.length) * 100}%` }} /></div>
+        {lulus === TAHAPAN_AKHIR.length && <div className="mt-3 text-sm font-bold text-[#0F4A44] bg-[#E9F1EE] rounded-xl px-3 py-2">✅ Seluruh tahapan sudah lulus — mahasantri layak diproses untuk kelulusan.</div>}
       </Card>
 
-      <div className="space-y-3">
+      <div>
         {TAHAPAN_AKHIR.map((cfg, i) => {
           const r = tahapTerakhir(mine, cfg.kode);
           const percobaan = mine.filter((x) => x.jenis === cfg.kode).length;
           const belum = cfg.prasyarat.filter((k) => !tahapLulus(mine, k));
+          const selesai = tahapLulus(mine, cfg.kode);
           const aktif = r && !STATUS_TAHAP_AKHIR.includes(r.status);
-          const bisaAjukan = !aktif && !tahapLulus(mine, cfg.kode) && belum.length === 0;
+          const bisaAjukan = !aktif && !selesai && belum.length === 0;
           const next = aktif ? langkahBerikut(cfg, r.status) : null;
           const terkunci = !r && belum.length > 0;
+          const berkasR = (r && r.berkas) || {};
+          const jmlBerkas = cfg.berkas.filter((b) => berkasR[b]).length;
+          const kom = (r && r.komponen) || {};
+          const terakhir = i === TAHAPAN_AKHIR.length - 1;
+          const bulat = selesai ? "bg-[#2A9D8F] text-white" : aktif ? "bg-[#FBF3DC] text-[#8A6A2A] ring-2 ring-[#C9A227]" : terkunci ? "bg-stone-100 text-stone-400" : "bg-white text-[#0B3B36] ring-1 ring-stone-300";
           return (
-            <Card key={cfg.kode} className={terkunci ? "opacity-70" : ""}>
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#E9F1EE] text-[#0B3B36] flex items-center justify-center text-base shrink-0">{cfg.ikon}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="font-bold text-[#0B3B36]">{i + 1}. {cfg.nama}</div>
-                    <span className="text-xs text-stone-400">{cfg.lengkap}</span>
-                    {r ? <Badge tone={STATUS_TAHAP_TONE[r.status] || "grey"}>{r.status}</Badge> : <Badge tone="grey">{terkunci ? "Terkunci" : "Belum diajukan"}</Badge>}
-                    {percobaan > 1 && <span className="text-[0.6875rem] text-stone-400">percobaan ke-{percobaan}</span>}
+            <div key={cfg.kode} className="flex gap-4">
+              <div className="flex flex-col items-center">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-base font-bold shrink-0 ${bulat}`}>{selesai ? "✓" : terkunci ? "🔒" : cfg.ikon}</div>
+                {!terakhir && <div className={`w-px flex-1 my-1 ${selesai ? "bg-[#2A9D8F]" : "bg-stone-200"}`} />}
+              </div>
+              <div className={`flex-1 min-w-0 ${terakhir ? "" : "pb-5"}`}>
+                <Card className={terkunci ? "opacity-70" : ""}>
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-serif-dh font-semibold text-[#0B3B36] text-base">{cfg.nama}</h4>
+                        {r ? <Badge tone={STATUS_TAHAP_TONE[r.status] || "grey"}>{r.status}</Badge> : <Badge tone="grey">{terkunci ? "Terkunci" : "Belum diajukan"}</Badge>}
+                        {percobaan > 1 && <span className="text-[0.6875rem] text-stone-400">percobaan ke-{percobaan}</span>}
+                      </div>
+                      <div className="text-xs text-stone-400 mt-0.5">{cfg.lengkap}</div>
+                    </div>
+                    <div className="flex gap-1.5 items-center flex-wrap justify-end">
+                      {bisaAjukan && <Btn onClick={() => setForm({ cfg, initial: null, id: null })}>{r ? "Ajukan Ulang" : "Ajukan"}</Btn>}
+                      {staff && !bisaAjukan && !aktif && !selesai && <Btn tone="ghost" onClick={() => { if (confirm("Prasyarat belum terpenuhi. Tetap input manual (mis. data lama)?")) setForm({ cfg, initial: null, id: null }); }}>Input Manual</Btn>}
+                      {!staff && aktif && <Btn tone="ghost" onClick={() => setForm({ cfg, initial: r, id: r.id })}>Unggah Berkas</Btn>}
+                      {staff && next && <Btn tone="gold" onClick={() => lanjut(r, cfg, next)}>Lanjut: {next}</Btn>}
+                      {staff && r && <Btn tone="ghost" onClick={() => setForm({ cfg, initial: r, id: r.id })}>Edit / Nilai</Btn>}
+                      {staff && r && <button type="button" onClick={() => hapus(r.id)} className="text-[0.6875rem] text-red-500 font-bold px-1">Hapus</button>}
+                    </div>
                   </div>
-                  <div className="text-xs text-stone-500 mt-1"><b>Syarat:</b> {cfg.syarat}</div>
-                  {terkunci && <div className="text-xs text-[#8A6A2A] mt-1">🔒 Menunggu tahap lulus: {belum.join(", ")}</div>}
-                  {cfg.cekQuran && <div className="text-xs mt-1 text-stone-500">Capaian Al-Qur'an tercatat: Tasmi' <b className={tasmi ? "text-[#0F4A44]" : "text-red-600"}>{tasmi}x</b> · Syahadah <b className={syahadah ? "text-[#0F4A44]" : "text-red-600"}>{syahadah}x</b></div>}
-                  <div className="text-xs text-stone-400 mt-1"><b>Proses:</b> {cfg.langkah}</div>
-                  {r && (
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-3 text-sm bg-stone-50 rounded-xl p-3">
-                      {r.judul && <div className="col-span-2"><span className="text-stone-400 text-xs">{cfg.lbl.judul}: </span><b>{r.judul}</b></div>}
-                      {r.pembimbing && <div><span className="text-stone-400 text-xs">{cfg.lbl.pembimbing}: </span>{r.pembimbing}</div>}
-                      {r.penguji && <div><span className="text-stone-400 text-xs">{cfg.lbl.penguji}: </span>{r.penguji}</div>}
-                      {r.lokasi && <div><span className="text-stone-400 text-xs">{cfg.lbl.lokasi}: </span>{r.lokasi}</div>}
-                      {r.tanggal_pengajuan && <div><span className="text-stone-400 text-xs">Tanggal Pengajuan: </span>{tglPendek(r.tanggal_pengajuan)}</div>}
-                      {r.tanggal_pelaksanaan && <div><span className="text-stone-400 text-xs">{cfg.lbl.tgl}: </span>{tglPendek(r.tanggal_pelaksanaan)}</div>}
-                      {cfg.duaHari && r.tanggal_selesai && <div><span className="text-stone-400 text-xs">Tanggal Selesai (Hari ke-2): </span>{tglPendek(r.tanggal_selesai)}</div>}
-                      {cfg.duaHari && r.capaian_hari1 && <div><span className="text-stone-400 text-xs">Hari ke-1: </span>{r.capaian_hari1}</div>}
-                      {cfg.duaHari && r.capaian_hari2 && <div><span className="text-stone-400 text-xs">Hari ke-2: </span>{r.capaian_hari2}</div>}
-                      {r.nilai_angka != null && <div><span className="text-stone-400 text-xs">Nilai: </span><b>{r.nilai_angka}</b> ({nilaiHuruf(r.nilai_angka)})</div>}
-                      {r.catatan && <div className="col-span-2"><span className="text-stone-400 text-xs">Catatan: </span>{r.catatan}</div>}
-                      {r.berkas_url && <div className="col-span-2"><a href={r.berkas_url} target="_blank" rel="noreferrer" className="text-[#145048] font-bold underline text-xs">Lihat berkas / laporan</a></div>}
+
+                  {!r && (
+                    <div className="mt-3 text-xs text-stone-500 space-y-1">
+                      <div><b>Syarat:</b> {cfg.syarat}</div>
+                      <div><b>Proses:</b> {cfg.langkah}</div>
                     </div>
                   )}
-                </div>
-                <div className="flex flex-col gap-1.5 items-end shrink-0">
-                  {bisaAjukan && <Btn onClick={() => setForm({ cfg, initial: null, id: null })}>{r ? "Ajukan Ulang" : "Ajukan"}</Btn>}
-                  {staff && !bisaAjukan && !aktif && !tahapLulus(mine, cfg.kode) && <Btn tone="ghost" onClick={() => { if (confirm("Prasyarat belum terpenuhi. Tetap input manual (mis. data lama)?")) setForm({ cfg, initial: null, id: null }); }}>Input Manual</Btn>}
-                  {staff && next && <Btn tone="gold" onClick={() => lanjut(r, cfg, next)}>Lanjut: {next}</Btn>}
-                  {staff && r && <Btn tone="ghost" onClick={() => setForm({ cfg, initial: r, id: r.id })}>Edit / Nilai</Btn>}
-                  {staff && r && <button type="button" onClick={() => hapus(r.id)} className="text-[0.6875rem] text-red-500 font-bold">Hapus</button>}
-                </div>
+                  {terkunci && <div className="text-xs text-[#8A6A2A] mt-2">🔒 Menunggu tahap lulus: {belum.join(", ")}</div>}
+                  {cfg.cekQuran && !selesai && <div className="text-xs mt-2 text-stone-500">Capaian Al-Qur'an tercatat: Tasmi' <b className={tasmi ? "text-[#0F4A44]" : "text-red-600"}>{tasmi}x</b> · Syahadah <b className={syahadah ? "text-[#0F4A44]" : "text-red-600"}>{syahadah}x</b></div>}
+
+                  {r && (
+                    <div className="mt-3 border-t border-stone-100 pt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+                      {r.judul && <div className="col-span-2"><span className="text-stone-400 text-xs">{cfg.lbl.judul}</span><div className="font-semibold text-[#0B3B36]">{r.judul}</div></div>}
+                      {r.pembimbing && <div><span className="text-stone-400 text-xs">{cfg.lbl.pembimbing}</span><div>{r.pembimbing}</div></div>}
+                      {r.penguji && <div><span className="text-stone-400 text-xs">{cfg.lbl.penguji}</span><div>{r.penguji}</div></div>}
+                      {r.lokasi && <div><span className="text-stone-400 text-xs">{cfg.lbl.lokasi}</span><div>{r.lokasi}</div></div>}
+                      {r.tanggal_pengajuan && <div><span className="text-stone-400 text-xs">Tanggal Pengajuan</span><div>{tglPendek(r.tanggal_pengajuan)}</div></div>}
+                      {r.tanggal_pelaksanaan && <div><span className="text-stone-400 text-xs">{cfg.lbl.tgl}</span><div>{tglPendek(r.tanggal_pelaksanaan)}</div></div>}
+                      {cfg.lblSelesai && r.tanggal_selesai && <div><span className="text-stone-400 text-xs">{cfg.lblSelesai}</span><div>{tglPendek(r.tanggal_selesai)}</div></div>}
+                      {cfg.duaHari && r.capaian_hari1 && <div><span className="text-stone-400 text-xs">Capaian Hari ke-1</span><div>{r.capaian_hari1}</div></div>}
+                      {cfg.duaHari && r.capaian_hari2 && <div><span className="text-stone-400 text-xs">Capaian Hari ke-2</span><div>{r.capaian_hari2}</div></div>}
+                      {r.catatan && <div className="col-span-2"><span className="text-stone-400 text-xs">Catatan Evaluasi</span><div>{r.catatan}</div></div>}
+                    </div>
+                  )}
+
+                  {r && cfg.komponen && Object.keys(kom).length > 0 && (
+                    <div className="mt-3 flex gap-2 flex-wrap">
+                      {cfg.komponen.filter((k) => kom[k.kode] !== undefined && kom[k.kode] !== "").map((k) => (
+                        <div key={k.kode} className="bg-stone-50 rounded-lg px-3 py-1.5 text-xs"><span className="text-stone-400">{k.label}</span> <b className="text-[#0B3B36] ml-1">{kom[k.kode]}</b></div>
+                      ))}
+                    </div>
+                  )}
+                  {r && r.nilai_angka != null && (
+                    <div className="mt-3 inline-flex items-center gap-2 bg-[#E9F1EE] text-[#0F4A44] rounded-xl px-3 py-1.5 text-sm"><span className="text-xs">Nilai Akhir</span><b className="text-base">{r.nilai_angka}</b><span className="text-xs font-bold">({nilaiHuruf(r.nilai_angka)})</span></div>
+                  )}
+
+                  {r && cfg.karya && (r.karya && Object.values(r.karya).some(Boolean) || cfg.foto.some((x) => berkasR[x])) && (
+                    <div className="mt-3 rounded-xl border border-[#E4DCC5] bg-[#FBF8EE] p-3">
+                      <div className="text-[0.6875rem] uppercase tracking-wider text-[#8A6A2A] font-bold mb-2">Karya Bisnis</div>
+                      <div className="flex gap-3 flex-wrap items-start">
+                        {berkasR["Logo Brand"] && <a href={berkasR["Logo Brand"]} target="_blank" rel="noreferrer"><img src={berkasR["Logo Brand"]} alt="Logo brand" className="w-20 h-20 rounded-xl object-cover bg-white border border-stone-200" /></a>}
+                        <div className="flex-1 min-w-[10rem]">
+                          {(r.karya || {}).nama_brand && <div className="font-serif-dh text-lg font-semibold text-[#0B3B36] leading-tight">{r.karya.nama_brand}</div>}
+                          {(r.karya || {}).tagline && <div className="text-xs italic text-stone-500">“{r.karya.tagline}”</div>}
+                          <div className="text-xs text-stone-600 mt-1 space-y-0.5">
+                            {(r.karya || {}).bidang && <div><span className="text-stone-400">Bidang:</span> {r.karya.bidang}</div>}
+                            {(r.karya || {}).produk && <div><span className="text-stone-400">Produk:</span> {r.karya.produk}</div>}
+                            {(r.karya || {}).tautan && <div><a href={r.karya.tautan} target="_blank" rel="noreferrer" className="text-[#145048] underline font-bold">Kunjungi brand</a></div>}
+                          </div>
+                        </div>
+                      </div>
+                      {cfg.foto.filter((x) => x !== "Logo Brand" && berkasR[x]).length > 0 && (
+                        <div className="flex gap-2 mt-3 flex-wrap">
+                          {cfg.foto.filter((x) => x !== "Logo Brand" && berkasR[x]).map((x) => <a key={x} href={berkasR[x]} target="_blank" rel="noreferrer"><img src={berkasR[x]} alt={x} className="w-24 h-24 rounded-lg object-cover border border-stone-200" /></a>)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {r && (
+                    <div className="mt-3">
+                      <div className="text-[0.6875rem] uppercase tracking-wider text-stone-400 font-bold mb-1.5">Berkas ({jmlBerkas}/{cfg.berkas.length})</div>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {cfg.berkas.map((b) => berkasR[b]
+                          ? <a key={b} href={berkasR[b]} target="_blank" rel="noreferrer" className="text-xs px-2.5 py-1 rounded-full bg-[#E9F1EE] text-[#0F4A44] font-semibold hover:underline">✓ {b}</a>
+                          : <span key={b} className="text-xs px-2.5 py-1 rounded-full bg-stone-100 text-stone-400">○ {b}</span>)}
+                        {r.berkas_url && <a href={r.berkas_url} target="_blank" rel="noreferrer" className="text-xs px-2.5 py-1 rounded-full bg-[#E9F1EE] text-[#0F4A44] font-semibold hover:underline">✓ Berkas lain</a>}
+                      </div>
+                    </div>
+                  )}
+                </Card>
               </div>
-            </Card>
+            </div>
           );
         })}
       </div>
-      {!staff && <p className="text-xs text-stone-400 mt-3">Pengajuan Anda akan diperiksa dan diproses oleh bagian Akademik. Hubungi Akademik bila ada kendala.</p>}
-      {form && <TahapanForm cfg={form.cfg} initial={form.initial} nim={nim} terbatas={!staff} onCancel={() => setForm(null)} onSubmit={(f) => simpan(form.cfg, { ...f, status: staff ? f.status : "Diajukan" }, form.id)} />}
+      {!staff && <p className="text-xs text-stone-400 mt-4">Pengajuan dan berkas Anda akan diperiksa dan diproses oleh bagian Akademik. Hubungi Akademik bila ada kendala.</p>}
+      {form && <TahapanForm cfg={form.cfg} initial={form.initial} nim={nim} terbatas={!staff} onCancel={() => setForm(null)} onSubmit={(f) => { if (staff && f.status === "Lulus" && form.cfg.fotoWajib && form.cfg.fotoWajib.some((x) => !(f.berkas || {})[x]) && !confirm("Foto karya wajib (" + form.cfg.fotoWajib.join(", ") + ") belum lengkap. Tetap luluskan?")) return; simpan(form.cfg, { ...f, status: staff ? f.status : "Diajukan" }, form.id); }} />}
     </div>
   );
 }
 
 function TahapanForm({ cfg, initial, nim, terbatas, onCancel, onSubmit }) {
-  const [f, setF] = useState(initial ? { ...initial, nilai_angka: initial.nilai_angka ?? "" } : { status: "Diajukan", judul: "", pembimbing: "", penguji: "", lokasi: "", tanggal_pengajuan: new Date().toISOString().slice(0, 10), tanggal_pelaksanaan: "", tanggal_selesai: "", capaian_hari1: "", capaian_hari2: "", nilai_angka: "", catatan: "", berkas_url: "" });
-  const [uploading, setUploading] = useState(false);
+  const [f, setF] = useState(initial
+    ? { ...initial, nilai_angka: initial.nilai_angka ?? "", komponen: initial.komponen || {}, berkas: initial.berkas || {}, karya: initial.karya || {} }
+    : { status: "Diajukan", judul: "", pembimbing: "", penguji: "", lokasi: "", tanggal_pengajuan: new Date().toISOString().slice(0, 10), tanggal_pelaksanaan: "", tanggal_selesai: "", capaian_hari1: "", capaian_hari2: "", nilai_angka: "", komponen: {}, berkas: {}, karya: {}, catatan: "" });
+  const [uploading, setUploading] = useState("");
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-  async function upload(e) {
+  async function upload(nama, e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
-    const path = `${nim}/tahap-${cfg.kode.replace(/[^A-Za-z0-9]+/g, "-")}-${Date.now()}.${file.name.split(".").pop()}`;
+    setUploading(nama);
+    const path = `${nim}/tahap-${cfg.kode.replace(/[^A-Za-z0-9]+/g, "-")}-${nama.replace(/[^A-Za-z0-9]+/g, "-")}-${Date.now()}.${file.name.split(".").pop()}`;
     const { error } = await supabase.storage.from("dokumen-santri").upload(path, file, { upsert: true });
-    if (error) { alert(error.message); setUploading(false); return; }
+    if (error) { alert(error.message); setUploading(""); return; }
     const { data } = supabase.storage.from("dokumen-santri").getPublicUrl(path);
-    setF((prev) => ({ ...prev, berkas_url: data.publicUrl }));
-    setUploading(false);
+    setF((prev) => ({ ...prev, berkas: { ...prev.berkas, [nama]: data.publicUrl } }));
+    setUploading("");
   }
+  const otomatis = nilaiAkhirKomponen(cfg, f.komponen);
   const statusOpsi = [...cfg.alur, "Revisi", "Tidak Lulus", "Ditolak"];
   return (
-    <Modal title={`${initial ? "Edit" : terbatas ? "Ajukan" : "Input"} ${cfg.nama}`} onClose={onCancel}>
+    <Modal title={`${initial ? (terbatas ? "Berkas" : "Edit") : terbatas ? "Ajukan" : "Input"} ${cfg.nama}`} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         {!terbatas && <Field label="Status"><Select value={f.status} onChange={set("status")}>{statusOpsi.map((x) => <option key={x}>{x}</option>)}</Select></Field>}
         <Field label={cfg.lbl.judul}><Input value={f.judul || ""} onChange={set("judul")} /></Field>
@@ -1698,31 +1795,59 @@ function TahapanForm({ cfg, initial, nim, terbatas, onCancel, onSubmit }) {
           </div>
         )}
         <Field label={cfg.lbl.lokasi}><Input value={f.lokasi || ""} onChange={set("lokasi")} /></Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Tanggal Pengajuan"><Input type="date" value={f.tanggal_pengajuan || ""} onChange={set("tanggal_pengajuan")} /></Field>
-          {!terbatas && <Field label={cfg.lbl.tgl}><Input type="date" value={f.tanggal_pelaksanaan || ""} onChange={set("tanggal_pelaksanaan")} /></Field>}
-        </div>
-        {!terbatas && cfg.duaHari && (
-          <>
-            <Field label="Tanggal Selesai (Hari ke-2)"><Input type="date" value={f.tanggal_selesai || ""} onChange={set("tanggal_selesai")} /></Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Capaian Hari ke-1"><Input value={f.capaian_hari1 || ""} onChange={set("capaian_hari1")} placeholder="cth. Juz 1–15, 3 teguran" /></Field>
-              <Field label="Capaian Hari ke-2"><Input value={f.capaian_hari2 || ""} onChange={set("capaian_hari2")} placeholder="cth. Juz 16–30, 2 teguran" /></Field>
-            </div>
-          </>
-        )}
         {!terbatas && (
           <>
-            <Field label={`Nilai Angka (0–100)${f.nilai_angka !== "" ? ` — predikat ${nilaiHuruf(Number(f.nilai_angka))}` : ""}`}><Input type="number" min={0} max={100} value={f.nilai_angka} onChange={set("nilai_angka")} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Tanggal Pengajuan"><Input type="date" value={f.tanggal_pengajuan || ""} onChange={set("tanggal_pengajuan")} /></Field>
+              <Field label={cfg.lbl.tgl}><Input type="date" value={f.tanggal_pelaksanaan || ""} onChange={set("tanggal_pelaksanaan")} /></Field>
+            </div>
+            {cfg.lblSelesai && <Field label={cfg.lblSelesai}><Input type="date" value={f.tanggal_selesai || ""} onChange={set("tanggal_selesai")} /></Field>}
+            {cfg.duaHari && (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Capaian Hari ke-1"><Input value={f.capaian_hari1 || ""} onChange={set("capaian_hari1")} placeholder="cth. Juz 1–15, 3 teguran" /></Field>
+                <Field label="Capaian Hari ke-2"><Input value={f.capaian_hari2 || ""} onChange={set("capaian_hari2")} placeholder="cth. Juz 16–30, 2 teguran" /></Field>
+              </div>
+            )}
+            {cfg.komponen ? (
+              <div className="mb-3">
+                <div className="text-xs font-bold text-[#0B3B36] mb-1.5 uppercase tracking-wide">Komponen Penilaian (0–100)</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {cfg.komponen.map((k) => (
+                    <Field key={k.kode} label={`${k.label} (${k.bobot}%)`}><Input type="number" min={0} max={100} value={f.komponen[k.kode] ?? ""} onChange={(e) => setF({ ...f, komponen: { ...f.komponen, [k.kode]: e.target.value } })} /></Field>
+                  ))}
+                </div>
+                <div className="text-xs text-stone-500">{otomatis != null ? <>Nilai akhir otomatis: <b className="text-[#0B3B36]">{otomatis}</b> ({nilaiHuruf(otomatis)})</> : "Isi semua komponen untuk menghitung nilai akhir otomatis."}</div>
+              </div>
+            ) : (
+              <Field label={`Nilai Angka (0–100)${f.nilai_angka !== "" ? ` — predikat ${nilaiHuruf(Number(f.nilai_angka))}` : ""}`}><Input type="number" min={0} max={100} value={f.nilai_angka} onChange={set("nilai_angka")} /></Field>
+            )}
             <Field label="Catatan / Hasil Evaluasi"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={f.catatan || ""} onChange={set("catatan")} placeholder="cth. Revisi bab analisis pasar, mengulang pekan depan" /></Field>
           </>
         )}
-        <Field label="Berkas / Laporan (opsional)">
-          <input type="file" onChange={upload} className="text-sm" />
-          {uploading && <div className="text-xs text-stone-400 mt-1">Mengunggah…</div>}
-          {f.berkas_url && <a href={f.berkas_url} target="_blank" rel="noreferrer" className="text-xs text-[#145048] font-bold underline">Berkas terunggah</a>}
-        </Field>
-        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit" disabled={uploading}>{terbatas ? "Kirim Pengajuan" : "Simpan"}</Btn></div>
+        {cfg.karya && (
+          <div className="mb-3 rounded-xl border border-[#E4DCC5] bg-[#FBF8EE] p-3">
+            <div className="text-xs font-bold text-[#0B3B36] mb-2 uppercase tracking-wide">Karya Bisnis — Brand Sendiri</div>
+            <div className="grid grid-cols-2 gap-x-3">
+              {cfg.karya.map((k) => <Field key={k.kode} label={k.label}><Input value={f.karya[k.kode] || ""} onChange={(e) => setF({ ...f, karya: { ...f.karya, [k.kode]: e.target.value } })} placeholder={k.ph || ""} /></Field>)}
+            </div>
+            <div className="text-[0.6875rem] text-stone-500">Wajib foto: {cfg.fotoWajib.join(" dan ")}. Foto produk lain bersifat tambahan.</div>
+          </div>
+        )}
+        <div className="mb-2">
+          <div className="text-xs font-bold text-[#0B3B36] mb-1.5 uppercase tracking-wide">Berkas ({cfg.berkas.filter((b) => f.berkas[b]).length}/{cfg.berkas.length})</div>
+          <div className="space-y-1.5">
+            {cfg.berkas.map((b) => (
+              <div key={b} className="flex items-center gap-2 text-sm bg-stone-50 rounded-lg px-3 py-1.5">
+                <span className={f.berkas[b] ? "text-[#2A9D8F] font-bold" : "text-stone-300"}>{f.berkas[b] ? "✓" : "○"}</span>
+                <span className="flex-1 min-w-0 truncate">{b}</span>
+                {f.berkas[b] && cfg.foto && cfg.foto.includes(b) && <img src={f.berkas[b]} alt={b} className="w-8 h-8 rounded object-cover" />}
+                {f.berkas[b] && <a href={f.berkas[b]} target="_blank" rel="noreferrer" className="text-xs text-[#145048] font-bold underline">lihat</a>}
+                <label className="text-xs font-bold text-[#0B3B36] cursor-pointer underline">{uploading === b ? "Mengunggah…" : f.berkas[b] ? "ganti" : "unggah"}<input type="file" accept={cfg.foto && cfg.foto.includes(b) ? "image/*" : undefined} className="hidden" onChange={(e) => upload(b, e)} /></label>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit" disabled={!!uploading}>{terbatas ? (initial ? "Simpan Berkas" : "Kirim Pengajuan") : "Simpan"}</Btn></div>
       </form>
     </Modal>
   );
@@ -2386,11 +2511,11 @@ function KartuSantriPage({ profile }) {
 /* ---------------------------------------------------------------------- */
 /* Akademik santri — gabungan KRS + KHS                                    */
 /* ---------------------------------------------------------------------- */
-function AkademikSantriPage({ profile }) {
+function AkademikSantriPage({ profile, tabAwal = "krs" }) {
   const brand = useContext(BrandContext);
   const akT = useTable("akademik");
   const tahapT = useTable("tahapan_akhir");
-  const [tab, setTab] = useState("krs");
+  const [tab, setTab] = useState(tabAwal);
   const santriT = useTable("santri");
   const quranLogT = useTable("quran_log");
   const profilesT = useTable("profiles");
@@ -4005,9 +4130,9 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
-  { tgl: "Okt 2026", judul: "Tugas Akhir & Ujian (KPM, Magang, Sidang Akhir Bisnis, Sidang Munaqasyah, Syahadah Kubro, Pengambilan Sanad)", isi: "Tab baru di menu Akademik yang mengatur alur tahapan akhir seperti kampus: pengajuan → persetujuan → penjadwalan/pelaksanaan → penilaian (lulus, revisi, tidak lulus, ajukan ulang). Ada kunci prasyarat antar tahap (KPM → Magang → Sidang Akhir Bisnis; Munaqasyah → Pengambilan Sanad), pembimbing/penguji, tanggal, nilai, catatan, dan unggah berkas. Mahasantri dapat mengajukan sendiri dan memantau statusnya. Butuh file SQL 16-tahapan-akhir.sql.", lokasi: "Akademik → tab Tugas Akhir & Ujian" },
+  { tgl: "Okt 2026", judul: "Tugas Akhir & Ujian (KPM, Magang, Sidang Akhir Bisnis, Sidang Munaqasyah, Syahadah Kubro, Pengambilan Sanad)", isi: "Tab baru di menu Akademik yang mengatur alur tahapan akhir seperti kampus: pengajuan → persetujuan → penjadwalan/pelaksanaan → penilaian (lulus, revisi, tidak lulus, ajukan ulang). Ada kunci prasyarat antar tahap (KPM → Magang → Sidang Akhir Bisnis; Munaqasyah → Syahadah Kubro dan Pengambilan Sanad), pembimbing/penguji, tanggal, nilai per komponen yang dihitung otomatis, dan daftar berkas wajib per tahap (mis. logbook dan laporan magang). Sidang Akhir Bisnis mencatat karya brand sendiri: nama brand, bidang, tagline, produk, tautan, logo, dan foto produk. Mahasantri dapat mengajukan sendiri dan memantau statusnya. Butuh file SQL 16-tahapan-akhir.sql.", lokasi: "Akademik → tab Tugas Akhir & Ujian" },
   { tgl: "Okt 2026", judul: "Jenis setoran Syahadah dan Tasmi' di Capaian Al-Qur'an", isi: "Dua jenis baru untuk dicatat bersama Ziyadah, Murajaah, dan lainnya. Syahadah dan Tasmi' tercatat juga menjadi acuan syarat Sidang Munaqasyah.", lokasi: "Capaian Al-Qur'an → Catat Setoran" },
-  { tgl: "Okt 2026", judul: "Penataan menu", isi: "Menu Kurikulum dan Rapor Bulanan dihapus. Urutan menu utama: Data Mahasantri, Akademik, Capaian Al-Qur'an, Ibadah, Iuran SPP, Kartu Tanda Mahasantri. Akademik kini satu menu (KRS & KHS dan Tugas Akhir & Ujian sebagai tab).", lokasi: "Menu samping" },
+  { tgl: "Okt 2026", judul: "Penataan menu", isi: "Menu Kurikulum dan Rapor Bulanan dihapus. Urutan menu utama: Data Mahasantri, Akademik, Capaian Al-Qur'an, Ibadah, Iuran SPP, Kartu Tanda Mahasantri. Grup Akademik berisi KRS & KHS, Tugas Akhir & Ujian, Kalender Akademik, dan Rekap Pencapaian.", lokasi: "Menu samping" },
   { tgl: "Okt 2026", judul: "Log Aktivitas", isi: "Jejak otomatis siapa menambah, mengubah, dan menghapus data (SPP, koperasi, data santri, Al-Qur'an, ibadah, akun, dan lainnya), lengkap dengan nilai lama dan baru. Dicatat oleh database sehingga tidak bisa diubah dari aplikasi. Ada ringkasan siapa yang mengubah data hari ini.", lokasi: "Menu Log Aktivitas (Administrator dan Pimpinan)" },
   { tgl: "Okt 2026", judul: "Gaya tulisan Kartu Tanda Mahasantri bisa diatur", isi: "Ukuran huruf, jenis font, tebal, miring, dan warna setiap tulisan pada kartu (nama, NIM, data, nama pondok, alamat, dll.) bisa diubah dan langsung terlihat di pratinjau.", lokasi: "Kartu Tanda Mahasantri → Gaya Tulisan" },
   { tgl: "Okt 2026", judul: "Rekap Pencapaian Seluruh Santri (per bulan dan per pekan)", isi: "Satu halaman untuk memaparkan hasil evaluasi semua santri, bisa dipilih per bulan (dengan tren 6 bulan) atau per pekan (siapa yang belum mencapai target): grafik persentase santri yang mencapai target hafalan dan ibadah, tabel per santri, serta unduh Excel dan cetak/PDF.", lokasi: "Menu Rekap Pencapaian (di bawah Rapor Bulanan)" },
@@ -4065,7 +4190,7 @@ function PanduanAdmin() {
         <ul className="list-disc pl-5 space-y-1">
           <li><b>Administrator:</b> semua menu, termasuk Kelola Akun dan Pengaturan identitas pondok.</li>
           <li><b>Bendahara:</b> Iuran SPP dan cicilan koperasi.</li>
-          <li><b>Staf Akademik:</b> akademik (KRS, KHS, tugas akhir &amp; ujian), kartu mahasantri, rekap, kalender.</li>
+          <li><b>Staf Akademik:</b> grup Akademik (KRS &amp; KHS, tugas akhir &amp; ujian, kalender, rekap) dan kartu mahasantri.</li>
           <li><b>Musyrif / Musyrifah:</b> capaian Al-Qur'an dan ibadah santri bimbingannya.</li>
           <li><b>Pimpinan:</b> hanya melihat data, tanpa mengubah.</li>
           <li><b>Mahasantri / Wali:</b> melihat data milik sendiri.</li>
@@ -4663,7 +4788,7 @@ export default function App() {
     }
     if (view === "dashboard") return <Dashboard profile={profile} />;
     if (view === "santri" && ["admin","pimpinan"].includes(profile.role)) return <DataSantriPage profile={profile} />;
-    if (view === "akademik") return profile.role === "santri" ? <AkademikSantriPage profile={profile} /> : <AkademikStaffPage profile={profile} />;
+    if (view === "akademik" || view === "akhir") return profile.role === "santri" ? <AkademikSantriPage key={view} profile={profile} tabAwal={view === "akhir" ? "akhir" : "krs"} /> : <AkademikStaffPage key={view} profile={profile} tabAwal={view === "akhir" ? "akhir" : "krs"} />;
     if (view === "pengumuman") return <PengumumanPage profile={profile} />;
     if (view === "kalender") return <KalenderPage profile={profile} />;
     if (view === "rekap") return <RekapPencapaianPage profile={profile} />;
