@@ -1854,6 +1854,181 @@ function TahapanForm({ cfg, initial, nim, terbatas, onCancel, onSubmit }) {
 }
 
 /* ---------------------------------------------------------------------- */
+/* Monitoring Tugas Akhir — siapa yang mengajukan, siapa yang siap          */
+/* ---------------------------------------------------------------------- */
+const GRUP_STATUS_TAHAP = {
+  "Perlu tindakan": ["Diajukan"],
+  "Sedang berjalan": ["Disetujui", "Terjadwal", "Berjalan", "Revisi"],
+  "Lulus": ["Lulus"],
+  "Belum lulus": ["Tidak Lulus", "Ditolak"],
+};
+function TugasAkhirPantauPage({ profile }) {
+  const staff = canEdit(profile.role, "tahapan_akhir");
+  const santriT = useTable("santri");
+  const tahapT = useTable("tahapan_akhir");
+  const [mode, setMode] = useState("pengajuan");
+  const [tahap, setTahap] = useState("Semua");
+  const [status, setStatus] = useState("Perlu tindakan");
+  const [kelas, setKelas] = useState("Semua");
+  const [q, setQ] = useState("");
+  const [detail, setDetail] = useState(null);
+
+  const daftarKelas = [...new Set(santriT.rows.map((s) => s.kelas).filter(Boolean))].sort();
+  const cocokSantri = (s) => (kelas === "Semua" || s.kelas === kelas) && (!q || (s.nama || "").toLowerCase().includes(q.toLowerCase()) || String(s.nim || "").includes(q));
+  const rowsNim = (nim) => tahapT.rows.filter((r) => r.nim === nim);
+
+  const semua = [];
+  santriT.rows.forEach((s) => {
+    const mine = rowsNim(s.nim);
+    TAHAPAN_AKHIR.forEach((cfg) => {
+      const r = tahapTerakhir(mine, cfg.kode);
+      if (r) semua.push({ s, cfg, r, mine });
+    });
+  });
+  const ringkas = TAHAPAN_AKHIR.map((cfg) => {
+    const list = semua.filter((x) => x.cfg.kode === cfg.kode);
+    const hitung = (g) => list.filter((x) => GRUP_STATUS_TAHAP[g].includes(x.r.status)).length;
+    return { cfg, tindakan: hitung("Perlu tindakan"), berjalan: hitung("Sedang berjalan"), lulus: hitung("Lulus") };
+  });
+  const totalTindakan = ringkas.reduce((a, x) => a + x.tindakan, 0);
+
+  const tampil = semua
+    .filter((x) => (tahap === "Semua" || x.cfg.kode === tahap) && (status === "Semua" || GRUP_STATUS_TAHAP[status].includes(x.r.status)) && cocokSantri(x.s))
+    .sort((a, b) => (a.r.status === "Diajukan" ? 0 : 1) - (b.r.status === "Diajukan" ? 0 : 1) || String(b.r.tanggal_pengajuan || "").localeCompare(String(a.r.tanggal_pengajuan || "")));
+
+  const cfgSiap = TAHAPAN_AKHIR.find((c) => c.kode === tahap);
+  const siap = cfgSiap
+    ? santriT.rows.filter((s) => (s.status === "Aktif" || !s.status) && cocokSantri(s)).filter((s) => {
+        const mine = rowsNim(s.nim);
+        const r = tahapTerakhir(mine, cfgSiap.kode);
+        const aktifR = r && !STATUS_TAHAP_AKHIR.includes(r.status);
+        return !aktifR && !tahapLulus(mine, cfgSiap.kode) && cfgSiap.prasyarat.every((k) => tahapLulus(mine, k));
+      })
+    : [];
+
+  async function lanjut(x) {
+    const next = langkahBerikut(x.cfg, x.r.status);
+    if (!next) return;
+    if (next === "Lulus") { setDetail(x.s.nim); return; }
+    const { error } = await supabase.from("tahapan_akhir").update({ status: next, diperbarui_oleh: profile.username || null }).eq("id", x.r.id);
+    if (error) alert(error.message); else tahapT.reload();
+  }
+  async function ekspor() {
+    const XLSX = await muatXLSX();
+    const data = tampil.map((x) => ({
+      Nama: x.s.nama, NIM: x.s.nim, Kelas: x.s.kelas || "", Tahap: x.cfg.nama, Status: x.r.status,
+      "Tanggal Pengajuan": x.r.tanggal_pengajuan || "", "Tanggal Pelaksanaan": x.r.tanggal_pelaksanaan || "",
+      Nilai: x.r.nilai_angka ?? "", Predikat: x.r.nilai_angka != null ? nilaiHuruf(x.r.nilai_angka) : "",
+      Berkas: `${x.cfg.berkas.filter((b) => (x.r.berkas || {})[b]).length}/${x.cfg.berkas.length}`,
+    }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Tugas Akhir");
+    XLSX.writeFile(wb, `monitoring-tugas-akhir-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  if (detail) {
+    const s = santriT.rows.find((x) => x.nim === detail);
+    return (
+      <div>
+        <PageHeader title={s ? s.nama : detail} sub={`Tugas Akhir & Ujian · ${detail}${s?.kelas ? " · " + s.kelas : ""}`} actions={<Btn tone="ghost" onClick={() => setDetail(null)}>← Kembali ke Monitoring</Btn>} />
+        <TugasAkhirPanel nim={detail} profile={profile} rows={tahapT.rows} reload={tahapT.reload} />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <PageHeader title="Monitoring Tugas Akhir & Ujian" sub={totalTindakan ? `${totalTindakan} pengajuan menunggu tindakan` : "Tidak ada pengajuan yang menunggu tindakan"} actions={mode === "pengajuan" ? <Btn tone="ghost" onClick={ekspor}>Unduh Excel</Btn> : null} />
+
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-5">
+        {ringkas.map(({ cfg, tindakan, berjalan, lulus }) => (
+          <button key={cfg.kode} type="button" onClick={() => { setTahap(tahap === cfg.kode ? "Semua" : cfg.kode); setStatus("Semua"); }}
+            className={`text-left rounded-2xl p-3.5 bg-white border transition ${tahap === cfg.kode ? "border-[#0B3B36] ring-1 ring-[#0B3B36]" : "border-stone-200 hover:border-stone-300"}`}>
+            <div className="text-lg">{cfg.ikon}</div>
+            <div className="text-xs font-bold text-[#0B3B36] mt-1 leading-tight">{cfg.nama}</div>
+            <div className="mt-2 space-y-0.5 text-[0.6875rem]">
+              <div className={tindakan ? "text-[#8A6A2A] font-bold" : "text-stone-400"}>● {tindakan} perlu tindakan</div>
+              <div className="text-stone-500">● {berjalan} berjalan</div>
+              <div className="text-[#0F4A44]">● {lulus} lulus</div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-1 mb-4 border-b border-stone-200">
+        {[["pengajuan", "Yang Sudah Mengajukan"], ["siap", "Siap Diajukan (belum mengajukan)"]].map(([k, l]) => (
+          <button key={k} type="button" onClick={() => { setMode(k); if (k === "siap" && tahap === "Semua") setTahap("Syahadah Kubro"); }} className={`px-4 py-2 text-sm font-bold -mb-px border-b-2 ${mode === k ? "border-[#0B3B36] text-[#0B3B36]" : "border-transparent text-stone-400 hover:text-stone-600"}`}>{l}</button>
+        ))}
+      </div>
+
+      <div className="flex gap-2 flex-wrap mb-4">
+        <Select value={tahap} onChange={(e) => setTahap(e.target.value)}>
+          {mode === "pengajuan" && <option value="Semua">Semua tahap</option>}
+          {TAHAPAN_AKHIR.map((c) => <option key={c.kode} value={c.kode}>{c.nama}</option>)}
+        </Select>
+        {mode === "pengajuan" && (
+          <Select value={status} onChange={(e) => setStatus(e.target.value)}>
+            {["Semua", ...Object.keys(GRUP_STATUS_TAHAP)].map((g) => <option key={g} value={g}>{g === "Semua" ? "Semua status" : g}</option>)}
+          </Select>
+        )}
+        <Select value={kelas} onChange={(e) => setKelas(e.target.value)}>
+          <option value="Semua">Semua kelas</option>
+          {daftarKelas.map((k) => <option key={k} value={k}>{k}</option>)}
+        </Select>
+        <Input placeholder="Cari nama / NIM" value={q} onChange={(e) => setQ(e.target.value)} />
+      </div>
+
+      <Card className="!p-0 overflow-hidden">
+        {mode === "pengajuan" ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-xs uppercase tracking-wider text-stone-400 bg-stone-50"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Tahap</th><th className="p-3.5">Status</th><th className="p-3.5">Diajukan</th><th className="p-3.5">Pelaksanaan</th><th className="p-3.5">Nilai</th><th className="p-3.5">Berkas</th><th className="p-3.5"></th></tr></thead>
+              <tbody>
+                {tampil.map((x) => {
+                  const next = langkahBerikut(x.cfg, x.r.status);
+                  const jml = x.cfg.berkas.filter((b) => (x.r.berkas || {})[b]).length;
+                  return (
+                    <tr key={x.r.id} className="border-t border-stone-100">
+                      <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={x.s.nama} size={30} /><div><div className="font-semibold text-[#0B3B36]">{x.s.nama}</div><div className="text-xs text-stone-400">{x.s.nim}{x.s.kelas ? " · " + x.s.kelas : ""}</div></div></div></td>
+                      <td className="p-3.5">{x.cfg.ikon} {x.cfg.nama}</td>
+                      <td className="p-3.5"><Badge tone={STATUS_TAHAP_TONE[x.r.status] || "grey"}>{x.r.status}</Badge></td>
+                      <td className="p-3.5 text-stone-600">{tglPendek(x.r.tanggal_pengajuan) || "—"}</td>
+                      <td className="p-3.5 text-stone-600">{tglPendek(x.r.tanggal_pelaksanaan) || "—"}</td>
+                      <td className="p-3.5">{x.r.nilai_angka != null ? <b>{x.r.nilai_angka} <span className="text-xs text-stone-400">({nilaiHuruf(x.r.nilai_angka)})</span></b> : "—"}</td>
+                      <td className="p-3.5 text-stone-600">{jml}/{x.cfg.berkas.length}</td>
+                      <td className="p-3.5"><div className="flex gap-1.5 justify-end">
+                        {staff && next && !STATUS_TAHAP_AKHIR.includes(x.r.status) && <Btn tone="gold" onClick={() => lanjut(x)}>{next === "Lulus" ? "Beri Nilai" : `Lanjut: ${next}`}</Btn>}
+                        <Btn tone="ghost" onClick={() => setDetail(x.s.nim)}>Buka</Btn>
+                      </div></td>
+                    </tr>
+                  );
+                })}
+                {tampil.length === 0 && <tr><td colSpan={8}><Empty text="Tidak ada data untuk filter ini." /></td></tr>}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="px-4 py-3 text-xs text-stone-500 bg-stone-50 border-b border-stone-100">Mahasantri aktif yang sudah memenuhi prasyarat <b>{cfgSiap?.nama}</b> {cfgSiap && cfgSiap.prasyarat.length ? `(${cfgSiap.prasyarat.join(", ")} lulus)` : ""} tetapi belum mengajukan. Total: <b>{siap.length}</b>.</div>
+            <table className="w-full text-sm">
+              <tbody>
+                {siap.map((s) => (
+                  <tr key={s.nim} className="border-t border-stone-100">
+                    <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-semibold text-[#0B3B36]">{s.nama}</div><div className="text-xs text-stone-400">{s.nim}{s.kelas ? " · " + s.kelas : ""}</div></div></div></td>
+                    <td className="p-3.5 text-right"><Btn tone="ghost" onClick={() => setDetail(s.nim)}>Buka</Btn></td>
+                  </tr>
+                ))}
+                {siap.length === 0 && <tr><td><Empty text="Belum ada mahasantri yang siap untuk tahap ini." /></td></tr>}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
 /* Pengumuman                                                               */
 /* ---------------------------------------------------------------------- */
 function PengumumanPage({ profile }) {
@@ -4130,6 +4305,7 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Monitoring Tugas Akhir (menu Tugas Akhir & Ujian)", isi: "Menu Tugas Akhir & Ujian langsung menampilkan satu halaman untuk melihat semua mahasantri yang mengajukan KPM, Magang, Sidang, Syahadah Kubro, dan Sanad tanpa membuka satu per satu. Ada ringkasan per tahap, filter tahap/status/kelas/nama, tombol Lanjut langsung dari daftar, daftar mahasantri yang siap tetapi belum mengajukan, dan unduh Excel.", lokasi: "Akademik → Tugas Akhir & Ujian" },
   { tgl: "Okt 2026", judul: "Tugas Akhir & Ujian (KPM, Magang, Sidang Akhir Bisnis, Sidang Munaqasyah, Syahadah Kubro, Pengambilan Sanad)", isi: "Tab baru di menu Akademik yang mengatur alur tahapan akhir seperti kampus: pengajuan → persetujuan → penjadwalan/pelaksanaan → penilaian (lulus, revisi, tidak lulus, ajukan ulang). Ada kunci prasyarat antar tahap (KPM → Magang → Sidang Akhir Bisnis; Munaqasyah → Syahadah Kubro dan Pengambilan Sanad), pembimbing/penguji, tanggal, nilai per komponen yang dihitung otomatis, dan daftar berkas wajib per tahap (mis. logbook dan laporan magang). Sidang Akhir Bisnis mencatat karya brand sendiri: nama brand, bidang, tagline, produk, tautan, logo, dan foto produk. Mahasantri dapat mengajukan sendiri dan memantau statusnya. Butuh file SQL 16-tahapan-akhir.sql.", lokasi: "Akademik → tab Tugas Akhir & Ujian" },
   { tgl: "Okt 2026", judul: "Jenis setoran Syahadah dan Tasmi' di Capaian Al-Qur'an", isi: "Dua jenis baru untuk dicatat bersama Ziyadah, Murajaah, dan lainnya. Syahadah dan Tasmi' tercatat juga menjadi acuan syarat Sidang Munaqasyah.", lokasi: "Capaian Al-Qur'an → Catat Setoran" },
   { tgl: "Okt 2026", judul: "Penataan menu", isi: "Menu Kurikulum dan Rapor Bulanan dihapus. Urutan menu utama: Data Mahasantri, Akademik, Capaian Al-Qur'an, Ibadah, Iuran SPP, Kartu Tanda Mahasantri. Grup Akademik berisi KRS & KHS, Tugas Akhir & Ujian, Kalender Akademik, dan Rekap Pencapaian.", lokasi: "Menu samping" },
@@ -4790,6 +4966,7 @@ export default function App() {
     if (view === "santri" && ["admin","pimpinan"].includes(profile.role)) return <DataSantriPage profile={profile} />;
     if (view === "akademik" || view === "akhir") return profile.role === "santri" ? <AkademikSantriPage key={view} profile={profile} tabAwal={view === "akhir" ? "akhir" : "krs"} /> : <AkademikStaffPage key={view} profile={profile} tabAwal={view === "akhir" ? "akhir" : "krs"} />;
     if (view === "pengumuman") return <PengumumanPage profile={profile} />;
+    if (view === "akhir" && ["admin","pimpinan","akademik"].includes(profile.role)) return <TugasAkhirPantauPage profile={profile} />;
     if (view === "kalender") return <KalenderPage profile={profile} />;
     if (view === "rekap") return <RekapPencapaianPage profile={profile} />;
     if (view === "kartu") return <KartuSantriPage profile={profile} />;
