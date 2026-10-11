@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useRef, useContext, createContext } from "react";
 import { supabase } from "./supabaseClient.js";
 
+// Pustaka Excel dimuat saat dibutuhkan dari CDN (bukan dari npm), sehingga build/deploy tidak bergantung paket "xlsx".
+let _xlsxPromise = null;
+const muatXLSX = () => {
+  if (!_xlsxPromise) {
+    _xlsxPromise = import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm")
+      .then((mod) => (mod.default?.utils ? mod.default : mod))
+      .catch((e) => { _xlsxPromise = null; throw new Error("Pustaka Excel gagal dimuat. Periksa koneksi internet lalu coba lagi."); });
+  }
+  return _xlsxPromise;
+};
+
 const BrandContext = createContext({ warna_utama: "#0B3B36", warna_aksen: "#B8935A" });
 
 /* Ukuran tampilan (ukuran huruf dasar). Semua ukuran rem ikut membesar. */
@@ -15,20 +26,20 @@ function loadUiSize() {
 }
 
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing","Sidang Bisnis","Sidang Munaqasyah Matan Jazary"];
+const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"];
 const BIDANG_BISNIS = ["Bakery", "Fashion", "Kuliner", "Kerajinan", "Digital/Online", "Lainnya"];
 const JENIS_IBADAH = ["Sholat Berjamaah", "Sholat Rawatib", "Sholat Dhuha", "Sholat Tahajud", "Al-Ma'tsurat", "Membaca Al-Kahfi", "Puasa Sunnah"];
-const JENIS_SETORAN_QURAN = ["Ziyadah", "Murajaah", "Tilawah", "Tahsin", "Talaqqi"];
+const JENIS_SETORAN_QURAN = ["Ziyadah", "Murajaah", "Tilawah", "Tahsin", "Talaqqi", "Syahadah", "Tasmi'"];
 const PALET_GRAFIK = [
-  { nama: "Zamrud Lembut", warna: { hafalan: "#2A9D8F", ibadah_baik: "#2A9D8F", ibadah_sebagian: "#E9C46A", ibadah_kurang: "#E76F51", spp_lunas: "#2A9D8F", spp_belum: "#E76F51", Ziyadah: "#2A9D8F", Murajaah: "#E9C46A", Tilawah: "#457B9D", Tahsin: "#B5838D", Talaqqi: "#6D597A" } },
-  { nama: "Hijau Pondok & Emas", warna: { hafalan: "#1B7F5C", ibadah_baik: "#1B7F5C", ibadah_sebagian: "#D4A650", ibadah_kurang: "#C8553D", spp_lunas: "#1B7F5C", spp_belum: "#C8553D", Ziyadah: "#1B7F5C", Murajaah: "#D4A650", Tilawah: "#3E7CB1", Tahsin: "#A0526B", Talaqqi: "#6B5CA5" } },
-  { nama: "Biru Tenang", warna: { hafalan: "#3B82C4", ibadah_baik: "#3B82C4", ibadah_sebagian: "#F2B84B", ibadah_kurang: "#E4695B", spp_lunas: "#3B82C4", spp_belum: "#E4695B", Ziyadah: "#3B82C4", Murajaah: "#F2B84B", Tilawah: "#2A9D8F", Tahsin: "#9B7EBD", Talaqqi: "#6C7A89" } },
-  { nama: "Pastel Lembut", warna: { hafalan: "#7FB89E", ibadah_baik: "#7FB89E", ibadah_sebagian: "#F0D08C", ibadah_kurang: "#E39A8E", spp_lunas: "#7FB89E", spp_belum: "#E39A8E", Ziyadah: "#7FB89E", Murajaah: "#F0D08C", Tilawah: "#8FB5D6", Tahsin: "#C9A0B4", Talaqqi: "#A99CCB" } },
-  { nama: "Klasik (versi lama)", warna: { hafalan: "#0B4D30", ibadah_baik: "#0B4D30", ibadah_sebagian: "#B8935A", ibadah_kurang: "#DC2626", spp_lunas: "#0B4D30", spp_belum: "#DC2626", Ziyadah: "#0B4D30", Murajaah: "#B8935A", Tilawah: "#3F6C8A", Tahsin: "#8A4A3A", Talaqqi: "#5C4A8A" } },
+  { nama: "Zamrud Lembut", warna: { hafalan: "#2A9D8F", ibadah_baik: "#2A9D8F", ibadah_sebagian: "#E9C46A", ibadah_kurang: "#E76F51", spp_lunas: "#2A9D8F", spp_belum: "#E76F51", Ziyadah: "#2A9D8F", Murajaah: "#E9C46A", Tilawah: "#457B9D", Tahsin: "#B5838D", Talaqqi: "#6D597A", Syahadah: "#C9A227", "Tasmi'": "#2F6F8F" } },
+  { nama: "Hijau Pondok & Emas", warna: { hafalan: "#1B7F5C", ibadah_baik: "#1B7F5C", ibadah_sebagian: "#D4A650", ibadah_kurang: "#C8553D", spp_lunas: "#1B7F5C", spp_belum: "#C8553D", Ziyadah: "#1B7F5C", Murajaah: "#D4A650", Tilawah: "#3E7CB1", Tahsin: "#A0526B", Talaqqi: "#6B5CA5", Syahadah: "#C9A227", "Tasmi'": "#2F6F8F" } },
+  { nama: "Biru Tenang", warna: { hafalan: "#3B82C4", ibadah_baik: "#3B82C4", ibadah_sebagian: "#F2B84B", ibadah_kurang: "#E4695B", spp_lunas: "#3B82C4", spp_belum: "#E4695B", Ziyadah: "#3B82C4", Murajaah: "#F2B84B", Tilawah: "#2A9D8F", Tahsin: "#9B7EBD", Talaqqi: "#6C7A89", Syahadah: "#D4A650", "Tasmi'": "#2A9D8F" } },
+  { nama: "Pastel Lembut", warna: { hafalan: "#7FB89E", ibadah_baik: "#7FB89E", ibadah_sebagian: "#F0D08C", ibadah_kurang: "#E39A8E", spp_lunas: "#7FB89E", spp_belum: "#E39A8E", Ziyadah: "#7FB89E", Murajaah: "#F0D08C", Tilawah: "#8FB5D6", Tahsin: "#C9A0B4", Talaqqi: "#A99CCB", Syahadah: "#E3C878", "Tasmi'": "#8FB5D6" } },
+  { nama: "Klasik (versi lama)", warna: { hafalan: "#0B4D30", ibadah_baik: "#0B4D30", ibadah_sebagian: "#B8935A", ibadah_kurang: "#DC2626", spp_lunas: "#0B4D30", spp_belum: "#DC2626", Ziyadah: "#0B4D30", Murajaah: "#B8935A", Tilawah: "#3F6C8A", Tahsin: "#8A4A3A", Talaqqi: "#5C4A8A", Syahadah: "#B8935A", "Tasmi'": "#1F5F7A" } },
 ];
 const GRAFIK_DEFAULT = PALET_GRAFIK[0].warna;
 function warnaGrafik(brand) { return { ...GRAFIK_DEFAULT, ...((brand && brand.warna_grafik) || {}) }; }
-const JENIS_SETORAN_QURAN_COLOR = { Ziyadah: "#2A9D8F", Murajaah: "#E9C46A", Tilawah: "#457B9D", Tahsin: "#B5838D", Talaqqi: "#6D597A" };
+const JENIS_SETORAN_QURAN_COLOR = { Ziyadah: "#2A9D8F", Murajaah: "#E9C46A", Tilawah: "#457B9D", Tahsin: "#B5838D", Talaqqi: "#6D597A", Syahadah: "#C9A227", "Tasmi'": "#2F6F8F" };
 const CAPAIAN_OPTIONS = {
   "Sholat Berjamaah": ["Berjamaah", "Sendiri", "Tidak Sholat"],
   "Sholat Rawatib": ["Lengkap", "Sebagian", "Tidak Dikerjakan"],
@@ -112,24 +123,23 @@ function todayLong() { return new Date().toLocaleDateString("id-ID", { weekday: 
 /* Permission map                                                           */
 /* ---------------------------------------------------------------------- */
 const CAN_EDIT = {
-  santri: ["admin"], akademik: ["admin", "akademik"], kurikulum: ["admin", "akademik"],
+  santri: ["admin"], akademik: ["admin", "akademik"], tahapan_akhir: ["admin", "akademik"],
   quran: ["admin", "musyrif", "musyrifah"], ibadah: ["admin", "musyrif", "musyrifah"],
   spp: ["admin", "keuangan"], pengumuman: ["admin", "pimpinan"], kalender: ["admin", "akademik", "pimpinan"],
 };
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
-const AKADEMIK_GROUP = { label: "Akademik", items: [["akademik","KRS & KHS"],["kurikulum","Kurikulum"],["kalender","Kalender Akademik"],["rapor","Rapor Bulanan"],["rekap","Rekap Pencapaian"]] };
 const KARTU_MENU = ["kartu", "Kartu Tanda Mahasantri"];
 const MENUS = {
-  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, KARTU_MENU, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["akun","Kelola Akun"],["log","Log Aktivitas"],["pengaturan","Pengaturan"]],
-  musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["rapor","Rapor Bulanan"],["rekap","Rekap Pencapaian"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
-  musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["rapor","Rapor Bulanan"],["rekap","Rekap Pencapaian"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  admin: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],KARTU_MENU,["rekap","Rekap Pencapaian"],["kalender","Kalender Akademik"],["pengumuman","Pengumuman"],["akun","Kelola Akun"],["log","Log Aktivitas"],["pengaturan","Pengaturan"]],
+  musyrif: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["rekap","Rekap Pencapaian"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
+  musyrifah: [["dashboard","Dashboard"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["rekap","Rekap Pencapaian"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
   keuangan: [["dashboard","Dashboard"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["kalender","Kalender Akademik"],["pengaturan","Pengaturan"]],
-  akademik: [["dashboard","Dashboard"], AKADEMIK_GROUP, KARTU_MENU, ["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
-  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, KARTU_MENU, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["log","Log Aktivitas"],["pengaturan","Pengaturan"]],
-  santri: [["dashboard","Dashboard"], AKADEMIK_GROUP, KARTU_MENU, ["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
+  akademik: [["dashboard","Dashboard"],["akademik","Akademik"],KARTU_MENU,["rekap","Rekap Pencapaian"],["kalender","Kalender Akademik"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
+  pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],KARTU_MENU,["rekap","Rekap Pencapaian"],["kalender","Kalender Akademik"],["pengumuman","Pengumuman"],["log","Log Aktivitas"],["pengaturan","Pengaturan"]],
+  santri: [["dashboard","Dashboard"],["akademik","Akademik"],["quran","Capaian Al-Qur'an"],["ibadah","Ibadah"],["spp","Iuran SPP"],KARTU_MENU,["kalender","Kalender Akademik"],["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", kurikulum: "Kurikulum", rapor: "Rapor Bulanan", rekap: "Rekap Pencapaian", log: "Log Aktivitas", kartu: "Kartu Tanda Mahasantri", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "Akademik", rekap: "Rekap Pencapaian", log: "Log Aktivitas", kartu: "Kartu Tanda Mahasantri", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
@@ -1124,6 +1134,8 @@ function AkademikStaffPage({ profile }) {
   const brand = useContext(BrandContext);
   const santriT = useTable("santri");
   const akT = useTable("akademik");
+  const tahapT = useTable("tahapan_akhir");
+  const [tab, setTab] = useState("krs");
   const quranLogT = useTable("quran_log");
   const profilesT = useTable("profiles");
   const [nim, setNim] = useState("");
@@ -1135,7 +1147,7 @@ function AkademikStaffPage({ profile }) {
   const pembimbing = profilesT.rows.find((p) => p.username === santri?.musyrif_username);
   const semesters = [...new Set(records.map((r) => `${r.tahun_ajaran}|${r.semester}`))].sort().reverse();
   const [pilihan, setPilihan] = useState("");
-  useEffect(() => { setPilihan(""); }, [nim]);
+  useEffect(() => { setPilihan(""); setTab("krs"); }, [nim]);
   useEffect(() => { if (!pilihan && semesters[0]) setPilihan(semesters[0]); }, [semesters.join(","), nim]);
   const pilihanAktif = pilihan || semesters[0] || "";
   const [taPilih, semPilih] = pilihanAktif ? pilihanAktif.split("|") : [null, null];
@@ -1178,7 +1190,7 @@ function AkademikStaffPage({ profile }) {
         <PageHeader title="Akademik" sub="Semua santri — klik salah satu untuk kelola nilai." />
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">IPK</th><th className="p-3.5">Matkul Selesai</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">IPK</th><th className="p-3.5">Matkul Selesai</th><th className="p-3.5">Tugas Akhir</th></tr></thead>
             <tbody>
               {santriT.rows.map((s) => {
                 const sel = bestPerKode(akT.rows.filter((a) => a.nim === s.nim && a.status === "selesai"));
@@ -1187,11 +1199,11 @@ function AkademikStaffPage({ profile }) {
                 return (
                   <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
                     <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[0.6875rem] text-stone-400">{s.nim}</div></div></div></td>
-                    <td className="p-3.5">{s.kelas}</td><td className="p-3.5">{ipk}</td><td className="p-3.5">{sel.length}</td>
+                    <td className="p-3.5">{s.kelas}</td><td className="p-3.5">{ipk}</td><td className="p-3.5">{sel.length}</td><td className="p-3.5">{jumlahTahapLulus(tahapT.rows.filter((t) => t.nim === s.nim))}/{TAHAPAN_AKHIR.length}</td>
                   </tr>
                 );
               })}
-              {santriT.rows.length === 0 && <tr><td colSpan={4}><Empty text="Belum ada santri." /></td></tr>}
+              {santriT.rows.length === 0 && <tr><td colSpan={5}><Empty text="Belum ada santri." /></td></tr>}
             </tbody>
           </table>
         </Card>
@@ -1208,6 +1220,8 @@ function AkademikStaffPage({ profile }) {
         </div>
       } />
 
+      <TabAkademik tab={tab} setTab={setTab} rows={tahapT.rows.filter((t) => t.nim === nim)} />
+      <div className={tab === "krs" ? "" : "hidden"}>
       {/* ===== Pratinjau & Cetak Dokumen Akademik (KRS / KHS) ===== */}
       <style>{`
         @media print {
@@ -1424,6 +1438,8 @@ function AkademikStaffPage({ profile }) {
           )}
         </Card>
       )}
+      </div>
+      {tab === "akhir" && <TugasAkhirPanel nim={nim} profile={profile} rows={tahapT.rows} reload={tahapT.reload} />}
       {showForm && <AkademikForm nim={nim} onCancel={() => setShowForm(false)} onSubmit={saveRecord} />}
       {editingRecord && <AkademikForm nim={nim} initial={editingRecord} onCancel={() => setEditingRecord(null)} onSubmit={saveRecord} />}
     </div>
@@ -1493,104 +1509,220 @@ function AkademikForm({ initial, nim, onCancel, onSubmit }) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Kurikulum Mahasantri                                                    */
 /* ---------------------------------------------------------------------- */
-function KurikulumPage({ profile }) {
-  const editable = canEdit(profile.role, "kurikulum");
-  const kurT = useTable("kurikulum");
-  const akT = useTable("akademik");
-  const santriT = useTable("santri");
-  const isViewer = profile.role !== "santri";
-  const [nim, setNim] = useState(isViewer ? "" : profile.nim);
-  const [showForm, setShowForm] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
+/* Tugas Akhir & Ujian — alur tahapan akhir mahasantri                      */
+/* KPM → Magang → Sidang Akhir Bisnis | Sidang Munaqasyah → Pengambilan Sanad */
+/* ---------------------------------------------------------------------- */
+const ALUR_PROGRAM = ["Diajukan", "Disetujui", "Berjalan", "Lulus"];
+const ALUR_SIDANG = ["Diajukan", "Disetujui", "Terjadwal", "Lulus"];
+const TAHAPAN_AKHIR = [
+  { kode: "KPM", nama: "KPM", lengkap: "Kuliah Pengabdian Masyarakat", ikon: "🤝", prasyarat: [], alur: ALUR_PROGRAM,
+    syarat: "Berstatus mahasantri aktif, sudah menempuh minimal 4 semester, dan mengikuti pembekalan KPM.",
+    langkah: "Mengajukan program dan lokasi → disetujui akademik → pelaksanaan di lapangan → laporan dan penilaian pembimbing.",
+    lbl: { judul: "Tema / Program Pengabdian", pembimbing: "Pembimbing Lapangan", penguji: "Penilai", lokasi: "Lokasi / Mitra", tgl: "Tanggal Mulai" } },
+  { kode: "Magang", nama: "Magang", lengkap: "Magang Usaha / Profesi", ikon: "💼", prasyarat: ["KPM"], alur: ALUR_PROGRAM,
+    syarat: "KPM sudah dinyatakan lulus, serta ada surat penerimaan dari tempat magang.",
+    langkah: "Mengajukan tempat dan rencana magang → disetujui akademik → pelaksanaan dan logbook → laporan, penilaian pembimbing dan mitra.",
+    lbl: { judul: "Bidang / Posisi Magang", pembimbing: "Pembimbing Pondok", penguji: "Pembimbing Mitra", lokasi: "Tempat Magang", tgl: "Tanggal Mulai" } },
+  { kode: "Sidang Akhir Bisnis", nama: "Sidang Akhir Bisnis", lengkap: "Sidang Akhir Bisnis (Tugas Akhir Kewirausahaan)", ikon: "📈", prasyarat: ["Magang"], alur: ALUR_SIDANG,
+    syarat: "Magang sudah lulus, laporan bisnis disetujui pembimbing, dan nilai matakuliah kewirausahaan sudah lengkap.",
+    langkah: "Mengajukan sidang beserta laporan bisnis → persetujuan pembimbing → penjadwalan → presentasi dan tanya jawab → penilaian (lulus / revisi / mengulang).",
+    lbl: { judul: "Nama Usaha & Judul Laporan Bisnis", pembimbing: "Dosen Pembimbing", penguji: "Tim Penguji", lokasi: "Tempat Sidang", tgl: "Tanggal Sidang" } },
+  { kode: "Sidang Munaqasyah", nama: "Sidang Munaqasyah", lengkap: "Sidang Munaqasyah Tahfidz", ikon: "📖", prasyarat: [], alur: ALUR_SIDANG, cekQuran: true,
+    syarat: "Hafalan memenuhi target kelulusan, sudah mengikuti Tasmi', dan memiliki Syahadah (tercatat di menu Capaian Al-Qur'an).",
+    langkah: "Mengajukan munaqasyah → verifikasi hafalan oleh musyrif → penjadwalan → ujian lisan di hadapan tim penguji → penilaian.",
+    lbl: { judul: "Materi / Cakupan Ujian", pembimbing: "Musyrif Pembimbing", penguji: "Tim Penguji", lokasi: "Tempat Ujian", tgl: "Tanggal Ujian" } },
+  { kode: "Syahadah Kubro", nama: "Syahadah Kubro", lengkap: "Syahadah Kubro (Setoran 30 Juz Sekali Duduk)", ikon: "🏅", prasyarat: ["Sidang Munaqasyah"], alur: ALUR_SIDANG, duaHari: true,
+    syarat: "Sidang Munaqasyah sudah lulus dan hafalan 30 juz siap disetorkan.",
+    langkah: "Mengajukan Syahadah Kubro → verifikasi kesiapan oleh musyrif → penjadwalan 2 hari → setoran 30 juz sekali duduk (hari ke-1 dan hari ke-2) di hadapan tim penyimak → penilaian dan penyerahan syahadah.",
+    lbl: { judul: "Nomor Syahadah / Keterangan", pembimbing: "Musyrif Pembimbing", penguji: "Tim Penyimak / Penguji", lokasi: "Tempat Pelaksanaan", tgl: "Tanggal Mulai (Hari ke-1)" } },
+  { kode: "Pengambilan Sanad", nama: "Pengambilan Sanad", lengkap: "Pengambilan Sanad Al-Qur'an", ikon: "📜", prasyarat: ["Sidang Munaqasyah"], alur: ALUR_SIDANG,
+    syarat: "Sidang Munaqasyah sudah lulus dan mendapat izin dari guru pemberi sanad.",
+    langkah: "Mengajukan pengambilan sanad → izin guru pemberi sanad → penjadwalan talaqqi → prosesi dan penyimakan → pencatatan sanad.",
+    lbl: { judul: "Jalur / Riwayat Sanad", pembimbing: "Guru Pemberi Sanad", penguji: "Saksi / Penyimak", lokasi: "Tempat Pengambilan", tgl: "Tanggal Pengambilan" } },
+];
+const STATUS_TAHAP_TONE = { Diajukan: "blue", Disetujui: "gold", Terjadwal: "gold", Berjalan: "gold", Revisi: "gold", Lulus: "green", "Tidak Lulus": "red", Ditolak: "red" };
+const STATUS_TAHAP_AKHIR = ["Lulus", "Tidak Lulus", "Ditolak"];
+function tahapTerakhir(rows, kode) {
+  return rows.filter((r) => r.jenis === kode).sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")) || (Number(b.id) || 0) - (Number(a.id) || 0))[0];
+}
+function tahapLulus(rows, kode) { return rows.some((r) => r.jenis === kode && r.status === "Lulus"); }
+function jumlahTahapLulus(rows) { return TAHAPAN_AKHIR.filter((t) => tahapLulus(rows, t.kode)).length; }
+function langkahBerikut(cfg, status) {
+  if (status === "Revisi") return "Lulus";
+  const i = cfg.alur.indexOf(status);
+  return i >= 0 && i < cfg.alur.length - 1 ? cfg.alur[i + 1] : null;
+}
+function tglPendek(t) { return t ? new Date(t).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : ""; }
 
-  const bySemester = {};
-  kurT.rows.forEach((k) => { (bySemester[k.semester_ke] = bySemester[k.semester_ke] || []).push(k); });
-  const semesterKeys = Object.keys(bySemester).map(Number).sort((a, b) => a - b);
-
-  const santriRecords = nim ? akT.rows.filter((a) => a.nim === nim) : [];
-  const kodeSudahDiambil = new Set(santriRecords.map((r) => r.kode_mk).filter(Boolean));
-
-  async function saveItem(f) {
-    const payload = { ...f, semester_ke: Number(f.semester_ke), sks: Number(f.sks) };
-    const { error } = payload.id
-      ? await supabase.from("kurikulum").update(payload).eq("id", payload.id)
-      : await supabase.from("kurikulum").insert(payload);
-    if (error) { alert(error.message); return; }
-    setShowForm(false); setEditingItem(null); kurT.reload();
-  }
-  async function removeItem(id) {
-    if (!confirm("Hapus mata kuliah kurikulum ini?")) return;
-    const { error } = await supabase.from("kurikulum").delete().eq("id", id);
-    if (error) alert(error.message); else kurT.reload();
-  }
-
-  const totalItem = kurT.rows.length;
-  const totalDiambil = kurT.rows.filter((k) => kodeSudahDiambil.has(k.kode_mk)).length;
-
+function TabAkademik({ tab, setTab, rows }) {
   return (
-    <div>
-      <PageHeader title="Kurikulum Mahasantri" sub="Daftar mata kuliah wajib per semester." actions={
-        editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Mata Kuliah Kurikulum</Btn>
-      } />
-
-      {!isViewer ? null : (
-        <div className="mb-4 max-w-sm">
-          <Select value={nim} onChange={(e) => setNim(e.target.value)}>
-            <option value="">Pilih santri untuk lihat progres…</option>
-            {santriT.rows.map((s) => <option key={s.nim} value={s.nim}>{s.nama} — {s.nim}</option>)}
-          </Select>
-        </div>
-      )}
-
-      {nim && (
-        <Card className="mb-4">
-          <div className="text-sm text-stone-600">Progres Kurikulum: <b className="text-[#0B3B36]">{totalDiambil} dari {totalItem}</b> mata kuliah wajib sudah diambil</div>
-          <div className="h-2 bg-stone-100 rounded-full mt-2 overflow-hidden"><div className="h-full bg-[#0B3B36] rounded-full" style={{ width: `${totalItem ? (totalDiambil / totalItem) * 100 : 0}%` }}></div></div>
-        </Card>
-      )}
-
-      {semesterKeys.length === 0 && <Empty text="Belum ada data kurikulum." />}
-      {semesterKeys.map((sk) => (
-        <Card key={sk} className="p-0 overflow-hidden mb-4">
-          <div className="px-4 py-3 bg-stone-50 border-b border-stone-100 font-bold text-sm text-[#0B3B36]">Semester {sk}</div>
-          <table className="w-full text-sm">
-            <thead><tr className="text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3">Kode MK</th><th className="p-3">Mata Kuliah</th><th className="p-3">SKS</th>{nim && <th className="p-3">Status</th>}{editable && <th className="p-3"></th>}</tr></thead>
-            <tbody>
-              {bySemester[sk].map((k) => (
-                <tr key={k.id} className="border-t border-stone-100">
-                  <td className="p-3 text-stone-400">{k.kode_mk || "-"}</td>
-                  <td className="p-3 font-semibold">{k.mata_kuliah}</td>
-                  <td className="p-3">{k.sks}</td>
-                  {nim && <td className="p-3">{kodeSudahDiambil.has(k.kode_mk) ? <Badge tone="green">✓ Sudah</Badge> : <Badge tone="gold">Belum</Badge>}</td>}
-                  {editable && <td className="p-3 text-right whitespace-nowrap">
-                    <button onClick={() => setEditingItem(k)} className="text-[#145048] text-xs font-bold mr-3">Edit</button>
-                    <button onClick={() => removeItem(k.id)} className="text-red-600 text-xs font-bold">Hapus</button>
-                  </td>}
-                </tr>
-              ))}
-            </tbody>
-            <tfoot><tr className="border-t border-stone-200 bg-stone-50 font-bold"><td className="p-3" colSpan={2}>Total SKS Semester {sk}</td><td className="p-3">{bySemester[sk].reduce((a, k) => a + Number(k.sks || 0), 0)}</td>{nim && <td></td>}{editable && <td></td>}</tr></tfoot>
-          </table>
-        </Card>
+    <div className="flex gap-1 mb-5 border-b border-stone-200">
+      {[["krs", "KRS & KHS"], ["akhir", `Tugas Akhir & Ujian (${jumlahTahapLulus(rows)}/${TAHAPAN_AKHIR.length})`]].map(([k, l]) => (
+        <button key={k} type="button" onClick={() => setTab(k)} className={`px-4 py-2 text-sm font-bold -mb-px border-b-2 ${tab === k ? "border-[#0B3B36] text-[#0B3B36]" : "border-transparent text-stone-400 hover:text-stone-600"}`}>{l}</button>
       ))}
-
-      {(showForm || editingItem) && <KurikulumForm initial={editingItem} onCancel={() => { setShowForm(false); setEditingItem(null); }} onSubmit={saveItem} />}
     </div>
   );
 }
-function KurikulumForm({ initial, onCancel, onSubmit }) {
-  const [f, setF] = useState(initial || { semester_ke: 1, kode_mk: "", mata_kuliah: "", sks: 2 });
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+
+function TugasAkhirPanel({ nim, profile, rows, reload }) {
+  const staff = canEdit(profile.role, "tahapan_akhir");
+  const quranT = useTable("quran_log");
+  const [form, setForm] = useState(null);
+  const mine = rows.filter((r) => r.nim === nim);
+  const lulus = jumlahTahapLulus(mine);
+  const syahadah = quranT.rows.filter((l) => l.nim === nim && l.jenis === "Syahadah").length;
+  const tasmi = quranT.rows.filter((l) => l.nim === nim && l.jenis === "Tasmi'").length;
+  const hariIni = new Date().toISOString().slice(0, 10);
+
+  async function simpan(cfg, f, id) {
+    const angka = f.nilai_angka === "" || f.nilai_angka == null ? null : Number(f.nilai_angka);
+    const payload = {
+      jenis: cfg.kode, status: f.status || "Diajukan", judul: f.judul || null, pembimbing: f.pembimbing || null, penguji: f.penguji || null, lokasi: f.lokasi || null,
+      tanggal_pengajuan: f.tanggal_pengajuan || null, tanggal_pelaksanaan: f.tanggal_pelaksanaan || null, nilai_angka: angka, catatan: f.catatan || null, berkas_url: f.berkas_url || null,
+      tanggal_selesai: cfg.duaHari ? f.tanggal_selesai || null : null, capaian_hari1: cfg.duaHari ? f.capaian_hari1 || null : null, capaian_hari2: cfg.duaHari ? f.capaian_hari2 || null : null,
+      diperbarui_oleh: profile.username || null,
+    };
+    const { error } = id ? await supabase.from("tahapan_akhir").update(payload).eq("id", id) : await supabase.from("tahapan_akhir").insert({ ...payload, nim });
+    if (error) alert(error.message); else { setForm(null); reload(); }
+  }
+  async function lanjut(r, cfg, next) {
+    if (next === "Lulus") { setForm({ cfg, initial: { ...r, status: "Lulus" }, id: r.id }); return; }
+    const { error } = await supabase.from("tahapan_akhir").update({ status: next, diperbarui_oleh: profile.username || null }).eq("id", r.id);
+    if (error) alert(error.message); else reload();
+  }
+  async function hapus(id) {
+    if (!confirm("Hapus catatan tahap ini?")) return;
+    const { error } = await supabase.from("tahapan_akhir").delete().eq("id", id);
+    if (error) alert(error.message); else reload();
+  }
+
   return (
-    <Modal title={initial ? "Edit Kurikulum" : "Tambah Mata Kuliah Kurikulum"} onClose={onCancel}>
+    <div>
+      <Card className="mb-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold">Alur Tugas Akhir & Ujian</h3>
+            <p className="text-xs text-stone-500 mt-1">Urutan: KPM → Magang → Sidang Akhir Bisnis. Sidang Munaqasyah berjalan paralel (butuh Syahadah), lalu Syahadah Kubro dan Pengambilan Sanad setelah Munaqasyah lulus.</p>
+          </div>
+          <div className="text-right"><div className="text-2xl font-extrabold text-[#0B3B36]">{lulus}<span className="text-sm text-stone-400">/{TAHAPAN_AKHIR.length}</span></div><div className="text-[0.6875rem] text-stone-400">tahap lulus</div></div>
+        </div>
+        <div className="h-2 bg-stone-100 rounded-full mt-3 overflow-hidden"><div className="h-full bg-[#2A9D8F]" style={{ width: `${(lulus / TAHAPAN_AKHIR.length) * 100}%` }} /></div>
+        {lulus === TAHAPAN_AKHIR.length && <div className="mt-3 text-sm font-bold text-[#0F4A44] bg-[#E9F1EE] rounded-xl px-3 py-2">✅ Seluruh tahapan akhir sudah lulus — mahasantri layak diproses untuk kelulusan.</div>}
+      </Card>
+
+      <div className="space-y-3">
+        {TAHAPAN_AKHIR.map((cfg, i) => {
+          const r = tahapTerakhir(mine, cfg.kode);
+          const percobaan = mine.filter((x) => x.jenis === cfg.kode).length;
+          const belum = cfg.prasyarat.filter((k) => !tahapLulus(mine, k));
+          const aktif = r && !STATUS_TAHAP_AKHIR.includes(r.status);
+          const bisaAjukan = !aktif && !tahapLulus(mine, cfg.kode) && belum.length === 0;
+          const next = aktif ? langkahBerikut(cfg, r.status) : null;
+          const terkunci = !r && belum.length > 0;
+          return (
+            <Card key={cfg.kode} className={terkunci ? "opacity-70" : ""}>
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-[#E9F1EE] text-[#0B3B36] flex items-center justify-center text-base shrink-0">{cfg.ikon}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="font-bold text-[#0B3B36]">{i + 1}. {cfg.nama}</div>
+                    <span className="text-xs text-stone-400">{cfg.lengkap}</span>
+                    {r ? <Badge tone={STATUS_TAHAP_TONE[r.status] || "grey"}>{r.status}</Badge> : <Badge tone="grey">{terkunci ? "Terkunci" : "Belum diajukan"}</Badge>}
+                    {percobaan > 1 && <span className="text-[0.6875rem] text-stone-400">percobaan ke-{percobaan}</span>}
+                  </div>
+                  <div className="text-xs text-stone-500 mt-1"><b>Syarat:</b> {cfg.syarat}</div>
+                  {terkunci && <div className="text-xs text-[#8A6A2A] mt-1">🔒 Menunggu tahap lulus: {belum.join(", ")}</div>}
+                  {cfg.cekQuran && <div className="text-xs mt-1 text-stone-500">Capaian Al-Qur'an tercatat: Tasmi' <b className={tasmi ? "text-[#0F4A44]" : "text-red-600"}>{tasmi}x</b> · Syahadah <b className={syahadah ? "text-[#0F4A44]" : "text-red-600"}>{syahadah}x</b></div>}
+                  <div className="text-xs text-stone-400 mt-1"><b>Proses:</b> {cfg.langkah}</div>
+                  {r && (
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-3 text-sm bg-stone-50 rounded-xl p-3">
+                      {r.judul && <div className="col-span-2"><span className="text-stone-400 text-xs">{cfg.lbl.judul}: </span><b>{r.judul}</b></div>}
+                      {r.pembimbing && <div><span className="text-stone-400 text-xs">{cfg.lbl.pembimbing}: </span>{r.pembimbing}</div>}
+                      {r.penguji && <div><span className="text-stone-400 text-xs">{cfg.lbl.penguji}: </span>{r.penguji}</div>}
+                      {r.lokasi && <div><span className="text-stone-400 text-xs">{cfg.lbl.lokasi}: </span>{r.lokasi}</div>}
+                      {r.tanggal_pengajuan && <div><span className="text-stone-400 text-xs">Tanggal Pengajuan: </span>{tglPendek(r.tanggal_pengajuan)}</div>}
+                      {r.tanggal_pelaksanaan && <div><span className="text-stone-400 text-xs">{cfg.lbl.tgl}: </span>{tglPendek(r.tanggal_pelaksanaan)}</div>}
+                      {cfg.duaHari && r.tanggal_selesai && <div><span className="text-stone-400 text-xs">Tanggal Selesai (Hari ke-2): </span>{tglPendek(r.tanggal_selesai)}</div>}
+                      {cfg.duaHari && r.capaian_hari1 && <div><span className="text-stone-400 text-xs">Hari ke-1: </span>{r.capaian_hari1}</div>}
+                      {cfg.duaHari && r.capaian_hari2 && <div><span className="text-stone-400 text-xs">Hari ke-2: </span>{r.capaian_hari2}</div>}
+                      {r.nilai_angka != null && <div><span className="text-stone-400 text-xs">Nilai: </span><b>{r.nilai_angka}</b> ({nilaiHuruf(r.nilai_angka)})</div>}
+                      {r.catatan && <div className="col-span-2"><span className="text-stone-400 text-xs">Catatan: </span>{r.catatan}</div>}
+                      {r.berkas_url && <div className="col-span-2"><a href={r.berkas_url} target="_blank" rel="noreferrer" className="text-[#145048] font-bold underline text-xs">Lihat berkas / laporan</a></div>}
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5 items-end shrink-0">
+                  {bisaAjukan && <Btn onClick={() => setForm({ cfg, initial: null, id: null })}>{r ? "Ajukan Ulang" : "Ajukan"}</Btn>}
+                  {staff && !bisaAjukan && !aktif && !tahapLulus(mine, cfg.kode) && <Btn tone="ghost" onClick={() => { if (confirm("Prasyarat belum terpenuhi. Tetap input manual (mis. data lama)?")) setForm({ cfg, initial: null, id: null }); }}>Input Manual</Btn>}
+                  {staff && next && <Btn tone="gold" onClick={() => lanjut(r, cfg, next)}>Lanjut: {next}</Btn>}
+                  {staff && r && <Btn tone="ghost" onClick={() => setForm({ cfg, initial: r, id: r.id })}>Edit / Nilai</Btn>}
+                  {staff && r && <button type="button" onClick={() => hapus(r.id)} className="text-[0.6875rem] text-red-500 font-bold">Hapus</button>}
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+      {!staff && <p className="text-xs text-stone-400 mt-3">Pengajuan Anda akan diperiksa dan diproses oleh bagian Akademik. Hubungi Akademik bila ada kendala.</p>}
+      {form && <TahapanForm cfg={form.cfg} initial={form.initial} nim={nim} terbatas={!staff} onCancel={() => setForm(null)} onSubmit={(f) => simpan(form.cfg, { ...f, status: staff ? f.status : "Diajukan" }, form.id)} />}
+    </div>
+  );
+}
+
+function TahapanForm({ cfg, initial, nim, terbatas, onCancel, onSubmit }) {
+  const [f, setF] = useState(initial ? { ...initial, nilai_angka: initial.nilai_angka ?? "" } : { status: "Diajukan", judul: "", pembimbing: "", penguji: "", lokasi: "", tanggal_pengajuan: new Date().toISOString().slice(0, 10), tanggal_pelaksanaan: "", tanggal_selesai: "", capaian_hari1: "", capaian_hari2: "", nilai_angka: "", catatan: "", berkas_url: "" });
+  const [uploading, setUploading] = useState(false);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  async function upload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const path = `${nim}/tahap-${cfg.kode.replace(/[^A-Za-z0-9]+/g, "-")}-${Date.now()}.${file.name.split(".").pop()}`;
+    const { error } = await supabase.storage.from("dokumen-santri").upload(path, file, { upsert: true });
+    if (error) { alert(error.message); setUploading(false); return; }
+    const { data } = supabase.storage.from("dokumen-santri").getPublicUrl(path);
+    setF((prev) => ({ ...prev, berkas_url: data.publicUrl }));
+    setUploading(false);
+  }
+  const statusOpsi = [...cfg.alur, "Revisi", "Tidak Lulus", "Ditolak"];
+  return (
+    <Modal title={`${initial ? "Edit" : terbatas ? "Ajukan" : "Input"} ${cfg.nama}`} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
-        <Field label="Semester ke-"><Input type="number" min={1} max={14} value={f.semester_ke} onChange={set("semester_ke")} /></Field>
-        <Field label="Kode MK"><Input value={f.kode_mk} onChange={set("kode_mk")} placeholder="cth. MKQ 1.1.1" /></Field>
-        <Field label="Mata Kuliah"><Input value={f.mata_kuliah} onChange={set("mata_kuliah")} /></Field>
-        <Field label="SKS"><Input type="number" value={f.sks} onChange={set("sks")} /></Field>
-        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+        {!terbatas && <Field label="Status"><Select value={f.status} onChange={set("status")}>{statusOpsi.map((x) => <option key={x}>{x}</option>)}</Select></Field>}
+        <Field label={cfg.lbl.judul}><Input value={f.judul || ""} onChange={set("judul")} /></Field>
+        {!terbatas && (
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={cfg.lbl.pembimbing}><Input value={f.pembimbing || ""} onChange={set("pembimbing")} /></Field>
+            <Field label={cfg.lbl.penguji}><Input value={f.penguji || ""} onChange={set("penguji")} /></Field>
+          </div>
+        )}
+        <Field label={cfg.lbl.lokasi}><Input value={f.lokasi || ""} onChange={set("lokasi")} /></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Tanggal Pengajuan"><Input type="date" value={f.tanggal_pengajuan || ""} onChange={set("tanggal_pengajuan")} /></Field>
+          {!terbatas && <Field label={cfg.lbl.tgl}><Input type="date" value={f.tanggal_pelaksanaan || ""} onChange={set("tanggal_pelaksanaan")} /></Field>}
+        </div>
+        {!terbatas && cfg.duaHari && (
+          <>
+            <Field label="Tanggal Selesai (Hari ke-2)"><Input type="date" value={f.tanggal_selesai || ""} onChange={set("tanggal_selesai")} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Capaian Hari ke-1"><Input value={f.capaian_hari1 || ""} onChange={set("capaian_hari1")} placeholder="cth. Juz 1–15, 3 teguran" /></Field>
+              <Field label="Capaian Hari ke-2"><Input value={f.capaian_hari2 || ""} onChange={set("capaian_hari2")} placeholder="cth. Juz 16–30, 2 teguran" /></Field>
+            </div>
+          </>
+        )}
+        {!terbatas && (
+          <>
+            <Field label={`Nilai Angka (0–100)${f.nilai_angka !== "" ? ` — predikat ${nilaiHuruf(Number(f.nilai_angka))}` : ""}`}><Input type="number" min={0} max={100} value={f.nilai_angka} onChange={set("nilai_angka")} /></Field>
+            <Field label="Catatan / Hasil Evaluasi"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={f.catatan || ""} onChange={set("catatan")} placeholder="cth. Revisi bab analisis pasar, mengulang pekan depan" /></Field>
+          </>
+        )}
+        <Field label="Berkas / Laporan (opsional)">
+          <input type="file" onChange={upload} className="text-sm" />
+          {uploading && <div className="text-xs text-stone-400 mt-1">Mengunggah…</div>}
+          {f.berkas_url && <a href={f.berkas_url} target="_blank" rel="noreferrer" className="text-xs text-[#145048] font-bold underline">Berkas terunggah</a>}
+        </Field>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit" disabled={uploading}>{terbatas ? "Kirim Pengajuan" : "Simpan"}</Btn></div>
       </form>
     </Modal>
   );
@@ -1834,7 +1966,7 @@ function RekapPencapaian({ santriList, quranRows, ibadahRows, brand, onBack }) {
   const trenIb = monthsBack(6).map((m) => { const it = ibadahRows.filter((l) => nimSet.has(l.nim) && l.tanggal?.slice(0, 7) === ymOf(m)); return { label: m.label, value: it.length ? Math.round((it.filter((l) => !CAPAIAN_NEGATIF.includes(l.capaian)).length / it.length) * 100) : 0 }; });
   const sel = (ok) => (ok === true ? { color: wg.hafalan, fontWeight: 700 } : ok === false ? { color: wg.ibadah_kurang, fontWeight: 700 } : { color: "#A8A29E" });
   async function unduhExcel() {
-    const mod = await import("xlsx"); const XLSX = mod.default?.utils ? mod.default : mod;
+    const XLSX = await muatXLSX();
     if (mode === "pekan") {
       const aoaP = [
         [`Rekap Pencapaian Seluruh Santri — Pekan ${pk + 1} (tgl ${pekan[pk].rentang}) ${bulan} ${tahun}`], [brand.nama_pondok || ""], [],
@@ -1965,163 +2097,6 @@ function RekapPencapaianPage({ profile }) {
   const daftar = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || profile.role === "akademik" || s.musyrif_username === profile.username);
   return <RekapPencapaian santriList={daftar} quranRows={quranT.rows} ibadahRows={ibadahT.rows} brand={brand} />;
 }
-function RaporBulananPage({ profile }) {
-  const brand = useContext(BrandContext);
-  const santriT = useTable("santri");
-  const quranT = useTable("quran_log");
-  const ibadahT = useTable("ibadah_log");
-  const isViewer = profile.role !== "santri";
-  const [nim, setNim] = useState(isViewer ? "" : profile.nim);
-  const santri = santriT.rows.find((s) => s.nim === nim);
-  const pickable = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || s.musyrif_username === profile.username);
-
-  const [bulan, setBulan] = useState(BULAN[new Date().getMonth()]);
-  const [tahun, setTahun] = useState(nowYear);
-  const periode = `${tahun}-${String(BULAN.indexOf(bulan) + 1).padStart(2, "0")}`;
-
-  const quranBulan = quranT.rows.filter((l) => l.nim === nim && l.tanggal?.slice(0, 7) === periode);
-  const ibadahBulan = ibadahT.rows.filter((l) => l.nim === nim && l.tanggal?.slice(0, 7) === periode);
-  const jenisIbadahBulanIni = [...new Set([...JENIS_IBADAH, ...ibadahBulan.map((l) => l.jenis)])];
-
-  return (
-    <div>
-      <PageHeader eyebrow={isViewer ? "Akademik" : ""} title="Rapor Bulanan" sub="Ringkasan capaian Ibadah &amp; Al-Qur'an per bulan, bisa dicetak untuk wali."
-        actions={santri && <Btn tone="ghost" onClick={() => window.print()}>🖨 Cetak Rapor</Btn>} />
-
-      {isViewer && !nim && (
-        <Card className="p-0 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">NIM</th></tr></thead>
-            <tbody>
-              {pickable.map((s) => (
-                <tr key={s.nim} className="border-t border-stone-100 cursor-pointer hover:bg-stone-50/60" onClick={() => setNim(s.nim)}>
-                  <td className="p-3.5 font-semibold">{s.nama}</td>
-                  <td className="p-3.5 text-stone-500">{s.nim}</td>
-                </tr>
-              ))}
-              {pickable.length === 0 && <tr><td colSpan={2}><Empty text="Belum ada santri." /></td></tr>}
-            </tbody>
-          </table>
-        </Card>
-      )}
-
-      {santri && (
-        <>
-          <style>{`
-            @media print {
-              body * { visibility: hidden; }
-              .rapor-print, .rapor-print * { visibility: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-              .rapor-print { position: absolute; top: 0; left: 0; width: 100%; padding: 24px 32px; box-shadow: none !important; border: none !important; }
-            }
-          `}</style>
-          {isViewer && <BackBar onBack={() => setNim("")} />}
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="font-serif-dh text-2xl font-semibold text-[#0B3B36]">{santri.nama}</div>
-              <div className="text-sm text-stone-400">{santri.nim}</div>
-            </div>
-            <div className="flex gap-2">
-              <Select value={bulan} onChange={(e) => setBulan(e.target.value)} className="!w-auto">{BULAN.map((b) => <option key={b}>{b}</option>)}</Select>
-              <Select value={tahun} onChange={(e) => setTahun(Number(e.target.value))} className="!w-auto">
-                {[nowYear - 1, nowYear, nowYear + 1].map((t) => <option key={t} value={t}>{t}</option>)}
-              </Select>
-            </div>
-          </div>
-
-          <div className="rapor-print bg-white rounded-2xl border border-stone-200 shadow-sm p-8">
-            <table style={{ width: "100%", marginBottom: 14, borderBottom: "2px solid #0B3B36", paddingBottom: 10 }}><tbody><tr>
-              <td style={{ width: 70, verticalAlign: "middle" }}>{(brand.logo_dokumen_url || brand.logo_url) && <img src={brand.logo_dokumen_url || brand.logo_url} alt="logo" style={{ width: 60 }} />}</td>
-              <td style={{ verticalAlign: "middle" }}>
-                <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36" }}>{brand.yayasan_nama}</div>
-                <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36" }}>PONDOK TAHFIDZ QURAN DAN ENTREPRENEUR {brand.nama_pondok?.toUpperCase()}</div>
-                <div style={{ fontSize: 9.5, color: "#44544D" }}>{brand.alamat_pondok}</div>
-                <div style={{ fontSize: 9.5, color: "#44544D", fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
-              </td>
-            </tr></tbody></table>
-
-            <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15, color: "#0B3B36" }}>RAPOR BULANAN SANTRI</div>
-            <div style={{ textAlign: "center", fontSize: 11, marginBottom: 16 }}>Bulan {bulan} {tahun}</div>
-
-            <table style={{ width: "100%", fontSize: 11, marginBottom: 18 }}><tbody>
-              <tr><td style={{ width: 130 }}>Nama Mahasantri</td><td>: {santri.nama}</td></tr>
-              <tr><td>NIM</td><td>: {santri.nim}</td></tr>
-            </tbody></table>
-
-            <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36", marginBottom: 8 }}>Capaian Al-Qur'an</div>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 8 }}>
-              <thead><tr style={{ background: "#0B3B36", color: "#fff" }}>
-                {JENIS_SETORAN_QURAN.map((j) => <th key={j} style={{ border: "1px solid #1F2937", padding: 6 }}>{j}</th>)}
-              </tr></thead>
-              <tbody><tr>
-                {JENIS_SETORAN_QURAN.map((j) => {
-                  const hal = quranBulan.filter((l) => l.jenis === j).reduce((a, l) => a + (l.halaman_dari && l.halaman_sampai ? Math.max(0, Number(l.halaman_sampai) - Number(l.halaman_dari) + 1) : 0), 0);
-                  return <td key={j} style={{ border: "1px solid #1F2937", padding: 6, textAlign: "center" }}>{hal} hal<div style={{ fontSize: 9, color: "#8A8A8A" }}>(~{(hal / 20).toFixed(1)} juz)</div></td>;
-                })}
-              </tr></tbody>
-            </table>
-            <div style={{ fontSize: 10.5, marginBottom: 18 }}><b>Total Hafalan Dikuasai (s.d. saat ini):</b> {santri.juz_dikuasai?.length || 0} dari 30 Juz</div>
-
-            <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36", marginBottom: 8 }}>Capaian Ibadah</div>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 18 }}>
-              <thead><tr style={{ background: "#0B3B36", color: "#fff" }}>
-                <th style={{ border: "1px solid #1F2937", padding: 6, textAlign: "left" }}>Jenis Ibadah</th>
-                <th style={{ border: "1px solid #1F2937", padding: 6 }}>Capaian Baik</th>
-                <th style={{ border: "1px solid #1F2937", padding: 6 }}>Total Dicatat</th>
-              </tr></thead>
-              <tbody>
-                {jenisIbadahBulanIni.map((j) => {
-                  const entries = ibadahBulan.filter((l) => l.jenis === j);
-                  const positif = entries.filter((l) => !CAPAIAN_NEGATIF.includes(l.capaian)).length;
-                  return (
-                    <tr key={j}>
-                      <td style={{ border: "1px solid #1F2937", padding: 6 }}>{j}</td>
-                      <td style={{ border: "1px solid #1F2937", padding: 6, textAlign: "center" }}>{positif}</td>
-                      <td style={{ border: "1px solid #1F2937", padding: 6, textAlign: "center" }}>{entries.length}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-
-            <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36", marginBottom: 8 }}>Grafik Pencapaian per Pekan</div>
-            <div className="grid grid-cols-2 gap-6 mb-5">
-              <div><div className="text-[11px] font-bold text-stone-600 mb-2">Hafalan baru (Ziyadah)</div><GrafikPekananQuran logs={quranBulan} periode={periode} target={santri.target_halaman_pekan} warna={warnaGrafik(brand)} /></div>
-              <div><div className="text-[11px] font-bold text-stone-600 mb-2">Ibadah (capaian terpenuhi)</div><GrafikPekananIbadah logs={ibadahBulan} periode={periode} target={santri.target_ibadah_persen} warna={warnaGrafik(brand)} /></div>
-            </div>
-
-            <div style={{ fontWeight: 700, fontSize: 12, color: "#0B3B36", marginBottom: 6 }}>Catatan Musyrif/Musyrifah</div>
-            <table style={{ width: "100%", fontSize: 10.5, marginBottom: 18 }}><tbody>
-              <tr><td style={{ width: 110, verticalAlign: "top" }}>Al-Qur'an</td><td style={{ verticalAlign: "top" }}>: {santri.catatan_quran || "-"}</td></tr>
-              <tr><td style={{ verticalAlign: "top" }}>Ibadah</td><td style={{ verticalAlign: "top" }}>: {santri.catatan_ibadah || "-"}</td></tr>
-            </tbody></table>
-
-            <div style={{ fontSize: 10.5, ...ttdBlokStyle(brand, 20) }}>
-              <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-              <div style={jabatanStyle(brand)}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
-              <div style={{ display: "flex", justifyContent: isiAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | Rapor Bulanan | NIM ${santri.nim} | ${bulan} ${tahun}`)}`}
-                  alt="QR verifikasi tanda tangan"
-                  style={{ width: 56, height: 56 }}
-                />
-              </div>
-              {brand.tanda_tangan_mudir_url ? (
-                <div><img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: 46, margin: isiAlign(brand).img }} /></div>
-              ) : null}
-              <div style={{ borderTop: brand.tanda_tangan_mudir_url ? "1px solid #999" : "none", paddingTop: brand.tanda_tangan_mudir_url ? 2 : 0 }}>{brand.nama_mudir}</div>
-              <div>NIP. {brand.nip_mudir || "-"}</div>
-            </div>
-            <div style={{ fontSize: 8.5, color: "#6B7280", marginTop: 18, paddingTop: 10, borderTop: "1px dashed #B8935A" }}>
-              <div>No. Dokumen: RPR-{nim}-{periode.replace("-", "")}</div>
-              <div>Dicetak: {new Date().toLocaleString("id-ID")}</div>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
 /* ---------------------------------------------------------------------- */
 /* Kartu Tanda Mahasantri (KTS)                                                 */
 /* ---------------------------------------------------------------------- */
@@ -2414,6 +2389,8 @@ function KartuSantriPage({ profile }) {
 function AkademikSantriPage({ profile }) {
   const brand = useContext(BrandContext);
   const akT = useTable("akademik");
+  const tahapT = useTable("tahapan_akhir");
+  const [tab, setTab] = useState("krs");
   const santriT = useTable("santri");
   const quranLogT = useTable("quran_log");
   const profilesT = useTable("profiles");
@@ -2431,7 +2408,10 @@ function AkademikSantriPage({ profile }) {
 
   return (
     <div>
-      <PageHeader title="Akademik" sub="KRS dan KHS Anda, pilih semester di bawah ini." />
+      <PageHeader title="Akademik" sub="KRS, KHS, serta tahapan tugas akhir dan ujian Anda." />
+      <TabAkademik tab={tab} setTab={setTab} rows={tahapT.rows.filter((t) => t.nim === profile.nim)} />
+      {tab === "akhir" && <TugasAkhirPanel nim={profile.nim} profile={profile} rows={tahapT.rows} reload={tahapT.reload} />}
+      <div className={tab === "krs" ? "" : "hidden"}>
 
       <div className="mb-5 max-w-xs">
         <Select value={pilihan} onChange={(e) => setPilihan(e.target.value)}>
@@ -2600,6 +2580,7 @@ function AkademikSantriPage({ profile }) {
         })()} />
         <StatCard label="Mata Kuliah Selesai" value={`${akT.rows.filter((r) => r.status === "selesai").length} dari ${akT.rows.length}`} />
       </div>
+      </div>
     </div>
   );
 }
@@ -2695,7 +2676,7 @@ function QuranPage({ profile }) {
         actions={(!isViewer || editable) && <div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Catat Setoran</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
       {santri && (
         <>
-        <div className="grid grid-cols-5 gap-3 mb-5">
+        <div className="grid grid-cols-4 xl:grid-cols-7 gap-3 mb-5">
           {JENIS_SETORAN_QURAN.map((j) => {
             const hal = logs.filter((l) => l.jenis === j).reduce((a, l) => a + (l.halaman_dari && l.halaman_sampai ? Math.max(0, Number(l.halaman_sampai) - Number(l.halaman_dari) + 1) : 0), 0);
             return <StatCard key={j} label={j} value={`${hal} hal`} sub={`~${(hal / 20).toFixed(1)} juz`} />;
@@ -2762,6 +2743,8 @@ const PENILAIAN_QURAN = {
   Tilawah: ["Lancar", "Kurang Lancar", "Tersendat"],
   Tahsin: ["Sudah Baik", "Perlu Perbaikan Makhraj", "Perlu Perbaikan Tajwid"],
   Talaqqi: ["Paham", "Perlu Pengulangan", "Belum Paham"],
+  Syahadah: ["Lulus", "Lulus dengan Catatan", "Belum Lulus"],
+  "Tasmi'": ["Mumtaz", "Jayyid Jiddan", "Jayyid", "Maqbul", "Perlu Mengulang"],
 };
 function QuranForm({ initial, onCancel, onSubmit }) {
   const [f, setF] = useState(initial || { tanggal: new Date().toISOString().slice(0, 10), jenis: JENIS_SETORAN_QURAN[0], juz: 1, halaman_dari: 1, halaman_sampai: 1, kelancaran: "Lancar", catatan: "", tandai: false });
@@ -3432,7 +3415,7 @@ function infoMasuk(ts) {
   if (selisih < 7) return { text: `${selisih} hari lalu`, tone: "grey", hariIni: false };
   return { text: d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }), tone: "grey", hariIni: false };
 }
-const LABEL_TABEL_LOG = { santri: "Data Mahasantri", spp: "Iuran SPP", koperasi_cicilan: "Cicilan Koperasi", akademik: "Akademik", quran_log: "Capaian Al-Qur'an", ibadah_log: "Ibadah", profiles: "Akun", pengaturan_pondok: "Pengaturan", modul_kustom: "Menu Tambahan", modul_kustom_data: "Data Menu Tambahan", pengumuman: "Pengumuman", kurikulum: "Kurikulum", kalender_akademik: "Kalender Akademik" };
+const LABEL_TABEL_LOG = { santri: "Data Mahasantri", spp: "Iuran SPP", koperasi_cicilan: "Cicilan Koperasi", akademik: "Akademik", quran_log: "Capaian Al-Qur'an", ibadah_log: "Ibadah", profiles: "Akun", pengaturan_pondok: "Pengaturan", modul_kustom: "Menu Tambahan", modul_kustom_data: "Data Menu Tambahan", pengumuman: "Pengumuman", kurikulum: "Kurikulum", tahapan_akhir: "Tugas Akhir & Ujian", kalender_akademik: "Kalender Akademik" };
 const LABEL_AKSI_LOG = { INSERT: ["Tambah", "green"], UPDATE: ["Ubah", "gold"], DELETE: ["Hapus", "red"] };
 function ringkasLog(l, namaSantri) {
   const r = l.konteks || l.data_baru || l.data_lama || {};
@@ -3482,7 +3465,7 @@ function LogAktivitasPage() {
   const fmtWaktu = (w) => new Date(w).toLocaleString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   const nilai = (v) => { const t = v === null || v === undefined ? "(kosong)" : typeof v === "object" ? JSON.stringify(v) : String(v); return t.length > 90 ? t.slice(0, 90) + "…" : t; };
   async function unduh() {
-    const mod = await import("xlsx"); const XLSX = mod.default?.utils ? mod.default : mod;
+    const XLSX = await muatXLSX();
     const data = tersaring.map((l) => ({ Waktu: fmtWaktu(l.waktu), Pengguna: l.nama || l.username || "Sistem / SQL Editor", Peran: l.peran || "", Data: LABEL_TABEL_LOG[l.tabel] || l.tabel, Aksi: (LABEL_AKSI_LOG[l.aksi] || [l.aksi])[0], Keterangan: ringkasLog(l, namaSantri), "Nilai lama": l.data_lama ? JSON.stringify(l.data_lama) : "", "Nilai baru": l.data_baru ? JSON.stringify(l.data_baru) : "" }));
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Log Aktivitas");
     XLSX.writeFile(wb, `Log-Aktivitas-${new Date().toISOString().slice(0, 10)}.xlsx`);
@@ -3864,7 +3847,7 @@ function RekapSpp({ santriRows, sppRows, koperasiRows, brand, onBack }) {
   const koperasiSisa = baris.reduce((a, b) => a + b.sisa, 0);
   const tgl = (v) => v ? new Date(v).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "-";
   async function unduhExcel() {
-    const mod = await import("xlsx"); const XLSX = mod.default?.utils ? mod.default : mod;
+    const XLSX = await muatXLSX();
     const aoa = [
       [`Rekap Iuran SPP & Koperasi — ${bulan} ${tahun}`], [brand.nama_pondok || ""], [],
       ["Jumlah santri", baris.length], ["Sudah lunas", jmlLunas], ["Belum lunas", jmlBelum],
@@ -3983,10 +3966,10 @@ function BackupDataCard() {
   async function unduh() {
     setProses(true); setMsg("");
     try {
-      const mod = await import("xlsx"); const XLSX = mod.default?.utils ? mod.default : mod;
+      const XLSX = await muatXLSX();
       const datar = (rows) => rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v !== null && typeof v === "object" ? JSON.stringify(v) : v])));
       const lembar = [
-        ["Mahasantri", "santri"], ["Akademik", "akademik"], ["Kurikulum", "kurikulum"], ["Iuran SPP", "spp"], ["Cicilan Koperasi", "koperasi_cicilan"],
+        ["Mahasantri", "santri"], ["Akademik", "akademik"], ["Kurikulum", "kurikulum"], ["Tugas Akhir & Ujian", "tahapan_akhir"], ["Iuran SPP", "spp"], ["Cicilan Koperasi", "koperasi_cicilan"],
         ["Capaian Quran", "quran_log"], ["Ibadah", "ibadah_log"], ["Kalender Akademik", "kalender_akademik"], ["Pengumuman", "pengumuman"],
       ];
       const wb = XLSX.utils.book_new(); const gagal = [];
@@ -4022,6 +4005,9 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Tugas Akhir & Ujian (KPM, Magang, Sidang Akhir Bisnis, Sidang Munaqasyah, Syahadah Kubro, Pengambilan Sanad)", isi: "Tab baru di menu Akademik yang mengatur alur tahapan akhir seperti kampus: pengajuan → persetujuan → penjadwalan/pelaksanaan → penilaian (lulus, revisi, tidak lulus, ajukan ulang). Ada kunci prasyarat antar tahap (KPM → Magang → Sidang Akhir Bisnis; Munaqasyah → Pengambilan Sanad), pembimbing/penguji, tanggal, nilai, catatan, dan unggah berkas. Mahasantri dapat mengajukan sendiri dan memantau statusnya. Butuh file SQL 16-tahapan-akhir.sql.", lokasi: "Akademik → tab Tugas Akhir & Ujian" },
+  { tgl: "Okt 2026", judul: "Jenis setoran Syahadah dan Tasmi' di Capaian Al-Qur'an", isi: "Dua jenis baru untuk dicatat bersama Ziyadah, Murajaah, dan lainnya. Syahadah dan Tasmi' tercatat juga menjadi acuan syarat Sidang Munaqasyah.", lokasi: "Capaian Al-Qur'an → Catat Setoran" },
+  { tgl: "Okt 2026", judul: "Penataan menu", isi: "Menu Kurikulum dan Rapor Bulanan dihapus. Urutan menu utama: Data Mahasantri, Akademik, Capaian Al-Qur'an, Ibadah, Iuran SPP, Kartu Tanda Mahasantri. Akademik kini satu menu (KRS & KHS dan Tugas Akhir & Ujian sebagai tab).", lokasi: "Menu samping" },
   { tgl: "Okt 2026", judul: "Log Aktivitas", isi: "Jejak otomatis siapa menambah, mengubah, dan menghapus data (SPP, koperasi, data santri, Al-Qur'an, ibadah, akun, dan lainnya), lengkap dengan nilai lama dan baru. Dicatat oleh database sehingga tidak bisa diubah dari aplikasi. Ada ringkasan siapa yang mengubah data hari ini.", lokasi: "Menu Log Aktivitas (Administrator dan Pimpinan)" },
   { tgl: "Okt 2026", judul: "Gaya tulisan Kartu Tanda Mahasantri bisa diatur", isi: "Ukuran huruf, jenis font, tebal, miring, dan warna setiap tulisan pada kartu (nama, NIM, data, nama pondok, alamat, dll.) bisa diubah dan langsung terlihat di pratinjau.", lokasi: "Kartu Tanda Mahasantri → Gaya Tulisan" },
   { tgl: "Okt 2026", judul: "Rekap Pencapaian Seluruh Santri (per bulan dan per pekan)", isi: "Satu halaman untuk memaparkan hasil evaluasi semua santri, bisa dipilih per bulan (dengan tren 6 bulan) atau per pekan (siapa yang belum mencapai target): grafik persentase santri yang mencapai target hafalan dan ibadah, tabel per santri, serta unduh Excel dan cetak/PDF.", lokasi: "Menu Rekap Pencapaian (di bawah Rapor Bulanan)" },
@@ -4079,7 +4065,7 @@ function PanduanAdmin() {
         <ul className="list-disc pl-5 space-y-1">
           <li><b>Administrator:</b> semua menu, termasuk Kelola Akun dan Pengaturan identitas pondok.</li>
           <li><b>Bendahara:</b> Iuran SPP dan cicilan koperasi.</li>
-          <li><b>Staf Akademik:</b> kurikulum, akademik, rapor, kalender.</li>
+          <li><b>Staf Akademik:</b> akademik (KRS, KHS, tugas akhir &amp; ujian), kartu mahasantri, rekap, kalender.</li>
           <li><b>Musyrif / Musyrifah:</b> capaian Al-Qur'an dan ibadah santri bimbingannya.</li>
           <li><b>Pimpinan:</b> hanya melihat data, tanpa mengubah.</li>
           <li><b>Mahasantri / Wali:</b> melihat data milik sendiri.</li>
@@ -4678,10 +4664,8 @@ export default function App() {
     if (view === "dashboard") return <Dashboard profile={profile} />;
     if (view === "santri" && ["admin","pimpinan"].includes(profile.role)) return <DataSantriPage profile={profile} />;
     if (view === "akademik") return profile.role === "santri" ? <AkademikSantriPage profile={profile} /> : <AkademikStaffPage profile={profile} />;
-    if (view === "kurikulum") return <KurikulumPage profile={profile} />;
     if (view === "pengumuman") return <PengumumanPage profile={profile} />;
     if (view === "kalender") return <KalenderPage profile={profile} />;
-    if (view === "rapor") return <RaporBulananPage profile={profile} />;
     if (view === "rekap") return <RekapPencapaianPage profile={profile} />;
     if (view === "kartu") return <KartuSantriPage profile={profile} />;
     if (view === "quran") return <QuranPage profile={profile} />;
