@@ -4964,9 +4964,9 @@ export default function App() {
     }
     if (view === "dashboard") return <Dashboard profile={profile} />;
     if (view === "santri" && ["admin","pimpinan"].includes(profile.role)) return <DataSantriPage profile={profile} />;
+    if (view === "akhir" && ["admin","pimpinan","akademik"].includes(profile.role)) return <TugasAkhirPantauPage profile={profile} />;
     if (view === "akademik" || view === "akhir") return profile.role === "santri" ? <AkademikSantriPage key={view} profile={profile} tabAwal={view === "akhir" ? "akhir" : "krs"} /> : <AkademikStaffPage key={view} profile={profile} tabAwal={view === "akhir" ? "akhir" : "krs"} />;
     if (view === "pengumuman") return <PengumumanPage profile={profile} />;
-    if (view === "akhir" && ["admin","pimpinan","akademik"].includes(profile.role)) return <TugasAkhirPantauPage profile={profile} />;
     if (view === "kalender") return <KalenderPage profile={profile} />;
     if (view === "rekap") return <RekapPencapaianPage profile={profile} />;
     if (view === "kartu") return <KartuSantriPage profile={profile} />;
