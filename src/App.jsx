@@ -1961,7 +1961,7 @@ function TugasAkhirPantauPage({ profile }) {
         ))}
       </div>
 
-      <div className="flex gap-2 flex-wrap mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
         <Select value={tahap} onChange={(e) => setTahap(e.target.value)}>
           {mode === "pengajuan" && <option value="Semua">Semua tahap</option>}
           {TAHAPAN_AKHIR.map((c) => <option key={c.kode} value={c.kode}>{c.nama}</option>)}
