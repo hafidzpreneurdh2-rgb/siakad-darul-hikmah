@@ -2521,6 +2521,7 @@ function KartuSantriPage({ profile }) {
               .kts-label, .kts-hint { display: none !important; }
             }
           `}</style>
+          {isViewer && (
           <Card className="mb-4 kts-hint">
             <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
               <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold">Atur Ukuran &amp; Margin Cetak</h3>
@@ -2609,6 +2610,7 @@ function KartuSantriPage({ profile }) {
             </div>
             <p className="text-xs text-stone-400 mt-3">Pengaturan tersimpan di perangkat ini. Saat jendela cetak muncul, pastikan opsi <b>Margin</b> di browser diatur ke <b>Bawaan</b> atau <b>Tidak ada</b>.</p>
           </Card>
+          )}
           {isViewer && <BackBar onBack={() => setNim("")} />}
 
           <div className="kts-hint text-xs text-stone-500 mb-3">Pratinjau kartu. Ukuran saat dicetak: {(85.6 * skala).toFixed(1).replace(".", ",")} × {(54 * skala).toFixed(1).replace(".", ",")} mm (kartu ATM standar: 85,6 × 54 mm).</div>
@@ -4269,7 +4271,7 @@ function BackupDataCard() {
       const XLSX = await muatXLSX();
       const datar = (rows) => rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v !== null && typeof v === "object" ? JSON.stringify(v) : v])));
       const lembar = [
-        ["Mahasantri", "santri"], ["Akademik", "akademik"], ["Kurikulum", "kurikulum"], ["Tugas Akhir & Ujian", "tahapan_akhir"], ["Iuran SPP", "spp"], ["Cicilan Koperasi", "koperasi_cicilan"],
+        ["Mahasantri", "santri"], ["Akademik", "akademik"], ["Tugas Akhir & Ujian", "tahapan_akhir"], ["Iuran SPP", "spp"], ["Cicilan Koperasi", "koperasi_cicilan"],
         ["Capaian Quran", "quran_log"], ["Ibadah", "ibadah_log"], ["Kalender Akademik", "kalender_akademik"], ["Pengumuman", "pengumuman"],
       ];
       const wb = XLSX.utils.book_new(); const gagal = [];
@@ -4957,7 +4959,9 @@ export default function App() {
   const extraMenu = modulTampil.map((m) => [`kustom:${m.id}`, `${m.ikon || "📄"} ${m.nama}`]);
   const extraTitles = Object.fromEntries(modulTampil.map((m) => [`kustom:${m.id}`, m.nama]));
 
+  const halamanBoleh = (MENUS[profile.role] || []).flatMap((m) => (m.items ? m.items.map(([k]) => k) : [m[0]]));
   function renderView() {
+    if (!view.startsWith("kustom:") && !halamanBoleh.includes(view)) return <Dashboard profile={profile} />;
     if (view.startsWith("kustom:")) {
       const m = modulTampil.find((x) => `kustom:${x.id}` === view);
       return m ? <ModulKustomPage key={m.id} modul={m} profile={profile} /> : null;
