@@ -566,7 +566,7 @@ function StatCard({ label, value, sub, icon }) {
         <div className="text-[0.6875rem] font-extrabold text-stone-500 uppercase tracking-wider">{label}</div>
         {icon && <div className="w-8 h-8 rounded-lg bg-[#E9F1EE] flex items-center justify-center text-[#0F4A44]">{icon}</div>}
       </div>
-      <div className="font-serif-dh text-3xl font-semibold mt-2 text-stone-800">{value}</div>
+      <div className="font-serif-dh text-2xl lg:text-[1.75rem] font-semibold mt-2 text-stone-800 whitespace-nowrap">{value}</div>
       {sub && <div className="text-xs text-stone-400 mt-1">{sub}</div>}
     </Card>
   );
@@ -3406,7 +3406,7 @@ function SppPage({ profile }) {
       {isViewer && <BackBar onBack={() => setNim("")} />}
       <PageHeader title={isViewer ? (santri?.nama || "Iuran SPP") : "Iuran SPP"}
         actions={<div className="flex gap-2">{editable && isViewer && (() => { const l = linkWaTunggakan({ santri, rows: rows.filter((r) => r.status !== "Lunas"), sisaKop: sisaKoperasi, namaPondok: brand.nama_pondok }); return l ? <a href={l} target="_blank" rel="noreferrer" className="px-4 py-2.5 rounded-xl text-sm font-bold border border-green-300 text-green-700 hover:bg-green-50">📲 Ingatkan Wali</a> : null; })()}{editable && isViewer && <Btn tone="gold" onClick={() => setShowGabungan(true)}>💰 Terima Pembayaran</Btn>}{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Tambah Iuran</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
-      <div className={`grid ${tagihanKoperasi > 0 ? "grid-cols-3" : "grid-cols-2"} gap-4 mb-5 max-w-2xl`}>
+      <div className={`grid grid-cols-1 ${tagihanKoperasi > 0 ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-4 mb-5 max-w-4xl`}>
         <StatCard label="Total Tunggakan" value={formatRupiah(rows.filter((r) => r.status !== "Lunas").reduce((a, r) => a + Number(r.nominal || 0), 0))} />
         <StatCard label="Bulan Belum Lunas" value={rows.filter((r) => r.status !== "Lunas").length} />
         {tagihanKoperasi > 0 && <StatCard label="Sisa Tagihan Koperasi" value={formatRupiah(sisaKoperasi)} />}
