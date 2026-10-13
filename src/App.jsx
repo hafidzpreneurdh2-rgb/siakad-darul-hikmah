@@ -968,7 +968,7 @@ function DataSantriPage({ profile }) {
   return (
     <div>
       <PageHeader title="Data Mahasantri" actions={editable && <Btn onClick={() => setModal("new")}>+ Tambah Mahasantri</Btn>} />
-      <PerAngkatan santri={rows} cari={""} kunci="santri">{(cocok) => (
+      <PerAngkatan santri={rows} kunci="santri">{(cocok) => (
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
           <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">Juz</th><th className="p-3.5">Status</th><th className="p-3.5"></th></tr></thead>
@@ -1207,7 +1207,7 @@ function AkademikStaffPage({ profile, tabAwal = "krs" }) {
     return (
       <div>
         <PageHeader title="Akademik" sub="Semua santri — klik salah satu untuk kelola nilai." />
-        <PerAngkatan santri={santriT.rows} cari={""} kunci="akademik">{(cocok) => (
+        <PerAngkatan santri={santriT.rows} kunci="akademik">{(cocok) => (
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">IPK</th><th className="p-3.5">Matkul Selesai</th><th className="p-3.5">Tugas Akhir</th></tr></thead>
@@ -2051,19 +2051,29 @@ function TugasAkhirPantauPage({ profile }) {
 /* ---------------------------------------------------------------------- */
 /* Daftar mahasantri per angkatan: pilih angkatan dulu, baru nama & NIM muncul   */
 /* ---------------------------------------------------------------------- */
-function PerAngkatan({ santri, cari = "", kunci, children }) {
+function PerAngkatan({ santri, cari, kunci, children }) {
+  // Tanpa prop "cari": kotak pencarian nama/NIM disediakan di sini. Dengan prop "cari": halaman punya pencarian sendiri.
+  const pakaiLokal = cari === undefined;
+  const [qLokal, setQLokal] = useState("");
   const [angkatan, setAngkatan] = useState(() => { try { return sessionStorage.getItem("angkatan:" + kunci) || ""; } catch (e) { return ""; } });
   const pilih = (a) => { setAngkatan(a); try { sessionStorage.setItem("angkatan:" + kunci, a); } catch (e) { /* abaikan */ } };
+  const kata = String(pakaiLokal ? qLokal : cari || "").trim().toLowerCase();
   const grup = {};
   santri.forEach((x) => { const k = String(x.kelas || "").trim() || "Tanpa angkatan"; grup[k] = (grup[k] || 0) + 1; });
   const urut = Object.keys(grup).sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
   const valid = angkatan === "*" || (angkatan && grup[angkatan]);
   const namaAngkatan = (k) => (/^\d+$/.test(k) ? "Angkatan " + k : k);
-  if (!valid && !cari) {
+  const cocokNama = (x) => !pakaiLokal || !kata || String(x.nama || "").toLowerCase().includes(kata) || String(x.nim || "").toLowerCase().includes(kata);
+  const cocok = (x) => cocokNama(x) && (!valid || angkatan === "*" || (String(x.kelas || "").trim() || "Tanpa angkatan") === angkatan);
+  const kotakCari = pakaiLokal && (
+    <div className="mb-4 max-w-sm"><Input placeholder="Cari nama atau NIM…" value={qLokal} onChange={(e) => setQLokal(e.target.value)} /></div>
+  );
+  if (!valid && !kata) {
     return (
       <div>
+        {kotakCari}
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <div className="text-xs text-stone-500">Pilih angkatan untuk menampilkan nama dan NIM mahasantri.</div>
+          <div className="text-xs text-stone-500">Pilih angkatan untuk menampilkan nama dan NIM mahasantri, atau ketik nama di kotak pencarian.</div>
           <button type="button" onClick={() => pilih("*")} className="text-xs font-bold text-[#145048] underline">Tampilkan semua ({santri.length})</button>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -2079,15 +2089,16 @@ function PerAngkatan({ santri, cari = "", kunci, children }) {
       </div>
     );
   }
-  const cocok = (x) => !valid || angkatan === "*" || (String(x.kelas || "").trim() || "Tanpa angkatan") === angkatan;
   return (
     <div>
+      {kotakCari}
       {valid && (
         <div className="flex items-center gap-3 mb-3 flex-wrap">
           <button type="button" onClick={() => pilih("")} className="text-sm font-bold text-[#145048]">← Semua angkatan</button>
           <span className="text-sm text-stone-500">{angkatan === "*" ? "Semua mahasantri" : namaAngkatan(angkatan)}{angkatan !== "*" && <> · {grup[angkatan]} mahasantri</>}</span>
         </div>
       )}
+      {pakaiLokal && kata && <div className="text-xs text-stone-500 mb-2">{santri.filter(cocok).length} hasil untuk “{qLokal.trim()}”{valid ? "" : " di semua angkatan"}</div>}
       {children(cocok)}
     </div>
   );
@@ -3177,7 +3188,7 @@ function QuranPage({ profile }) {
     return (
       <div>
         <PageHeader title="Capaian Al-Qur'an" sub="Semua santri — klik salah satu untuk lihat detail." />
-        <PerAngkatan santri={pickable} cari={""} kunci="quran">{(cocok) => (
+        <PerAngkatan santri={pickable} kunci="quran">{(cocok) => (
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Juz Dikuasai</th><th className="p-3.5">Setoran Terakhir</th></tr></thead>
