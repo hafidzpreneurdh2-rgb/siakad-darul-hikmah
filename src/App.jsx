@@ -607,12 +607,25 @@ function BarChartSimple({ data }) {
 /* ---------------------------------------------------------------------- */
 /* Data hook                                                                */
 /* ---------------------------------------------------------------------- */
+// Supabase hanya mengirim 1.000 baris per permintaan, jadi data diambil bertahap sampai habis.
+async function muatTabelLengkap(table) {
+  const ukuran = 1000;
+  let semua = [];
+  for (let dari = 0; ; dari += ukuran) {
+    let { data, error } = await supabase.from(table).select("*").order("id", { ascending: true }).range(dari, dari + ukuran - 1);
+    if (error) ({ data, error } = await supabase.from(table).select("*").range(dari, dari + ukuran - 1)); // tabel tanpa kolom id
+    if (error) return { error };
+    semua = semua.concat(data || []);
+    if (!data || data.length < ukuran) break;
+  }
+  return { data: semua };
+}
 function useTable(table, deps = []) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   async function reload() {
     setLoading(true);
-    const { data, error } = await supabase.from(table).select("*");
+    const { data, error } = await muatTabelLengkap(table);
     if (!error) setRows(data || []);
     setLoading(false);
   }
@@ -4307,6 +4320,7 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Perbaikan: data di atas 1.000 baris", isi: "Semua halaman kini memuat seluruh data tabel secara bertahap. Sebelumnya hanya 1.000 baris pertama yang terbaca, sehingga angka Dashboard dan Rekap bisa kurang setelah data setoran dan ibadah menumpuk.", lokasi: "Seluruh aplikasi" },
   { tgl: "Okt 2026", judul: "Monitoring Tugas Akhir (menu Tugas Akhir & Ujian)", isi: "Menu Tugas Akhir & Ujian langsung menampilkan satu halaman untuk melihat semua mahasantri yang mengajukan KPM, Magang, Sidang, Syahadah Kubro, dan Sanad tanpa membuka satu per satu. Ada ringkasan per tahap, filter tahap/status/kelas/nama, tombol Lanjut langsung dari daftar, daftar mahasantri yang siap tetapi belum mengajukan, dan unduh Excel.", lokasi: "Akademik → Tugas Akhir & Ujian" },
   { tgl: "Okt 2026", judul: "Tugas Akhir & Ujian (KPM, Magang, Sidang Akhir Bisnis, Sidang Munaqasyah, Syahadah Kubro, Pengambilan Sanad)", isi: "Tab baru di menu Akademik yang mengatur alur tahapan akhir seperti kampus: pengajuan → persetujuan → penjadwalan/pelaksanaan → penilaian (lulus, revisi, tidak lulus, ajukan ulang). Ada kunci prasyarat antar tahap (KPM → Magang → Sidang Akhir Bisnis; Munaqasyah → Syahadah Kubro dan Pengambilan Sanad), pembimbing/penguji, tanggal, nilai per komponen yang dihitung otomatis, dan daftar berkas wajib per tahap (mis. logbook dan laporan magang). Sidang Akhir Bisnis mencatat karya brand sendiri: nama brand, bidang, tagline, produk, tautan, logo, dan foto produk. Mahasantri dapat mengajukan sendiri dan memantau statusnya. Butuh file SQL 16-tahapan-akhir.sql.", lokasi: "Akademik → tab Tugas Akhir & Ujian" },
   { tgl: "Okt 2026", judul: "Jenis setoran Syahadah dan Tasmi' di Capaian Al-Qur'an", isi: "Dua jenis baru untuk dicatat bersama Ziyadah, Murajaah, dan lainnya. Syahadah dan Tasmi' tercatat juga menjadi acuan syarat Sidang Munaqasyah.", lokasi: "Capaian Al-Qur'an → Catat Setoran" },
