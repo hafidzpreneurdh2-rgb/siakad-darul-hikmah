@@ -2394,7 +2394,7 @@ function RekapPencapaianPage({ profile }) {
   const santriT = useTable("santri");
   const quranT = useTable("quran_log");
   const ibadahT = useTable("ibadah_log");
-  const daftar = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || profile.role === "akademik" || s.musyrif_username === profile.username);
+  const daftar = santriT.rows;
   return <RekapPencapaian santriList={daftar} quranRows={quranT.rows} ibadahRows={ibadahT.rows} brand={brand} />;
 }
 /* ---------------------------------------------------------------------- */
@@ -2899,7 +2899,7 @@ function QuranPage({ profile }) {
   const [showForm, setShowForm] = useState(false);
   const santri = santriT.rows.find((s) => s.nim === nim);
   const logs = logT.rows.filter((l) => l.nim === nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-  const pickable = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || s.musyrif_username === profile.username);
+  const pickable = [...santriT.rows].sort((a, b) => (b.musyrif_username === profile.username) - (a.musyrif_username === profile.username));
 
   const [filterTahun, setFilterTahun] = useState("");
   const [filterBulan, setFilterBulan] = useState("");
@@ -2963,7 +2963,7 @@ function QuranPage({ profile }) {
                   </tr>
                 );
               })}
-              {pickable.length === 0 && <tr><td colSpan={3}><Empty text="Belum ada mahasantri binaan." /></td></tr>}
+              {pickable.length === 0 && <tr><td colSpan={3}><Empty text="Belum ada data mahasantri." /></td></tr>}
             </tbody>
           </table>
         </Card>
@@ -3087,7 +3087,7 @@ function IbadahPage({ profile }) {
   const [showForm, setShowForm] = useState(false);
   const santri = santriT.rows.find((s) => s.nim === nim);
   const logs = logT.rows.filter((l) => l.nim === nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-  const pickable = santriT.rows.filter((s) => profile.role === "admin" || profile.role === "pimpinan" || s.musyrif_username === profile.username);
+  const pickable = [...santriT.rows].sort((a, b) => (b.musyrif_username === profile.username) - (a.musyrif_username === profile.username));
 
   const [catatanIbadah, setCatatanIbadah] = useState("");
   useEffect(() => { setCatatanIbadah(santri?.catatan_ibadah || ""); }, [santri?.nim]);
