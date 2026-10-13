@@ -123,13 +123,13 @@ function todayLong() { return new Date().toLocaleDateString("id-ID", { weekday: 
 /* Permission map                                                           */
 /* ---------------------------------------------------------------------- */
 const CAN_EDIT = {
-  santri: ["admin"], akademik: ["admin", "akademik"], tahapan_akhir: ["admin", "akademik"],
+  santri: ["admin"], akademik: ["admin", "akademik"], tahapan_akhir: ["admin", "akademik"], matkul: ["admin", "akademik"],
   quran: ["admin", "musyrif", "musyrifah"], ibadah: ["admin", "musyrif", "musyrifah"],
   spp: ["admin", "keuangan"], pengumuman: ["admin", "pimpinan"], kalender: ["admin", "akademik", "pimpinan"],
 };
 function canEdit(role, area) { return CAN_EDIT[area]?.includes(role); }
 
-const AKADEMIK_GROUP = { label: "Akademik", items: [["akademik","KRS & KHS"],["akhir","Tugas Akhir & Ujian"],["kalender","Kalender Akademik"],["rekap","Rekap Pencapaian"]] };
+const AKADEMIK_GROUP = { label: "Akademik", items: [["akademik","KRS & KHS"],["akhir","Tugas Akhir & Ujian"],["matkul","Daftar Mata Kuliah"],["kalender","Kalender Akademik"],["rekap","Rekap Pencapaian"]] };
 const AKADEMIK_GROUP_SANTRI = { label: "Akademik", items: [["akademik","KRS & KHS"],["akhir","Tugas Akhir & Ujian"],["kalender","Kalender Akademik"]] };
 const KARTU_MENU = ["kartu", "Kartu Tanda Mahasantri"];
 const QURAN_MENU = ["quran","Capaian Al-Qur'an"];
@@ -142,7 +142,7 @@ const MENUS = {
   pimpinan: [["dashboard","Dashboard"],["santri","Data Mahasantri"], AKADEMIK_GROUP, QURAN_MENU,["ibadah","Ibadah"],["spp","Iuran SPP"], KARTU_MENU,["pengumuman","Pengumuman"],["log","Log Aktivitas"],["pengaturan","Pengaturan"]],
   santri: [["dashboard","Dashboard"], AKADEMIK_GROUP_SANTRI, QURAN_MENU,["ibadah","Ibadah"],["spp","Iuran SPP"], KARTU_MENU,["pengumuman","Pengumuman"],["pengaturan","Pengaturan"]],
 };
-const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "KRS & KHS", akhir: "Tugas Akhir & Ujian", rekap: "Rekap Pencapaian", log: "Log Aktivitas", kartu: "Kartu Tanda Mahasantri", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
+const PAGE_TITLES = { dashboard: "Dashboard", santri: "Data Mahasantri", akademik: "KRS & KHS", akhir: "Tugas Akhir & Ujian", matkul: "Daftar Mata Kuliah", rekap: "Rekap Pencapaian", log: "Log Aktivitas", kartu: "Kartu Tanda Mahasantri", quran: "Capaian Al-Qur'an", ibadah: "Ibadah", spp: "Iuran SPP", pengumuman: "Pengumuman", kalender: "Kalender Akademik", akun: "Kelola Akun", pengaturan: "Pengaturan" };
 
 /* ---------------------------------------------------------------------- */
 /* Brand (logo & nama pondok) — publik, dibaca sebelum login juga           */
@@ -968,11 +968,12 @@ function DataSantriPage({ profile }) {
   return (
     <div>
       <PageHeader title="Data Mahasantri" actions={editable && <Btn onClick={() => setModal("new")}>+ Tambah Mahasantri</Btn>} />
+      <PerAngkatan santri={rows} cari={""} kunci="santri">{(cocok) => (
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">
           <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">Juz</th><th className="p-3.5">Status</th><th className="p-3.5"></th></tr></thead>
           <tbody>
-            {rows.map((s) => (
+            {rows.filter(cocok).map((s) => (
               <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60">
                 <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[0.6875rem] text-stone-400">{s.nim}</div></div></div></td>
                 <td className="p-3.5">{s.kelas}</td>
@@ -990,6 +991,7 @@ function DataSantriPage({ profile }) {
           </tbody>
         </table>
       </Card>
+      )}</PerAngkatan>
       {modal && <SantriForm initial={modal === "new" ? null : modal} daftarAngkatan={[...new Set(rows.map((s) => s.kelas))]} onCancel={() => setModal(null)} onSubmit={upsert} />}
     </div>
   );
@@ -1152,6 +1154,7 @@ function AkademikStaffPage({ profile, tabAwal = "krs" }) {
   const akT = useTable("akademik");
   const tahapT = useTable("tahapan_akhir");
   const [tab, setTab] = useState(tabAwal);
+  const [showAmbil, setShowAmbil] = useState(false);
   const quranLogT = useTable("quran_log");
   const profilesT = useTable("profiles");
   const [nim, setNim] = useState("");
@@ -1204,11 +1207,12 @@ function AkademikStaffPage({ profile, tabAwal = "krs" }) {
     return (
       <div>
         <PageHeader title="Akademik" sub="Semua santri — klik salah satu untuk kelola nilai." />
+        <PerAngkatan santri={santriT.rows} cari={""} kunci="akademik">{(cocok) => (
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Angkatan</th><th className="p-3.5">IPK</th><th className="p-3.5">Matkul Selesai</th><th className="p-3.5">Tugas Akhir</th></tr></thead>
             <tbody>
-              {santriT.rows.map((s) => {
+              {santriT.rows.filter(cocok).map((s) => {
                 const sel = bestPerKode(akT.rows.filter((a) => a.nim === s.nim && a.status === "selesai"));
                 const tot = sel.reduce((a, r) => a + r.sks, 0);
                 const ipk = tot ? (sel.reduce((a, r) => a + bobot(nilaiHuruf(r.nilai_angka)) * r.sks, 0) / tot).toFixed(2) : "-";
@@ -1223,6 +1227,7 @@ function AkademikStaffPage({ profile, tabAwal = "krs" }) {
             </tbody>
           </table>
         </Card>
+        )}</PerAngkatan>
       </div>
     );
   }
@@ -1232,6 +1237,7 @@ function AkademikStaffPage({ profile, tabAwal = "krs" }) {
       <BackBar onBack={() => setNim("")} />
       <PageHeader title={santri?.nama || nim} sub={nim} actions={
         <div className="flex gap-2">
+          {editable && <Btn tone="gold" onClick={() => setShowAmbil(true)}>Ambil dari Daftar</Btn>}
           {editable && <Btn onClick={() => setShowForm(true)}>+ Tambah Mata Kuliah</Btn>}
         </div>
       } />
@@ -1456,6 +1462,7 @@ function AkademikStaffPage({ profile, tabAwal = "krs" }) {
       )}
       </div>
       {tab === "akhir" && <TugasAkhirPanel nim={nim} profile={profile} rows={tahapT.rows} reload={tahapT.reload} />}
+      {showAmbil && santri && <AmbilMatkulModal santri={santri} semuaSantri={santriT.rows} akRows={akT.rows} onCancel={() => setShowAmbil(false)} onDone={(n) => { setShowAmbil(false); akT.reload(); alert(n + " mata kuliah ditambahkan ke KRS."); }} />}
       {showForm && <AkademikForm nim={nim} onCancel={() => setShowForm(false)} onSubmit={saveRecord} />}
       {editingRecord && <AkademikForm nim={nim} initial={editingRecord} onCancel={() => setEditingRecord(null)} onSubmit={saveRecord} />}
     </div>
@@ -1465,7 +1472,7 @@ function AkademikForm({ initial, nim, onCancel, onSubmit }) {
   const [f, setF] = useState(initial || { tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_kuliah: MATA_KULIAH[0], sks: 2, status: "aktif", pengajar: "", kode_mk: "", mengulang: false, bidang_bisnis: "", nama_brand: "", deskripsi_produk: "", logo_url: "", foto_produk_url: "" });
   const [uploading, setUploading] = useState("");
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-  async function uploadFile(field) {
+  function uploadFile(field) {
     return async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
@@ -2042,6 +2049,212 @@ function TugasAkhirPantauPage({ profile }) {
 }
 
 /* ---------------------------------------------------------------------- */
+/* Daftar mahasantri per angkatan: pilih angkatan dulu, baru nama & NIM muncul   */
+/* ---------------------------------------------------------------------- */
+function PerAngkatan({ santri, cari = "", kunci, children }) {
+  const [angkatan, setAngkatan] = useState(() => { try { return sessionStorage.getItem("angkatan:" + kunci) || ""; } catch (e) { return ""; } });
+  const pilih = (a) => { setAngkatan(a); try { sessionStorage.setItem("angkatan:" + kunci, a); } catch (e) { /* abaikan */ } };
+  const grup = {};
+  santri.forEach((x) => { const k = String(x.kelas || "").trim() || "Tanpa angkatan"; grup[k] = (grup[k] || 0) + 1; });
+  const urut = Object.keys(grup).sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
+  const valid = angkatan === "*" || (angkatan && grup[angkatan]);
+  const namaAngkatan = (k) => (/^\d+$/.test(k) ? "Angkatan " + k : k);
+  if (!valid && !cari) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div className="text-xs text-stone-500">Pilih angkatan untuk menampilkan nama dan NIM mahasantri.</div>
+          <button type="button" onClick={() => pilih("*")} className="text-xs font-bold text-[#145048] underline">Tampilkan semua ({santri.length})</button>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+          {urut.map((k) => (
+            <button key={k} type="button" onClick={() => pilih(k)} className="text-left bg-white rounded-2xl border border-stone-200 hover:border-[#0B3B36] hover:shadow-sm transition p-4">
+              <div className="text-[0.6875rem] uppercase tracking-wider text-stone-400 font-bold">Angkatan</div>
+              <div className="font-serif-dh text-xl font-semibold text-[#0B3B36] mt-0.5">{namaAngkatan(k).replace(/^Angkatan /, "")}</div>
+              <div className="text-xs text-stone-500 mt-2">{grup[k]} mahasantri</div>
+            </button>
+          ))}
+          {urut.length === 0 && <div className="col-span-full"><Empty text="Belum ada data mahasantri." /></div>}
+        </div>
+      </div>
+    );
+  }
+  const cocok = (x) => !valid || angkatan === "*" || (String(x.kelas || "").trim() || "Tanpa angkatan") === angkatan;
+  return (
+    <div>
+      {valid && (
+        <div className="flex items-center gap-3 mb-3 flex-wrap">
+          <button type="button" onClick={() => pilih("")} className="text-sm font-bold text-[#145048]">← Semua angkatan</button>
+          <span className="text-sm text-stone-500">{angkatan === "*" ? "Semua mahasantri" : namaAngkatan(angkatan)}{angkatan !== "*" && <> · {grup[angkatan]} mahasantri</>}</span>
+        </div>
+      )}
+      {children(cocok)}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Daftar Mata Kuliah (master) per semester — dipakai sebagai pilihan di KRS    */
+/* ---------------------------------------------------------------------- */
+function semesterJenis(ke) { return Number(ke) % 2 === 1 ? "Ganjil" : "Genap"; }
+function tahunAjaranSekarang() { const d = new Date(); const y = d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1; return `${y}/${y + 1}`; }
+
+function MatkulForm({ initial, semester, onCancel, onSubmit }) {
+  const [f, setF] = useState(initial || { semester_ke: semester, kode_mk: "", nama: "", sks: 2, pengajar: "", urutan: 0 });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <Modal title={initial ? "Edit Mata Kuliah" : `Tambah Mata Kuliah — Semester ${f.semester_ke}`} onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Kode MK"><Input value={f.kode_mk || ""} onChange={set("kode_mk")} placeholder="cth. MKQ 1.1.1" /></Field>
+          <Field label="Semester ke-"><Input type="number" min={1} max={12} value={f.semester_ke} onChange={set("semester_ke")} required /></Field>
+        </div>
+        <Field label="Nama Mata Kuliah"><Input value={f.nama} onChange={set("nama")} required /></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="SKS"><Input type="number" min={0} step="0.5" value={f.sks} onChange={set("sks")} required /></Field>
+          <Field label="Urutan tampil"><Input type="number" value={f.urutan ?? 0} onChange={set("urutan")} /></Field>
+        </div>
+        <Field label="Pengampu bawaan (opsional)"><Input value={f.pengajar || ""} onChange={set("pengajar")} placeholder="Nama ustadz/ustadzah" /></Field>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
+      </form>
+    </Modal>
+  );
+}
+
+function MatkulImpor({ semester, onCancel, onDone }) {
+  const [teks, setTeks] = useState("");
+  const [busy, setBusy] = useState(false);
+  const baris = teks.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
+    const p = l.split(/\t|;|\|/).map((x) => x.trim());
+    return { kode_mk: p[0] || "", nama: p[1] || "", sks: Number((p[2] || "2").replace(",", ".")) || 2, pengajar: p[3] || "" };
+  }).filter((x) => x.nama);
+  async function simpan() {
+    setBusy(true);
+    const { error } = await supabase.from("mata_kuliah_master").insert(baris.map((b, i) => ({ ...b, semester_ke: semester, urutan: i + 1 })));
+    setBusy(false);
+    if (error) alert(error.message); else onDone();
+  }
+  return (
+    <Modal title={`Impor Cepat — Semester ${semester}`} onClose={onCancel}>
+      <p className="text-xs text-stone-500 mb-2">Tempel daftar, satu mata kuliah per baris, dengan urutan <b>Kode ; Nama ; SKS ; Pengampu</b> (pengampu boleh dikosongkan). Boleh disalin langsung dari Excel (kolom dipisah tab).</p>
+      <textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm font-mono" rows={8} value={teks} onChange={(e) => setTeks(e.target.value)} placeholder={"MKQ 1.1.1 ; Tahsin & Tajwid ; 2\nMKQ 1.1.2 ; Bahasa Arab ; 3 ; Ustadz Ahmad"} />
+      <div className="text-xs text-stone-500 mt-2">{baris.length} mata kuliah terbaca{baris.length > 0 && <> · total {baris.reduce((a, b) => a + b.sks, 0)} SKS</>}</div>
+      <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn onClick={simpan} disabled={busy || baris.length === 0}>Tambahkan {baris.length} mata kuliah</Btn></div>
+    </Modal>
+  );
+}
+
+function DaftarMatkulPage({ profile }) {
+  const editable = canEdit(profile.role, "matkul");
+  const masterT = useTable("mata_kuliah_master");
+  const [semester, setSemester] = useState(1);
+  const [form, setForm] = useState(null);
+  const [impor, setImpor] = useState(false);
+  const semuaSem = [...new Set([1, 2, 3, 4, 5, 6, ...masterT.rows.map((m) => Number(m.semester_ke))])].sort((a, b) => a - b);
+  const daftar = masterT.rows.filter((m) => Number(m.semester_ke) === Number(semester)).sort((a, b) => (a.urutan || 0) - (b.urutan || 0) || String(a.kode_mk || "").localeCompare(String(b.kode_mk || ""), "id", { numeric: true }));
+  const totalSks = daftar.reduce((a, m) => a + Number(m.sks || 0), 0);
+  async function simpan(f) {
+    const payload = { semester_ke: Number(f.semester_ke), kode_mk: f.kode_mk || null, nama: f.nama, sks: Number(f.sks), pengajar: f.pengajar || null, urutan: Number(f.urutan) || 0 };
+    const { error } = f.id ? await supabase.from("mata_kuliah_master").update(payload).eq("id", f.id) : await supabase.from("mata_kuliah_master").insert(payload);
+    if (error) alert(error.message); else { setForm(null); masterT.reload(); }
+  }
+  async function hapus(id) {
+    if (!confirm("Hapus mata kuliah ini dari daftar? KRS mahasantri yang sudah terisi tidak terpengaruh.")) return;
+    const { error } = await supabase.from("mata_kuliah_master").delete().eq("id", id);
+    if (error) alert(error.message); else masterT.reload();
+  }
+  return (
+    <div>
+      <PageHeader title="Daftar Mata Kuliah" sub="Isi sekali per semester. Di KRS, mata kuliah tinggal dipilih dari daftar ini, jadi tidak ada yang terlewat." actions={editable && <div className="flex gap-2"><Btn tone="ghost" onClick={() => setImpor(true)}>Impor Cepat</Btn><Btn onClick={() => setForm({ initial: null })}>+ Tambah</Btn></div>} />
+      <div className="flex gap-2 flex-wrap mb-4">
+        {semuaSem.map((n) => {
+          const jml = masterT.rows.filter((m) => Number(m.semester_ke) === n).length;
+          return <button key={n} type="button" onClick={() => setSemester(n)} className={`px-4 py-2 rounded-xl text-sm font-bold border ${semester === n ? "bg-[#0B3B36] text-white border-[#0B3B36]" : "bg-white text-[#0B3B36] border-stone-200 hover:border-[#0B3B36]"}`}>Semester {n}<span className={`ml-2 text-xs ${semester === n ? "text-white/70" : "text-stone-400"}`}>{jml}</span></button>;
+        })}
+      </div>
+      <Card className="p-0 overflow-hidden">
+        <div className="px-4 py-3 text-xs text-stone-500 bg-stone-50 border-b border-stone-100">Semester {semester} ({semesterJenis(semester)}) · {daftar.length} mata kuliah · <b>{totalSks} SKS</b></div>
+        <table className="w-full text-sm">
+          <thead><tr className="text-left text-[0.6875rem] uppercase tracking-wide text-stone-400"><th className="p-3.5">Kode MK</th><th className="p-3.5">Mata Kuliah</th><th className="p-3.5">SKS</th><th className="p-3.5">Pengampu</th><th className="p-3.5"></th></tr></thead>
+          <tbody>
+            {daftar.map((m) => (
+              <tr key={m.id} className="border-t border-stone-100">
+                <td className="p-3.5 text-stone-500 whitespace-nowrap">{m.kode_mk || "—"}</td>
+                <td className="p-3.5 font-semibold text-[#0B3B36]">{m.nama}</td>
+                <td className="p-3.5">{m.sks}</td>
+                <td className="p-3.5 text-stone-600">{m.pengajar || "—"}</td>
+                <td className="p-3.5 text-right whitespace-nowrap">{editable && <><button type="button" onClick={() => setForm({ initial: m })} className="text-[#145048] text-xs font-bold mr-3">Edit</button><button type="button" onClick={() => hapus(m.id)} className="text-red-600 text-xs font-bold">Hapus</button></>}</td>
+              </tr>
+            ))}
+            {daftar.length === 0 && <tr><td colSpan={5}><Empty text={`Belum ada mata kuliah untuk semester ${semester}. ${editable ? "Gunakan Impor Cepat atau + Tambah." : ""}`} /></td></tr>}
+          </tbody>
+        </table>
+      </Card>
+      {form && <MatkulForm initial={form.initial} semester={semester} onCancel={() => setForm(null)} onSubmit={simpan} />}
+      {impor && <MatkulImpor semester={semester} onCancel={() => setImpor(false)} onDone={() => { setImpor(false); masterT.reload(); }} />}
+    </div>
+  );
+}
+
+/* Ambil mata kuliah KRS dari daftar master (satu mahasantri atau seluruh angkatan) */
+function AmbilMatkulModal({ santri, semuaSantri, akRows, onCancel, onDone }) {
+  const masterT = useTable("mata_kuliah_master");
+  const semuaSem = [...new Set(masterT.rows.map((m) => Number(m.semester_ke)))].sort((a, b) => a - b);
+  const [semester, setSemester] = useState(0);
+  const [ta, setTa] = useState(tahunAjaranSekarang());
+  const [target, setTarget] = useState("satu");
+  const [dipilih, setDipilih] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const sem = semester || semuaSem[0] || 1;
+  const jenis = semesterJenis(sem);
+  const daftar = masterT.rows.filter((m) => Number(m.semester_ke) === Number(sem)).sort((a, b) => (a.urutan || 0) - (b.urutan || 0));
+  const aktifIds = dipilih || daftar.map((m) => m.id);
+  const rekanAngkatan = semuaSantri.filter((x) => String(x.kelas || "") === String(santri.kelas || "") && (x.status === "Aktif" || !x.status));
+  const sasaran = target === "angkatan" ? rekanAngkatan : [santri];
+  const ada = (nim, m) => akRows.some((r) => r.nim === nim && r.tahun_ajaran === ta && r.semester === jenis && ((m.kode_mk && r.kode_mk === m.kode_mk) || r.mata_kuliah === m.nama));
+  const baru = [];
+  sasaran.forEach((x) => daftar.filter((m) => aktifIds.includes(m.id)).forEach((m) => { if (!ada(x.nim, m)) baru.push({ nim: x.nim, tahun_ajaran: ta, semester: jenis, kode_mk: m.kode_mk || "", mata_kuliah: m.nama, sks: Number(m.sks), pengajar: m.pengajar || "", status: "aktif", mengulang: false }); }));
+  async function simpan() {
+    setBusy(true);
+    const { error } = await supabase.from("akademik").insert(baru);
+    setBusy(false);
+    if (error) alert(error.message); else onDone(baru.length);
+  }
+  return (
+    <Modal title="Ambil dari Daftar Mata Kuliah" onClose={onCancel}>
+      {semuaSem.length === 0 ? (
+        <p className="text-sm text-stone-500">Daftar mata kuliah masih kosong. Isi dulu lewat menu <b>Akademik → Daftar Mata Kuliah</b>.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Semester ke-"><Select value={sem} onChange={(e) => { setSemester(Number(e.target.value)); setDipilih(null); }}>{semuaSem.map((n) => <option key={n} value={n}>Semester {n} ({semesterJenis(n)})</option>)}</Select></Field>
+            <Field label="Tahun Ajaran"><Input value={ta} onChange={(e) => setTa(e.target.value)} /></Field>
+          </div>
+          <Field label="Berlaku untuk">
+            <Select value={target} onChange={(e) => setTarget(e.target.value)}>
+              <option value="satu">Hanya {santri.nama}</option>
+              <option value="angkatan">Semua mahasantri aktif angkatan {santri.kelas || "ini"} ({rekanAngkatan.length} orang)</option>
+            </Select>
+          </Field>
+          <div className="border border-stone-200 rounded-xl divide-y divide-stone-100 max-h-64 overflow-y-auto">
+            {daftar.map((m) => (
+              <label key={m.id} className="flex items-center gap-3 px-3 py-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={aktifIds.includes(m.id)} onChange={(e) => setDipilih(e.target.checked ? [...aktifIds, m.id] : aktifIds.filter((x) => x !== m.id))} />
+                <span className="flex-1">{m.nama}<span className="text-xs text-stone-400 ml-2">{m.kode_mk || ""}</span></span>
+                <span className="text-xs text-stone-500">{m.sks} SKS</span>
+              </label>
+            ))}
+            {daftar.length === 0 && <div className="p-4 text-sm text-stone-400">Belum ada mata kuliah di semester ini.</div>}
+          </div>
+          <div className="text-xs text-stone-500 mt-2">Akan ditambahkan: <b>{baru.length}</b> baris KRS. Mata kuliah yang sudah ada di KRS tahun ajaran dan semester yang sama dilewati otomatis.</div>
+          <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn onClick={simpan} disabled={busy || baru.length === 0}>Tambahkan ke KRS</Btn></div>
+        </>
+      )}
+    </Modal>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
 /* Pengumuman                                                               */
 /* ---------------------------------------------------------------------- */
 function PengumumanPage({ profile }) {
@@ -2503,11 +2716,12 @@ function KartuSantriPage({ profile }) {
       {isViewer && !nim && (
         <>
           <div className="mb-4 max-w-sm"><Input placeholder="Cari nama atau NIM…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+          <PerAngkatan santri={santriT.rows.filter((x) => x.status === "Aktif" || !x.status)} cari={q} kunci="kartu">{(cocok) => (
           <Card className="p-0 overflow-hidden">
             <table className="w-full text-sm">
               <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">NIM</th></tr></thead>
               <tbody>
-                {daftar.map((s) => (
+                {daftar.filter(cocok).map((s) => (
                   <tr key={s.nim} className="border-t border-stone-100 cursor-pointer hover:bg-stone-50/60" onClick={() => setNim(s.nim)}>
                     <td className="p-3.5 font-semibold">{s.nama}</td>
                     <td className="p-3.5 text-stone-500">{s.nim}</td>
@@ -2517,6 +2731,7 @@ function KartuSantriPage({ profile }) {
               </tbody>
             </table>
           </Card>
+          )}</PerAngkatan>
         </>
       )}
 
@@ -2962,11 +3177,12 @@ function QuranPage({ profile }) {
     return (
       <div>
         <PageHeader title="Capaian Al-Qur'an" sub="Semua santri — klik salah satu untuk lihat detail." />
+        <PerAngkatan santri={pickable} cari={""} kunci="quran">{(cocok) => (
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Juz Dikuasai</th><th className="p-3.5">Setoran Terakhir</th></tr></thead>
             <tbody>
-              {pickable.map((s) => {
+              {pickable.filter(cocok).map((s) => {
                 const last = logT.rows.filter((l) => l.nim === s.nim).sort((a, b) => b.tanggal.localeCompare(a.tanggal))[0];
                 return (
                   <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
@@ -2980,6 +3196,7 @@ function QuranPage({ profile }) {
             </tbody>
           </table>
         </Card>
+        )}</PerAngkatan>
       </div>
     );
   }
@@ -3152,11 +3369,12 @@ function IbadahPage({ profile }) {
             <option value="SEMUA">Semua status</option><option value="Baik">Baik</option><option value="Perhatian">Perlu Perhatian</option>
           </Select>
         </div>
+        <PerAngkatan santri={pickable} cari={q} kunci="ibadah">{(cocok) => (
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Catatan Terakhir</th><th className="p-3.5">Status</th></tr></thead>
             <tbody>
-              {withStatus.map(({ s, last, perhatian }) => (
+              {withStatus.filter(({ s }) => cocok(s)).map(({ s, last, perhatian }) => (
                 <tr key={s.nim} className="border-t border-stone-100 hover:bg-stone-50/60 cursor-pointer" onClick={() => setNim(s.nim)}>
                   <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={s.nama} size={30} /><div><div className="font-bold">{s.nama}</div><div className="text-[0.6875rem] text-stone-400">{s.nim}</div></div></div></td>
                   <td className="p-3.5 text-stone-500">{last ? <>{last.tanggal} · {last.jenis} · <Badge tone={capaianTone(last.capaian)}>{last.capaian}</Badge></> : "-"}</td>
@@ -3167,6 +3385,7 @@ function IbadahPage({ profile }) {
             </tbody>
           </table>
         </Card>
+        )}</PerAngkatan>
       </div>
     );
   }
@@ -3389,11 +3608,12 @@ function SppPage({ profile }) {
           <StatCard label="Total Tertunggak" value={formatRupiah(totalTertunggak)} />
         </div>
         <div className="mb-4 flex items-center gap-4 flex-wrap"><div className="max-w-xs w-full"><Input placeholder="Cari nama atau NIM..." value={q} onChange={(e) => setQ(e.target.value)} /></div><label className="flex items-center gap-2 text-sm text-stone-600"><input type="checkbox" checked={hanyaBelum} onChange={(e) => setHanyaBelum(e.target.checked)} />Hanya yang punya tunggakan</label></div>
+        <PerAngkatan santri={santriT.rows} cari={q} kunci="spp">{(cocok) => (
         <Card className="p-0 overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3.5">Mahasantri</th><th className="p-3.5">Status Bulan Ini</th><th className="p-3.5">Tunggakan</th>{editable && <th className="p-3.5 text-right">Pengingat</th>}</tr></thead>
             <tbody>
-              {withStatus.map(({ s, row, tunggak }) => {
+              {withStatus.filter(({ s }) => cocok(s)).map(({ s, row, tunggak }) => {
                 const sisaKop = Math.max(0, Number(s.tagihan_koperasi || 0) - koperasiT.rows.filter((c) => c.nim === s.nim).reduce((a, c) => a + Number(c.jumlah || 0), 0));
                 const linkWa = linkWaTunggakan({ santri: s, rows: tunggak, sisaKop, namaPondok: brand.nama_pondok });
                 return (
@@ -3409,6 +3629,7 @@ function SppPage({ profile }) {
             </tbody>
           </table>
         </Card>
+        )}</PerAngkatan>
         {showBulk && <BuatIuranBulanan onCancel={() => setShowBulk(false)} onSubmit={buatIuranBulanan} jumlah={santriT.rows.length} />}
       </div>
     );
@@ -4284,7 +4505,7 @@ function BackupDataCard() {
       const XLSX = await muatXLSX();
       const datar = (rows) => rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v !== null && typeof v === "object" ? JSON.stringify(v) : v])));
       const lembar = [
-        ["Mahasantri", "santri"], ["Akademik", "akademik"], ["Tugas Akhir & Ujian", "tahapan_akhir"], ["Iuran SPP", "spp"], ["Cicilan Koperasi", "koperasi_cicilan"],
+        ["Mahasantri", "santri"], ["Akademik", "akademik"], ["Tugas Akhir & Ujian", "tahapan_akhir"], ["Daftar Mata Kuliah", "mata_kuliah_master"], ["Iuran SPP", "spp"], ["Cicilan Koperasi", "koperasi_cicilan"],
         ["Capaian Quran", "quran_log"], ["Ibadah", "ibadah_log"], ["Kalender Akademik", "kalender_akademik"], ["Pengumuman", "pengumuman"],
       ];
       const wb = XLSX.utils.book_new(); const gagal = [];
@@ -4320,6 +4541,8 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Daftar Mata Kuliah per semester dan pilihan sekali ambil di KRS", isi: "Menu baru Akademik → Daftar Mata Kuliah untuk mengisi kode MK, nama, SKS, dan pengampu per semester (ada Impor Cepat dari Excel). Di KRS, tombol Ambil dari Daftar menambahkan seluruh mata kuliah satu semester sekaligus, untuk satu mahasantri atau seluruh angkatan, dan melewati yang sudah ada. Butuh file SQL 19-master-mata-kuliah.sql.", lokasi: "Akademik → Daftar Mata Kuliah dan KRS & KHS" },
+  { tgl: "Okt 2026", judul: "Daftar mahasantri per angkatan", isi: "Halaman Data Mahasantri, Akademik, Al-Qur'an, Ibadah, Iuran SPP, dan Kartu kini menampilkan pilihan angkatan terlebih dahulu. Nama dan NIM muncul setelah angkatan diklik, atau langsung saat mencari. Tersedia juga tombol Tampilkan semua.", lokasi: "Halaman daftar mahasantri" },
   { tgl: "Okt 2026", judul: "Perbaikan: data di atas 1.000 baris", isi: "Semua halaman kini memuat seluruh data tabel secara bertahap. Sebelumnya hanya 1.000 baris pertama yang terbaca, sehingga angka Dashboard dan Rekap bisa kurang setelah data setoran dan ibadah menumpuk.", lokasi: "Seluruh aplikasi" },
   { tgl: "Okt 2026", judul: "Monitoring Tugas Akhir (menu Tugas Akhir & Ujian)", isi: "Menu Tugas Akhir & Ujian langsung menampilkan satu halaman untuk melihat semua mahasantri yang mengajukan KPM, Magang, Sidang, Syahadah Kubro, dan Sanad tanpa membuka satu per satu. Ada ringkasan per tahap, filter tahap/status/kelas/nama, tombol Lanjut langsung dari daftar, daftar mahasantri yang siap tetapi belum mengajukan, dan unduh Excel.", lokasi: "Akademik → Tugas Akhir & Ujian" },
   { tgl: "Okt 2026", judul: "Tugas Akhir & Ujian (KPM, Magang, Sidang Akhir Bisnis, Sidang Munaqasyah, Syahadah Kubro, Pengambilan Sanad)", isi: "Tab baru di menu Akademik yang mengatur alur tahapan akhir seperti kampus: pengajuan → persetujuan → penjadwalan/pelaksanaan → penilaian (lulus, revisi, tidak lulus, ajukan ulang). Ada kunci prasyarat antar tahap (KPM → Magang → Sidang Akhir Bisnis; Munaqasyah → Syahadah Kubro dan Pengambilan Sanad), pembimbing/penguji, tanggal, nilai per komponen yang dihitung otomatis, dan daftar berkas wajib per tahap (mis. logbook dan laporan magang). Sidang Akhir Bisnis mencatat karya brand sendiri: nama brand, bidang, tagline, produk, tautan, logo, dan foto produk. Mahasantri dapat mengajukan sendiri dan memantau statusnya. Butuh file SQL 16-tahapan-akhir.sql.", lokasi: "Akademik → tab Tugas Akhir & Ujian" },
@@ -4985,6 +5208,7 @@ export default function App() {
     if (view === "akhir" && ["admin","pimpinan","akademik"].includes(profile.role)) return <TugasAkhirPantauPage profile={profile} />;
     if (view === "akademik" || view === "akhir") return profile.role === "santri" ? <AkademikSantriPage key={view} profile={profile} tabAwal={view === "akhir" ? "akhir" : "krs"} /> : <AkademikStaffPage key={view} profile={profile} tabAwal={view === "akhir" ? "akhir" : "krs"} />;
     if (view === "pengumuman") return <PengumumanPage profile={profile} />;
+    if (view === "matkul") return <DaftarMatkulPage profile={profile} />;
     if (view === "kalender") return <KalenderPage profile={profile} />;
     if (view === "rekap") return <RekapPencapaianPage profile={profile} />;
     if (view === "kartu") return <KartuSantriPage profile={profile} />;
