@@ -1488,7 +1488,7 @@ function AkademikForm({ initial, nim, onCancel, onSubmit }) {
   const isSidangBisnis = f.mata_kuliah === "Sidang Bisnis";
   return (
     <Modal title={initial ? "Edit Mata Kuliah" : "Tambah Mata Kuliah"} onClose={onCancel}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit({ ...f, pengajar: normalisasiPengampu(f.pengajar) }); }}>
         <Field label="Tahun Ajaran"><Input value={f.tahun_ajaran} onChange={set("tahun_ajaran")} /></Field>
         <Field label="Semester"><Select value={f.semester} onChange={set("semester")}><option>Ganjil</option><option>Genap</option></Select></Field>
         <Field label="Kode MK (opsional)"><Input value={f.kode_mk} onChange={set("kode_mk")} placeholder="cth. MKQ 1.1.1" /></Field>
@@ -1496,7 +1496,7 @@ function AkademikForm({ initial, nim, onCancel, onSubmit }) {
           <Input list="mataKuliahSuggestions" value={f.mata_kuliah} onChange={set("mata_kuliah")} placeholder="Tulis nama mata kuliah" />
           <datalist id="mataKuliahSuggestions">{MATA_KULIAH.map((m) => <option key={m} value={m} />)}</datalist>
         </Field>
-        <Field label="Pengajar"><Input value={f.pengajar} onChange={set("pengajar")} placeholder="Nama ustadz/ustadzah pengampu" /></Field>
+        <Field label="Pengajar / Pengampu"><PengampuInput value={f.pengajar} onChange={(v) => setF({ ...f, pengajar: v })} /></Field>
         <Field label="SKS"><Input type="number" value={f.sks} onChange={set("sks")} /></Field>
 
         {isSidangBisnis && (
@@ -2125,7 +2125,7 @@ function MatkulForm({ initial, semester, onCancel, onSubmit }) {
           <Field label="SKS"><Input type="number" min={0} step="0.5" value={f.sks} onChange={set("sks")} required /></Field>
           <Field label="Urutan tampil"><Input type="number" value={f.urutan ?? 0} onChange={set("urutan")} /></Field>
         </div>
-        <Field label="Pengampu bawaan (opsional)"><Input value={f.pengajar || ""} onChange={set("pengajar")} placeholder="Nama ustadz/ustadzah" /></Field>
+        <Field label="Pengampu bawaan (opsional, boleh lebih dari satu)"><PengampuInput value={f.pengajar || ""} onChange={(v) => setF({ ...f, pengajar: v })} /></Field>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
       </form>
     </Modal>
@@ -2147,7 +2147,7 @@ function MatkulImpor({ semester, onCancel, onDone }) {
   }
   return (
     <Modal title={`Impor Cepat — Semester ${semester}`} onClose={onCancel}>
-      <p className="text-xs text-stone-500 mb-2">Tempel daftar, satu mata kuliah per baris, dengan urutan <b>Kode ; Nama ; SKS ; Pengampu</b> (pengampu boleh dikosongkan). Boleh disalin langsung dari Excel (kolom dipisah tab).</p>
+      <p className="text-xs text-stone-500 mb-2">Tempel daftar, satu mata kuliah per baris, dengan urutan <b>Kode ; Nama ; SKS ; Pengampu</b> (pengampu boleh dikosongkan; untuk lebih dari satu pengampu pisahkan dengan garis miring, mis. <i>Ust. Ahmad / Ustzh. Aisyah</i>). Boleh disalin langsung dari Excel (kolom dipisah tab).</p>
       <textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm font-mono" rows={8} value={teks} onChange={(e) => setTeks(e.target.value)} placeholder={"MKQ 1.1.1 ; Tahsin & Tajwid ; 2\nMKQ 1.1.2 ; Bahasa Arab ; 3 ; Ustadz Ahmad"} />
       <div className="text-xs text-stone-500 mt-2">{baris.length} mata kuliah terbaca{baris.length > 0 && <> · total {baris.reduce((a, b) => a + b.sks, 0)} SKS</>}</div>
       <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn onClick={simpan} disabled={busy || baris.length === 0}>Tambahkan {baris.length} mata kuliah</Btn></div>
@@ -2165,7 +2165,7 @@ function DaftarMatkulPage({ profile }) {
   const daftar = masterT.rows.filter((m) => Number(m.semester_ke) === Number(semester)).sort((a, b) => (a.urutan || 0) - (b.urutan || 0) || String(a.kode_mk || "").localeCompare(String(b.kode_mk || ""), "id", { numeric: true }));
   const totalSks = daftar.reduce((a, m) => a + Number(m.sks || 0), 0);
   async function simpan(f) {
-    const payload = { semester_ke: Number(f.semester_ke), kode_mk: f.kode_mk || null, nama: f.nama, sks: Number(f.sks), pengajar: f.pengajar || null, urutan: Number(f.urutan) || 0 };
+    const payload = { semester_ke: Number(f.semester_ke), kode_mk: f.kode_mk || null, nama: f.nama, sks: Number(f.sks), pengajar: normalisasiPengampu(f.pengajar) || null, urutan: Number(f.urutan) || 0 };
     const { error } = f.id ? await supabase.from("mata_kuliah_master").update(payload).eq("id", f.id) : await supabase.from("mata_kuliah_master").insert(payload);
     if (error) alert(error.message); else { setForm(null); masterT.reload(); }
   }
@@ -2224,7 +2224,7 @@ function AmbilMatkulModal({ santri, semuaSantri, akRows, onCancel, onDone }) {
   const sasaran = target === "angkatan" ? rekanAngkatan : [santri];
   const ada = (nim, m) => akRows.some((r) => r.nim === nim && r.tahun_ajaran === ta && r.semester === jenis && ((m.kode_mk && r.kode_mk === m.kode_mk) || r.mata_kuliah === m.nama));
   const baru = [];
-  sasaran.forEach((x) => daftar.filter((m) => aktifIds.includes(m.id)).forEach((m) => { if (!ada(x.nim, m)) baru.push({ nim: x.nim, tahun_ajaran: ta, semester: jenis, kode_mk: m.kode_mk || "", mata_kuliah: m.nama, sks: Number(m.sks), pengajar: m.pengajar || "", status: "aktif", mengulang: false }); }));
+  sasaran.forEach((x) => daftar.filter((m) => aktifIds.includes(m.id)).forEach((m) => { if (!ada(x.nim, m)) baru.push({ nim: x.nim, tahun_ajaran: ta, semester: jenis, kode_mk: m.kode_mk || "", mata_kuliah: m.nama, sks: Number(m.sks), pengajar: m.pengajar || "", status: "aktif" }); }));
   async function simpan() {
     setBusy(true);
     const { error } = await supabase.from("akademik").insert(baru);
@@ -2533,6 +2533,31 @@ function AmalanKustomManager() {
         {amalanT.rows.length === 0 && <div className="px-3 py-4 text-sm text-stone-400">Belum ada amalan tambahan.</div>}
       </div>
     </Card>
+  );
+}
+
+/* Pengampu bisa lebih dari satu (mis. musyrif dan musyrifah): disimpan dipisah " / " */
+function normalisasiPengampu(v) { return String(v || "").split("/").map((x) => x.trim()).filter(Boolean).join(" / "); }
+function PengampuInput({ value, onChange }) {
+  const profT = useTable("profiles");
+  const saran = [...new Set(profT.rows.filter((p) => ["musyrif", "musyrifah"].includes(p.role)).map((p) => p.nama).filter(Boolean))];
+  const arr = String(value || "").split("/").map((x) => x.replace(/^\s+/, ""));
+  const daftar = arr.length ? arr : [""];
+  const ubah = (i, v) => onChange(daftar.map((x, j) => (j === i ? v : x)).join(" / "));
+  const hapus = (i) => onChange(daftar.filter((_, j) => j !== i).join(" / "));
+  return (
+    <div>
+      <datalist id="saranPengampu">{saran.map((n) => <option key={n} value={n} />)}</datalist>
+      <div className="space-y-2">
+        {daftar.map((n, i) => (
+          <div key={i} className="flex gap-2 items-center">
+            <Input list="saranPengampu" value={n} onChange={(e) => ubah(i, e.target.value.replace(/\//g, ""))} placeholder={i === 0 ? "Nama pengampu (ustadz / musyrif)" : "Pengampu lain (mis. musyrifah)"} />
+            {daftar.length > 1 && <button type="button" onClick={() => hapus(i)} className="text-red-500 text-lg font-bold px-1" aria-label="Hapus pengampu">×</button>}
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={() => onChange(daftar.join(" / ") + " / ")} className="mt-2 text-xs font-bold text-[#145048] underline">+ Tambah pengampu</button>
+    </div>
   );
 }
 
@@ -4837,6 +4862,7 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Pengampu mata kuliah lebih dari satu", isi: "Pengampu di Daftar Mata Kuliah dan form KRS bisa diisi lebih dari satu orang (misalnya musyrif dan musyrifah) dengan tombol + Tambah pengampu. Nama musyrif/musyrifah muncul sebagai saran saat mengetik. Butuh file SQL 22-kolom-akademik.sql untuk melengkapi kolom tabel akademik.", lokasi: "Akademik → Daftar Mata Kuliah dan KRS" },
   { tgl: "Okt 2026", judul: "Tahajud + Witir dan amalan sunnah tambahan", isi: "Ibadah Tahajud kini bernama Tahajud + Witir. Administrator dapat menambah amalan sunnah baru (misalnya Puasa Senin-Kamis) di Pengaturan → Amalan Sunnah Tambahan; amalan aktif otomatis muncul di Catat Semua Ibadah dan masuk rekap. Butuh file SQL 21-amalan-tambahan.sql.", lokasi: "Pengaturan → Amalan Sunnah Tambahan" },
   { tgl: "Okt 2026", judul: "Catat Semua Ibadah sekaligus", isi: "Di halaman Ibadah per mahasantri, tombol Catat Semua Ibadah membuka satu form berisi shalat lima waktu, rawatib, dhuha, tahajud, Al-Ma'tsurat, Al-Kahfi, dan puasa sunnah. Pilih capaian tiap ibadah, lalu Simpan Semua sekali jalan. Ada tombol Semua dikerjakan, dan tanggal yang sudah pernah dicatat tampil kembali untuk diperbarui.", lokasi: "Ibadah → pilih mahasantri → Catat Semua Ibadah" },
   { tgl: "Okt 2026", judul: "Presensi Shalat Berjamaah lima waktu", isi: "Tab baru di menu Ibadah untuk mencatat shalat berjamaah Subuh, Dzuhur, Ashar, Maghrib, dan Isya bagi banyak mahasantri sekaligus. Semua otomatis berjamaah, musyrif hanya mengubah yang berbeda (sendiri, udzur, tidak shalat), lalu Simpan. Ada rekap harian lima waktu dan hasilnya ikut dihitung di rekap Ibadah. Butuh file SQL 20-presensi-shalat.sql.", lokasi: "Ibadah → Presensi Shalat Berjamaah" },
