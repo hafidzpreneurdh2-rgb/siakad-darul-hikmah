@@ -41,7 +41,7 @@ const GRAFIK_DEFAULT = PALET_GRAFIK[0].warna;
 function warnaGrafik(brand) { return { ...GRAFIK_DEFAULT, ...((brand && brand.warna_grafik) || {}) }; }
 const JENIS_SETORAN_QURAN_COLOR = { Ziyadah: "#2A9D8F", Murajaah: "#E9C46A", Tilawah: "#457B9D", Tahsin: "#B5838D", Talaqqi: "#6D597A", Syahadah: "#C9A227", "Tasmi'": "#2F6F8F" };
 const CAPAIAN_OPTIONS = {
-  "Sholat Berjamaah": ["Berjamaah", "Sendiri", "Tidak Sholat"],
+  "Sholat Berjamaah": ["Berjamaah", "Sendiri", "Udzur", "Tidak Sholat"],
   "Sholat Rawatib": ["Lengkap", "Sebagian", "Tidak Dikerjakan"],
   "Sholat Dhuha": ["Dikerjakan", "Tidak Dikerjakan"],
   "Sholat Tahajud": ["Dikerjakan", "Tidak Dikerjakan"],
@@ -51,7 +51,7 @@ const CAPAIAN_OPTIONS = {
   "Qiyamullail": ["Dikerjakan", "Tidak Dikerjakan"],
 };
 const CAPAIAN_NEGATIF = ["Tidak Sholat", "Tidak Puasa", "Tidak Lengkap", "Tidak Dikerjakan"];
-const CAPAIAN_NETRAL = ["Sendiri", "Sebagian"];
+const CAPAIAN_NETRAL = ["Sendiri", "Sebagian", "Udzur"];
 function capaianTone(capaian) {
   if (CAPAIAN_NEGATIF.includes(capaian)) return "red";
   if (CAPAIAN_NETRAL.includes(capaian)) return "gold";
@@ -2266,6 +2266,219 @@ function AmbilMatkulModal({ santri, semuaSantri, akRows, onCancel, onDone }) {
 }
 
 /* ---------------------------------------------------------------------- */
+/* Presensi shalat berjamaah lima waktu — input cepat untuk banyak mahasantri   */
+/* ---------------------------------------------------------------------- */
+const WAKTU_SHOLAT = ["Subuh", "Dzuhur", "Ashar", "Maghrib", "Isya"];
+const STATUS_PRESENSI = [
+  { k: "Berjamaah", label: "Berjamaah", on: "bg-[#2A9D8F] text-white border-[#2A9D8F]" },
+  { k: "Sendiri", label: "Sendiri", on: "bg-[#E9C46A] text-[#5A4410] border-[#E9C46A]" },
+  { k: "Udzur", label: "Udzur", on: "bg-[#8FB5D6] text-[#1F3F57] border-[#8FB5D6]" },
+  { k: "Tidak Sholat", label: "Tidak", on: "bg-[#E76F51] text-white border-[#E76F51]" },
+];
+const SIMBOL_PRESENSI = { Berjamaah: ["✓", "text-[#2A9D8F]"], Sendiri: ["S", "text-[#B8860B]"], Udzur: ["U", "text-[#3F7CA8]"], "Tidak Sholat": ["✗", "text-[#E76F51]"] };
+function tanggalLokal() { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+function waktuSekarang() { const h = new Date().getHours(); return h < 10 ? "Subuh" : h < 15 ? "Dzuhur" : h < 17 ? "Ashar" : h < 19 ? "Maghrib" : "Isya"; }
+
+function PresensiSholatPanel({ santri, logRows, reload, profile }) {
+  const [tanggal, setTanggal] = useState(tanggalLokal());
+  const [waktu, setWaktu] = useState(waktuSekarang());
+  const [mode, setMode] = useState("input");
+  const [kelas, setKelas] = useState("Semua");
+  const [q, setQ] = useState("");
+  const [pilih, setPilih] = useState({});
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { setPilih({}); }, [tanggal, waktu]);
+  const aktif = santri.filter((s) => s.status === "Aktif" || !s.status);
+  const daftarKelas = [...new Set(aktif.map((s) => String(s.kelas || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
+  const kata = q.trim().toLowerCase();
+  const tampil = aktif
+    .filter((s) => (kelas === "Semua" || String(s.kelas || "").trim() === kelas) && (!kata || String(s.nama || "").toLowerCase().includes(kata) || String(s.nim || "").toLowerCase().includes(kata)))
+    .sort((a, b) => String(a.nama || "").localeCompare(String(b.nama || ""), "id"));
+  const hariIni = logRows.filter((l) => l.jenis === "Sholat Berjamaah" && l.waktu && l.tanggal === tanggal);
+  const tersimpan = (nim, w) => { const r = hariIni.find((l) => l.nim === nim && l.waktu === w); return r ? r.capaian : null; };
+  const statusDari = (nim) => pilih[nim] || tersimpan(nim, waktu) || "Berjamaah";
+  const ringkas = {}; tampil.forEach((s) => { const st = statusDari(s.nim); ringkas[st] = (ringkas[st] || 0) + 1; });
+  const sudahSimpan = tampil.filter((s) => tersimpan(s.nim, waktu)).length;
+
+  async function simpan() {
+    if (tampil.length === 0) return;
+    setBusy(true);
+    const nims = tampil.map((s) => s.nim);
+    const { error: e1 } = await supabase.from("ibadah_log").delete().eq("jenis", "Sholat Berjamaah").eq("tanggal", tanggal).eq("waktu", waktu).in("nim", nims);
+    if (e1) { setBusy(false); alert(e1.message); return; }
+    const baris = tampil.map((s) => ({ nim: s.nim, tanggal, jenis: "Sholat Berjamaah", waktu, capaian: statusDari(s.nim), musyrif: profile.nama }));
+    for (let i = 0; i < baris.length; i += 200) {
+      const { error } = await supabase.from("ibadah_log").insert(baris.slice(i, i + 200));
+      if (error) { setBusy(false); alert(error.message); return; }
+    }
+    setBusy(false); setPilih({}); reload();
+    alert(`Presensi ${waktu} tanggal ${tanggal} tersimpan untuk ${baris.length} mahasantri.`);
+  }
+
+  return (
+    <div>
+      <Card className="mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Field label="Tanggal"><Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} /></Field>
+          <Field label="Angkatan"><Select value={kelas} onChange={(e) => setKelas(e.target.value)}><option value="Semua">Semua angkatan</option>{daftarKelas.map((k) => <option key={k} value={k}>{/^\d+$/.test(k) ? "Angkatan " + k : k}</option>)}</Select></Field>
+          <Field label="Cari nama / NIM"><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari…" /></Field>
+        </div>
+        <div className="flex gap-2 flex-wrap mt-1">
+          {WAKTU_SHOLAT.map((w) => {
+            const n = aktif.filter((s) => tersimpan(s.nim, w)).length;
+            return (
+              <button key={w} type="button" onClick={() => setWaktu(w)} className={`px-4 py-2 rounded-xl text-sm font-bold border ${waktu === w ? "bg-[#0B3B36] text-white border-[#0B3B36]" : "bg-white text-[#0B3B36] border-stone-200 hover:border-[#0B3B36]"}`}>
+                {w}<span className={`ml-2 text-xs font-semibold ${waktu === w ? "text-white/75" : n ? "text-[#2A9D8F]" : "text-stone-300"}`}>{n ? `✓ ${n}/${aktif.length}` : "belum"}</span>
+              </button>
+            );
+          })}
+        </div>
+      </Card>
+
+      <div className="flex gap-1 mb-4 border-b border-stone-200">
+        {[["input", `Catat ${waktu}`], ["rekap", "Rekap Hari Ini (5 waktu)"]].map(([k, l]) => (
+          <button key={k} type="button" onClick={() => setMode(k)} className={`px-4 py-2 text-sm font-bold -mb-px border-b-2 ${mode === k ? "border-[#0B3B36] text-[#0B3B36]" : "border-transparent text-stone-400 hover:text-stone-600"}`}>{l}</button>
+        ))}
+      </div>
+
+      {mode === "input" ? (
+        <>
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <div className="text-xs text-stone-500">
+              {tampil.length} mahasantri · <b className="text-[#2A9D8F]">{ringkas.Berjamaah || 0} berjamaah</b> · {ringkas.Sendiri || 0} sendiri · {ringkas.Udzur || 0} udzur · <b className="text-[#E76F51]">{ringkas["Tidak Sholat"] || 0} tidak</b>
+              {sudahSimpan > 0 && <span className="ml-2 text-[#8A6A2A]">(sudah pernah disimpan untuk {sudahSimpan}, simpan lagi akan memperbarui)</span>}
+            </div>
+            <div className="flex gap-2">
+              <Btn tone="ghost" onClick={() => setPilih({})}>Setel ulang</Btn>
+              <Btn onClick={simpan} disabled={busy || tampil.length === 0}>{busy ? "Menyimpan…" : `Simpan ${waktu}`}</Btn>
+            </div>
+          </div>
+          <p className="text-xs text-stone-400 mb-3">Semua mahasantri otomatis ditandai <b>Berjamaah</b>. Cukup ubah yang berbeda, lalu klik Simpan.</p>
+          <Card className="p-0 overflow-hidden">
+            <div className="divide-y divide-stone-100">
+              {tampil.map((s) => {
+                const st = statusDari(s.nim);
+                return (
+                  <div key={s.nim} className="flex items-center justify-between gap-3 px-4 py-2.5 flex-wrap">
+                    <div className="flex items-center gap-3 min-w-0"><Avatar name={s.nama} size={30} /><div className="min-w-0"><div className="font-semibold text-[#0B3B36] truncate">{s.nama}</div><div className="text-[0.6875rem] text-stone-400">{s.nim}{s.kelas ? " · " + s.kelas : ""}</div></div></div>
+                    <div className="flex gap-1.5">
+                      {STATUS_PRESENSI.map((o) => (
+                        <button key={o.k} type="button" onClick={() => setPilih({ ...pilih, [s.nim]: o.k })} className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${st === o.k ? o.on : "bg-white text-stone-400 border-stone-200 hover:border-stone-300"}`}>{o.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              {tampil.length === 0 && <Empty text="Tidak ada mahasantri yang cocok." />}
+            </div>
+          </Card>
+        </>
+      ) : (
+        <Card className="p-0 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-[0.6875rem] uppercase tracking-wide text-stone-400 bg-stone-50"><th className="p-3.5">Mahasantri</th>{WAKTU_SHOLAT.map((w) => <th key={w} className="p-3.5 text-center">{w}</th>)}<th className="p-3.5 text-center">Berjamaah</th></tr></thead>
+              <tbody>
+                {tampil.map((s) => {
+                  const nilai = WAKTU_SHOLAT.map((w) => tersimpan(s.nim, w));
+                  const jml = nilai.filter((x) => x === "Berjamaah").length;
+                  return (
+                    <tr key={s.nim} className="border-t border-stone-100">
+                      <td className="p-3.5"><div className="font-semibold text-[#0B3B36]">{s.nama}</div><div className="text-[0.6875rem] text-stone-400">{s.nim}</div></td>
+                      {nilai.map((x, i) => <td key={i} className={`p-3.5 text-center font-bold ${x ? SIMBOL_PRESENSI[x]?.[1] || "text-stone-500" : "text-stone-300"}`}>{x ? SIMBOL_PRESENSI[x]?.[0] || "•" : "·"}</td>)}
+                      <td className="p-3.5 text-center font-bold text-[#0B3B36]">{jml}/5</td>
+                    </tr>
+                  );
+                })}
+                {tampil.length === 0 && <tr><td colSpan={7}><Empty text="Tidak ada mahasantri yang cocok." /></td></tr>}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-4 py-2 text-[0.6875rem] text-stone-400 border-t border-stone-100">✓ berjamaah · S sendiri · U udzur · ✗ tidak shalat · · belum dicatat</div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Catat ibadah harian satu mahasantri: semua ibadah sekaligus dalam satu form  */
+/* ---------------------------------------------------------------------- */
+const JENIS_HARIAN_LAIN = ["Sholat Rawatib", "Sholat Dhuha", "Sholat Tahajud", "Al-Ma'tsurat", "Membaca Al-Kahfi", "Puasa Sunnah"];
+const BARIS_HARIAN = [
+  ...WAKTU_SHOLAT.map((w) => ({ key: "Sholat Berjamaah|" + w, jenis: "Sholat Berjamaah", waktu: w, label: "Shalat " + w, grup: "Shalat Lima Waktu" })),
+  ...JENIS_HARIAN_LAIN.map((j) => ({ key: j, jenis: j, waktu: null, label: j, grup: "Ibadah Sunnah & Amalan" })),
+];
+const WARNA_PILIHAN = { green: "bg-[#2A9D8F] text-white border-[#2A9D8F]", gold: "bg-[#E9C46A] text-[#5A4410] border-[#E9C46A]", red: "bg-[#E76F51] text-white border-[#E76F51]" };
+
+function IbadahHarianModal({ santri, logRows, profile, onCancel, onDone }) {
+  const [tanggal, setTanggal] = useState(tanggalLokal());
+  const [st, setSt] = useState({});
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    const ada = {};
+    logRows.filter((l) => l.nim === santri.nim && l.tanggal === tanggal).forEach((l) => {
+      const b = BARIS_HARIAN.find((x) => x.jenis === l.jenis && (x.waktu ? x.waktu === l.waktu : !l.waktu));
+      if (b) ada[b.key] = l.capaian;
+    });
+    setSt(ada);
+  }, [tanggal, santri.nim, logRows.length]);
+  const opsi = (b) => CAPAIAN_OPTIONS[b.jenis] || [];
+  const terisi = BARIS_HARIAN.filter((b) => st[b.key]);
+  async function simpan() {
+    if (terisi.length === 0) return;
+    setBusy(true);
+    const shalat = terisi.filter((b) => b.waktu);
+    if (shalat.length) {
+      const { error } = await supabase.from("ibadah_log").delete().eq("nim", santri.nim).eq("tanggal", tanggal).eq("jenis", "Sholat Berjamaah").in("waktu", shalat.map((b) => b.waktu));
+      if (error) { setBusy(false); alert(error.message + "\n\nJika pesan menyebut kolom waktu, jalankan file 20-presensi-shalat.sql di Supabase."); return; }
+    }
+    for (const b of terisi.filter((x) => !x.waktu)) {
+      const { error } = await supabase.from("ibadah_log").delete().eq("nim", santri.nim).eq("tanggal", tanggal).eq("jenis", b.jenis);
+      if (error) { setBusy(false); alert(error.message); return; }
+    }
+    const baris = terisi.map((b) => ({ nim: santri.nim, tanggal, jenis: b.jenis, capaian: st[b.key], musyrif: profile.nama, ...(b.waktu ? { waktu: b.waktu } : {}) }));
+    const { error } = await supabase.from("ibadah_log").insert(baris);
+    setBusy(false);
+    if (error) { alert(error.message + "\n\nJika pesan menyebut kolom waktu, jalankan file 20-presensi-shalat.sql di Supabase."); return; }
+    onDone(baris.length);
+  }
+  const semuaBaik = () => { const n = {}; BARIS_HARIAN.forEach((b) => { n[b.key] = opsi(b)[0]; }); setSt(n); };
+  return (
+    <Modal title={`Catat Ibadah Harian — ${santri.nama}`} onClose={onCancel}>
+      <div className="flex items-end gap-3 flex-wrap mb-3">
+        <div className="flex-1 min-w-[10rem]"><Field label="Tanggal"><Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} /></Field></div>
+        <div className="flex gap-2 mb-3"><Btn tone="ghost" onClick={semuaBaik}>Semua dikerjakan</Btn><Btn tone="ghost" onClick={() => setSt({})}>Kosongkan</Btn></div>
+      </div>
+      <p className="text-xs text-stone-400 mb-2">Pilih satu capaian per ibadah. Yang dibiarkan kosong tidak dicatat. Jika tanggal ini sudah pernah dicatat, pilihan lama tampil dan akan diperbarui.</p>
+      <div className="max-h-[55vh] overflow-y-auto pr-1">
+        {["Shalat Lima Waktu", "Ibadah Sunnah & Amalan"].map((grup) => (
+          <div key={grup} className="mb-3">
+            <div className="text-[0.6875rem] uppercase tracking-wider text-stone-400 font-bold mb-1.5">{grup}</div>
+            <div className="divide-y divide-stone-100 border border-stone-200 rounded-xl">
+              {BARIS_HARIAN.filter((b) => b.grup === grup).map((b) => (
+                <div key={b.key} className="flex items-center justify-between gap-2 px-3 py-2 flex-wrap">
+                  <div className="text-sm font-semibold text-[#0B3B36] min-w-[7rem]">{b.label}</div>
+                  <div className="flex gap-1 flex-wrap">
+                    {opsi(b).map((o) => (
+                      <button key={o} type="button" onClick={() => setSt({ ...st, [b.key]: st[b.key] === o ? "" : o })} className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${st[b.key] === o ? WARNA_PILIHAN[capaianTone(o)] || WARNA_PILIHAN.green : "bg-white text-stone-400 border-stone-200 hover:border-stone-300"}`}>{o}</button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between gap-2 mt-3">
+        <div className="text-xs text-stone-500">{terisi.length} dari {BARIS_HARIAN.length} ibadah diisi</div>
+        <div className="flex gap-2"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn onClick={simpan} disabled={busy || terisi.length === 0}>{busy ? "Menyimpan…" : "Simpan Semua"}</Btn></div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
 /* Pengumuman                                                               */
 /* ---------------------------------------------------------------------- */
 function PengumumanPage({ profile }) {
@@ -3356,6 +3569,8 @@ function IbadahPage({ profile }) {
 
   const [q, setQ] = useState("");
   const [filterCapaian, setFilterCapaian] = useState("SEMUA");
+  const [tabIb, setTabIb] = useState("rekap");
+  const [showHarian, setShowHarian] = useState(false);
 
   if (isViewer && !nim) {
     const withStatus = pickable.map((s) => {
@@ -3370,6 +3585,13 @@ function IbadahPage({ profile }) {
     return (
       <div>
         <PageHeader title="Ibadah" sub="Semua santri — klik salah satu untuk lihat detail." />
+        <div className="flex gap-1 mb-5 border-b border-stone-200">
+          {[["rekap", "Rekap per Mahasantri"], ["presensi", "Presensi Shalat Berjamaah"]].map(([k, l]) => (
+            <button key={k} type="button" onClick={() => setTabIb(k)} className={`px-4 py-2 text-sm font-bold -mb-px border-b-2 ${tabIb === k ? "border-[#0B3B36] text-[#0B3B36]" : "border-transparent text-stone-400 hover:text-stone-600"}`}>{l}</button>
+          ))}
+        </div>
+        {tabIb === "presensi" ? <PresensiSholatPanel santri={pickable} logRows={logT.rows} reload={logT.reload} profile={profile} /> : (
+        <>
         <div className="grid grid-cols-2 gap-4 mb-5 max-w-xl">
           <StatCard label="Total Santri Dipantau" value={pickable.length} />
           <StatCard label="Perlu Perhatian" value={perluPerhatian} />
@@ -3397,6 +3619,8 @@ function IbadahPage({ profile }) {
           </table>
         </Card>
         )}</PerAngkatan>
+        </>
+        )}
       </div>
     );
   }
@@ -3405,7 +3629,7 @@ function IbadahPage({ profile }) {
     <div>
       {isViewer && <BackBar onBack={() => setNim("")} />}
       <PageHeader title={isViewer ? (santri?.nama || "Ibadah") : "Ibadah"} sub="Catatan pembinaan ibadah harian santri."
-        actions={<div className="flex gap-2">{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Catat Ibadah</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
+        actions={<div className="flex gap-2">{editable && isViewer && <Btn tone="gold" onClick={() => setShowHarian(true)}>Catat Semua Ibadah</Btn>}{editable && isViewer && <Btn onClick={() => setShowForm(true)}>+ Catat Ibadah</Btn>}{!isViewer && <Btn tone="gold" onClick={() => window.print()}>🖨 Unduh PDF</Btn>}</div>} />
       {(() => {
         const bulanIniLogs = logs.filter((l) => l.tanggal.slice(0, 7) === new Date().toISOString().slice(0, 7));
         return (
@@ -3425,7 +3649,7 @@ function IbadahPage({ profile }) {
           <tbody>
             {logs.map((l) => (
               <tr key={l.id} className="border-t border-stone-100">
-                <td className="p-3">{l.tanggal}</td><td className="p-3">{l.jenis}</td>
+                <td className="p-3">{l.tanggal}</td><td className="p-3">{l.jenis}{l.waktu ? ` · ${l.waktu}` : ""}</td>
                 <td className="p-3"><Badge tone={capaianTone(l.capaian)}>{l.capaian}</Badge></td>
                 <td className="p-3 text-stone-500">{l.catatan}</td>
                 {editable && isViewer && <td className="p-3 text-right whitespace-nowrap">
@@ -3450,6 +3674,7 @@ function IbadahPage({ profile }) {
         )}
       </Card>
       {showForm && <IbadahForm onCancel={() => setShowForm(false)} onSubmit={saveLog} />}
+      {showHarian && santri && <IbadahHarianModal santri={santri} logRows={logT.rows} profile={profile} onCancel={() => setShowHarian(false)} onDone={(n) => { setShowHarian(false); logT.reload(); alert(n + " catatan ibadah tersimpan."); }} />}
       {editingLog && <IbadahForm initial={editingLog} onCancel={() => setEditingLog(null)} onSubmit={saveLog} />}
     </div>
   );
@@ -4552,6 +4777,8 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Catat Semua Ibadah sekaligus", isi: "Di halaman Ibadah per mahasantri, tombol Catat Semua Ibadah membuka satu form berisi shalat lima waktu, rawatib, dhuha, tahajud, Al-Ma'tsurat, Al-Kahfi, dan puasa sunnah. Pilih capaian tiap ibadah, lalu Simpan Semua sekali jalan. Ada tombol Semua dikerjakan, dan tanggal yang sudah pernah dicatat tampil kembali untuk diperbarui.", lokasi: "Ibadah → pilih mahasantri → Catat Semua Ibadah" },
+  { tgl: "Okt 2026", judul: "Presensi Shalat Berjamaah lima waktu", isi: "Tab baru di menu Ibadah untuk mencatat shalat berjamaah Subuh, Dzuhur, Ashar, Maghrib, dan Isya bagi banyak mahasantri sekaligus. Semua otomatis berjamaah, musyrif hanya mengubah yang berbeda (sendiri, udzur, tidak shalat), lalu Simpan. Ada rekap harian lima waktu dan hasilnya ikut dihitung di rekap Ibadah. Butuh file SQL 20-presensi-shalat.sql.", lokasi: "Ibadah → Presensi Shalat Berjamaah" },
   { tgl: "Okt 2026", judul: "Daftar Mata Kuliah per semester dan pilihan sekali ambil di KRS", isi: "Menu baru Akademik → Daftar Mata Kuliah untuk mengisi kode MK, nama, SKS, dan pengampu per semester (ada Impor Cepat dari Excel). Di KRS, tombol Ambil dari Daftar menambahkan seluruh mata kuliah satu semester sekaligus, untuk satu mahasantri atau seluruh angkatan, dan melewati yang sudah ada. Butuh file SQL 19-master-mata-kuliah.sql.", lokasi: "Akademik → Daftar Mata Kuliah dan KRS & KHS" },
   { tgl: "Okt 2026", judul: "Daftar mahasantri per angkatan", isi: "Halaman Data Mahasantri, Akademik, Al-Qur'an, Ibadah, Iuran SPP, dan Kartu kini menampilkan pilihan angkatan terlebih dahulu. Nama dan NIM muncul setelah angkatan diklik, atau langsung saat mencari. Tersedia juga tombol Tampilkan semua.", lokasi: "Halaman daftar mahasantri" },
   { tgl: "Okt 2026", judul: "Perbaikan: data di atas 1.000 baris", isi: "Semua halaman kini memuat seluruh data tabel secara bertahap. Sebelumnya hanya 1.000 baris pertama yang terbaca, sehingga angka Dashboard dan Rekap bisa kurang setelah data setoran dan ibadah menumpuk.", lokasi: "Seluruh aplikasi" },
