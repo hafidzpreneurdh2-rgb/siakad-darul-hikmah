@@ -28,7 +28,7 @@ function loadUiSize() {
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 const MATA_KULIAH = ["Tahsin & Tajwid","Tahfidz Al-Qur'an","Bahasa Arab","Fiqih Ibadah","Aqidah Akhlak","Sirah Nabawiyah","Kewirausahaan Dasar","Manajemen Bisnis Syariah","Akuntansi Sederhana","Public Speaking & Dakwah","Bahasa Inggris","Digital Marketing"];
 const BIDANG_BISNIS = ["Bakery", "Fashion", "Kuliner", "Kerajinan", "Digital/Online", "Lainnya"];
-const JENIS_IBADAH = ["Sholat Berjamaah", "Sholat Rawatib", "Sholat Dhuha", "Sholat Tahajud", "Al-Ma'tsurat", "Membaca Al-Kahfi", "Puasa Sunnah"];
+const JENIS_IBADAH = ["Sholat Berjamaah", "Sholat Rawatib", "Sholat Dhuha", "Tahajud + Witir", "Al-Ma'tsurat", "Membaca Al-Kahfi", "Puasa Sunnah"];
 const JENIS_SETORAN_QURAN = ["Ziyadah", "Murajaah", "Tilawah", "Tahsin", "Talaqqi", "Syahadah", "Tasmi'"];
 const PALET_GRAFIK = [
   { nama: "Zamrud Lembut", warna: { hafalan: "#2A9D8F", ibadah_baik: "#2A9D8F", ibadah_sebagian: "#E9C46A", ibadah_kurang: "#E76F51", spp_lunas: "#2A9D8F", spp_belum: "#E76F51", Ziyadah: "#2A9D8F", Murajaah: "#E9C46A", Tilawah: "#457B9D", Tahsin: "#B5838D", Talaqqi: "#6D597A", Syahadah: "#C9A227", "Tasmi'": "#2F6F8F" } },
@@ -44,7 +44,7 @@ const CAPAIAN_OPTIONS = {
   "Sholat Berjamaah": ["Berjamaah", "Sendiri", "Udzur", "Tidak Sholat"],
   "Sholat Rawatib": ["Lengkap", "Sebagian", "Tidak Dikerjakan"],
   "Sholat Dhuha": ["Dikerjakan", "Tidak Dikerjakan"],
-  "Sholat Tahajud": ["Dikerjakan", "Tidak Dikerjakan"],
+  "Tahajud + Witir": ["Dikerjakan", "Tidak Dikerjakan"],
   "Al-Ma'tsurat": ["Lengkap", "Tidak Lengkap"],
   "Membaca Al-Kahfi": ["Dikerjakan", "Tidak Dikerjakan"],
   "Puasa Sunnah": ["Puasa Penuh", "Tidak Puasa"],
@@ -2404,27 +2404,29 @@ function PresensiSholatPanel({ santri, logRows, reload, profile }) {
 /* ---------------------------------------------------------------------- */
 /* Catat ibadah harian satu mahasantri: semua ibadah sekaligus dalam satu form  */
 /* ---------------------------------------------------------------------- */
-const JENIS_HARIAN_LAIN = ["Sholat Rawatib", "Sholat Dhuha", "Sholat Tahajud", "Al-Ma'tsurat", "Membaca Al-Kahfi", "Puasa Sunnah"];
+const JENIS_HARIAN_LAIN = ["Sholat Rawatib", "Sholat Dhuha", "Tahajud + Witir", "Al-Ma'tsurat", "Membaca Al-Kahfi", "Puasa Sunnah"];
+const JENIS_LAMA = { "Tahajud + Witir": "Sholat Tahajud" };
 const BARIS_HARIAN = [
   ...WAKTU_SHOLAT.map((w) => ({ key: "Sholat Berjamaah|" + w, jenis: "Sholat Berjamaah", waktu: w, label: "Shalat " + w, grup: "Shalat Lima Waktu" })),
   ...JENIS_HARIAN_LAIN.map((j) => ({ key: j, jenis: j, waktu: null, label: j, grup: "Ibadah Sunnah & Amalan" })),
 ];
 const WARNA_PILIHAN = { green: "bg-[#2A9D8F] text-white border-[#2A9D8F]", gold: "bg-[#E9C46A] text-[#5A4410] border-[#E9C46A]", red: "bg-[#E76F51] text-white border-[#E76F51]" };
 
-function IbadahHarianModal({ santri, logRows, profile, onCancel, onDone }) {
+function IbadahHarianModal({ santri, logRows, profile, kustom = [], onCancel, onDone }) {
+  const BARIS = [...BARIS_HARIAN, ...kustom.filter((k) => k.aktif).sort((a, b) => (a.urutan || 0) - (b.urutan || 0)).map((k) => ({ key: "kustom|" + k.nama, jenis: k.nama, waktu: null, label: k.nama, grup: "Ibadah Sunnah & Amalan", opsiKustom: k.opsi }))];
   const [tanggal, setTanggal] = useState(tanggalLokal());
   const [st, setSt] = useState({});
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     const ada = {};
     logRows.filter((l) => l.nim === santri.nim && l.tanggal === tanggal).forEach((l) => {
-      const b = BARIS_HARIAN.find((x) => x.jenis === l.jenis && (x.waktu ? x.waktu === l.waktu : !l.waktu));
+      const b = BARIS.find((x) => (x.jenis === l.jenis || JENIS_LAMA[x.jenis] === l.jenis) && (x.waktu ? x.waktu === l.waktu : !l.waktu));
       if (b) ada[b.key] = l.capaian;
     });
     setSt(ada);
   }, [tanggal, santri.nim, logRows.length]);
-  const opsi = (b) => CAPAIAN_OPTIONS[b.jenis] || [];
-  const terisi = BARIS_HARIAN.filter((b) => st[b.key]);
+  const opsi = (b) => b.opsiKustom || CAPAIAN_OPTIONS[b.jenis] || [];
+  const terisi = BARIS.filter((b) => st[b.key]);
   async function simpan() {
     if (terisi.length === 0) return;
     setBusy(true);
@@ -2434,7 +2436,7 @@ function IbadahHarianModal({ santri, logRows, profile, onCancel, onDone }) {
       if (error) { setBusy(false); alert(error.message + "\n\nJika pesan menyebut kolom waktu, jalankan file 20-presensi-shalat.sql di Supabase."); return; }
     }
     for (const b of terisi.filter((x) => !x.waktu)) {
-      const { error } = await supabase.from("ibadah_log").delete().eq("nim", santri.nim).eq("tanggal", tanggal).eq("jenis", b.jenis);
+      const { error } = await supabase.from("ibadah_log").delete().eq("nim", santri.nim).eq("tanggal", tanggal).in("jenis", [b.jenis, JENIS_LAMA[b.jenis]].filter(Boolean));
       if (error) { setBusy(false); alert(error.message); return; }
     }
     const baris = terisi.map((b) => ({ nim: santri.nim, tanggal, jenis: b.jenis, capaian: st[b.key], musyrif: profile.nama, ...(b.waktu ? { waktu: b.waktu } : {}) }));
@@ -2443,7 +2445,7 @@ function IbadahHarianModal({ santri, logRows, profile, onCancel, onDone }) {
     if (error) { alert(error.message + "\n\nJika pesan menyebut kolom waktu, jalankan file 20-presensi-shalat.sql di Supabase."); return; }
     onDone(baris.length);
   }
-  const semuaBaik = () => { const n = {}; BARIS_HARIAN.forEach((b) => { n[b.key] = opsi(b)[0]; }); setSt(n); };
+  const semuaBaik = () => { const n = {}; BARIS.forEach((b) => { n[b.key] = opsi(b)[0]; }); setSt(n); };
   return (
     <Modal title={`Catat Ibadah Harian — ${santri.nama}`} onClose={onCancel}>
       <div className="flex items-end gap-3 flex-wrap mb-3">
@@ -2456,7 +2458,7 @@ function IbadahHarianModal({ santri, logRows, profile, onCancel, onDone }) {
           <div key={grup} className="mb-3">
             <div className="text-[0.6875rem] uppercase tracking-wider text-stone-400 font-bold mb-1.5">{grup}</div>
             <div className="divide-y divide-stone-100 border border-stone-200 rounded-xl">
-              {BARIS_HARIAN.filter((b) => b.grup === grup).map((b) => (
+              {BARIS.filter((b) => b.grup === grup).map((b) => (
                 <div key={b.key} className="flex items-center justify-between gap-2 px-3 py-2 flex-wrap">
                   <div className="text-sm font-semibold text-[#0B3B36] min-w-[7rem]">{b.label}</div>
                   <div className="flex gap-1 flex-wrap">
@@ -2471,10 +2473,66 @@ function IbadahHarianModal({ santri, logRows, profile, onCancel, onDone }) {
         ))}
       </div>
       <div className="flex items-center justify-between gap-2 mt-3">
-        <div className="text-xs text-stone-500">{terisi.length} dari {BARIS_HARIAN.length} ibadah diisi</div>
+        <div className="text-xs text-stone-500">{terisi.length} dari {BARIS.length} ibadah diisi</div>
         <div className="flex gap-2"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn onClick={simpan} disabled={busy || terisi.length === 0}>{busy ? "Menyimpan…" : "Simpan Semua"}</Btn></div>
       </div>
     </Modal>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Daftar amalan sunnah tambahan — dikelola administrator tanpa deploy         */
+/* ---------------------------------------------------------------------- */
+const TEMPLATE_AMALAN = {
+  ya: ["Dikerjakan", "Tidak Dikerjakan"],
+  lengkap: ["Lengkap", "Sebagian", "Tidak Dikerjakan"],
+};
+function AmalanKustomManager() {
+  const amalanT = useTable("jenis_ibadah_kustom");
+  const [nama, setNama] = useState("");
+  const [tpl, setTpl] = useState("ya");
+  const [busy, setBusy] = useState(false);
+  async function tambah(e) {
+    e.preventDefault();
+    const n = nama.trim();
+    if (!n) return;
+    if ([...JENIS_IBADAH, ...amalanT.rows.map((r) => r.nama)].some((x) => x.toLowerCase() === n.toLowerCase())) { alert("Nama amalan itu sudah ada."); return; }
+    setBusy(true);
+    const { error } = await supabase.from("jenis_ibadah_kustom").insert({ nama: n, opsi: TEMPLATE_AMALAN[tpl], urutan: amalanT.rows.length + 1, aktif: true });
+    setBusy(false);
+    if (error) alert(error.message + "\n\nJika tabel belum ada, jalankan file 21-amalan-tambahan.sql di Supabase."); else { setNama(""); amalanT.reload(); }
+  }
+  async function ubah(id, data) {
+    const { error } = await supabase.from("jenis_ibadah_kustom").update(data).eq("id", id);
+    if (error) alert(error.message); else amalanT.reload();
+  }
+  async function hapus(r) {
+    if (!confirm(`Hapus amalan "${r.nama}" dari daftar? Catatan lama tetap tersimpan di riwayat mahasantri. Untuk sekadar menyembunyikan, pakai tombol Sembunyikan.`)) return;
+    const { error } = await supabase.from("jenis_ibadah_kustom").delete().eq("id", r.id);
+    if (error) alert(error.message); else amalanT.reload();
+  }
+  return (
+    <Card className="mb-5">
+      <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold">Amalan Sunnah Tambahan</h3>
+      <p className="text-xs text-stone-500 mt-1 mb-3">Tambahkan amalan baru (misalnya Puasa Senin-Kamis, Shalat Rawatib Maghrib, Sedekah Subuh). Amalan aktif otomatis muncul di form <b>Catat Semua Ibadah</b> dan masuk rekap Ibadah.</p>
+      <form onSubmit={tambah} className="flex gap-2 flex-wrap items-end mb-3">
+        <div className="flex-1 min-w-[12rem]"><Field label="Nama amalan"><Input value={nama} onChange={(e) => setNama(e.target.value)} placeholder="cth. Puasa Senin-Kamis" /></Field></div>
+        <div className="min-w-[12rem]"><Field label="Pilihan capaian"><Select value={tpl} onChange={(e) => setTpl(e.target.value)}><option value="ya">Dikerjakan / Tidak Dikerjakan</option><option value="lengkap">Lengkap / Sebagian / Tidak Dikerjakan</option></Select></Field></div>
+        <div className="mb-3"><Btn type="submit" disabled={busy || !nama.trim()}>Tambah</Btn></div>
+      </form>
+      <div className="divide-y divide-stone-100 border border-stone-200 rounded-xl">
+        {amalanT.rows.sort((a, b) => (a.urutan || 0) - (b.urutan || 0)).map((r) => (
+          <div key={r.id} className="flex items-center justify-between gap-3 px-3 py-2 flex-wrap">
+            <div className="min-w-0"><span className={`font-semibold ${r.aktif ? "text-[#0B3B36]" : "text-stone-400 line-through"}`}>{r.nama}</span><span className="text-xs text-stone-400 ml-2">{(r.opsi || []).join(" / ")}</span></div>
+            <div className="flex gap-3 text-xs font-bold">
+              <button type="button" onClick={() => ubah(r.id, { aktif: !r.aktif })} className="text-[#145048]">{r.aktif ? "Sembunyikan" : "Tampilkan"}</button>
+              <button type="button" onClick={() => hapus(r)} className="text-red-600">Hapus</button>
+            </div>
+          </div>
+        ))}
+        {amalanT.rows.length === 0 && <div className="px-3 py-4 text-sm text-stone-400">Belum ada amalan tambahan.</div>}
+      </div>
+    </Card>
   );
 }
 
@@ -3571,6 +3629,7 @@ function IbadahPage({ profile }) {
   const [filterCapaian, setFilterCapaian] = useState("SEMUA");
   const [tabIb, setTabIb] = useState("rekap");
   const [showHarian, setShowHarian] = useState(false);
+  const amalanT = useTable("jenis_ibadah_kustom");
 
   if (isViewer && !nim) {
     const withStatus = pickable.map((s) => {
@@ -3673,27 +3732,28 @@ function IbadahPage({ profile }) {
           <p className="text-sm text-stone-600 whitespace-pre-wrap">{santri?.catatan_ibadah || "Belum ada catatan."}</p>
         )}
       </Card>
-      {showForm && <IbadahForm onCancel={() => setShowForm(false)} onSubmit={saveLog} />}
-      {showHarian && santri && <IbadahHarianModal santri={santri} logRows={logT.rows} profile={profile} onCancel={() => setShowHarian(false)} onDone={(n) => { setShowHarian(false); logT.reload(); alert(n + " catatan ibadah tersimpan."); }} />}
-      {editingLog && <IbadahForm initial={editingLog} onCancel={() => setEditingLog(null)} onSubmit={saveLog} />}
+      {showForm && <IbadahForm extra={amalanT.rows.filter((k) => k.aktif)} onCancel={() => setShowForm(false)} onSubmit={saveLog} />}
+      {showHarian && santri && <IbadahHarianModal santri={santri} logRows={logT.rows} profile={profile} kustom={amalanT.rows} onCancel={() => setShowHarian(false)} onDone={(n) => { setShowHarian(false); logT.reload(); alert(n + " catatan ibadah tersimpan."); }} />}
+      {editingLog && <IbadahForm extra={amalanT.rows.filter((k) => k.aktif)} initial={editingLog} onCancel={() => setEditingLog(null)} onSubmit={saveLog} />}
     </div>
   );
 }
-function IbadahForm({ initial, onCancel, onSubmit }) {
+function IbadahForm({ initial, extra = [], onCancel, onSubmit }) {
   const [f, setF] = useState(initial || { tanggal: new Date().toISOString().slice(0, 10), jenis: JENIS_IBADAH[0], capaian: CAPAIAN_OPTIONS[JENIS_IBADAH[0]][0], catatan: "" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-  const setJenis = (e) => setF({ ...f, jenis: e.target.value, capaian: CAPAIAN_OPTIONS[e.target.value]?.[0] || "" });
+  const opsiDari = (j) => CAPAIAN_OPTIONS[j] || (extra.find((k) => k.nama === j)?.opsi) || ["Dikerjakan", "Tidak Dikerjakan"];
+  const setJenis = (e) => setF({ ...f, jenis: e.target.value, capaian: opsiDari(e.target.value)[0] || "" });
   return (
     <Modal title={initial ? "Edit Catatan Ibadah" : "Catat Ibadah"} onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
         <Field label="Tanggal"><Input type="date" value={f.tanggal} onChange={set("tanggal")} /></Field>
         <Field label="Jenis Ibadah">
           <Input list="jenisIbadahOpsi" value={f.jenis} onChange={setJenis} placeholder="Pilih dari daftar atau ketik sendiri" />
-          <datalist id="jenisIbadahOpsi">{JENIS_IBADAH.map((j) => <option key={j} value={j} />)}</datalist>
+          <datalist id="jenisIbadahOpsi">{[...JENIS_IBADAH, ...extra.map((k) => k.nama)].map((j) => <option key={j} value={j} />)}</datalist>
         </Field>
         <Field label="Capaian">
           <Input list="capaianOpsi" value={f.capaian} onChange={set("capaian")} placeholder="Pilih dari daftar atau ketik sendiri" />
-          <datalist id="capaianOpsi">{(CAPAIAN_OPTIONS[f.jenis] || []).map((c) => <option key={c} value={c} />)}</datalist>
+          <datalist id="capaianOpsi">{opsiDari(f.jenis).map((c) => <option key={c} value={c} />)}</datalist>
         </Field>
         <Field label="Catatan"><textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={3} value={f.catatan} onChange={set("catatan")} /></Field>
         <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
@@ -4741,7 +4801,7 @@ function BackupDataCard() {
       const XLSX = await muatXLSX();
       const datar = (rows) => rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v !== null && typeof v === "object" ? JSON.stringify(v) : v])));
       const lembar = [
-        ["Mahasantri", "santri"], ["Akademik", "akademik"], ["Tugas Akhir & Ujian", "tahapan_akhir"], ["Daftar Mata Kuliah", "mata_kuliah_master"], ["Iuran SPP", "spp"], ["Cicilan Koperasi", "koperasi_cicilan"],
+        ["Mahasantri", "santri"], ["Akademik", "akademik"], ["Tugas Akhir & Ujian", "tahapan_akhir"], ["Daftar Mata Kuliah", "mata_kuliah_master"], ["Amalan Sunnah Tambahan", "jenis_ibadah_kustom"], ["Iuran SPP", "spp"], ["Cicilan Koperasi", "koperasi_cicilan"],
         ["Capaian Quran", "quran_log"], ["Ibadah", "ibadah_log"], ["Kalender Akademik", "kalender_akademik"], ["Pengumuman", "pengumuman"],
       ];
       const wb = XLSX.utils.book_new(); const gagal = [];
@@ -4777,6 +4837,7 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Tahajud + Witir dan amalan sunnah tambahan", isi: "Ibadah Tahajud kini bernama Tahajud + Witir. Administrator dapat menambah amalan sunnah baru (misalnya Puasa Senin-Kamis) di Pengaturan → Amalan Sunnah Tambahan; amalan aktif otomatis muncul di Catat Semua Ibadah dan masuk rekap. Butuh file SQL 21-amalan-tambahan.sql.", lokasi: "Pengaturan → Amalan Sunnah Tambahan" },
   { tgl: "Okt 2026", judul: "Catat Semua Ibadah sekaligus", isi: "Di halaman Ibadah per mahasantri, tombol Catat Semua Ibadah membuka satu form berisi shalat lima waktu, rawatib, dhuha, tahajud, Al-Ma'tsurat, Al-Kahfi, dan puasa sunnah. Pilih capaian tiap ibadah, lalu Simpan Semua sekali jalan. Ada tombol Semua dikerjakan, dan tanggal yang sudah pernah dicatat tampil kembali untuk diperbarui.", lokasi: "Ibadah → pilih mahasantri → Catat Semua Ibadah" },
   { tgl: "Okt 2026", judul: "Presensi Shalat Berjamaah lima waktu", isi: "Tab baru di menu Ibadah untuk mencatat shalat berjamaah Subuh, Dzuhur, Ashar, Maghrib, dan Isya bagi banyak mahasantri sekaligus. Semua otomatis berjamaah, musyrif hanya mengubah yang berbeda (sendiri, udzur, tidak shalat), lalu Simpan. Ada rekap harian lima waktu dan hasilnya ikut dihitung di rekap Ibadah. Butuh file SQL 20-presensi-shalat.sql.", lokasi: "Ibadah → Presensi Shalat Berjamaah" },
   { tgl: "Okt 2026", judul: "Daftar Mata Kuliah per semester dan pilihan sekali ambil di KRS", isi: "Menu baru Akademik → Daftar Mata Kuliah untuk mengisi kode MK, nama, SKS, dan pengampu per semester (ada Impor Cepat dari Excel). Di KRS, tombol Ambil dari Daftar menambahkan seluruh mata kuliah satu semester sekaligus, untuk satu mahasantri atau seluruh angkatan, dan melewati yang sudah ada. Butuh file SQL 19-master-mata-kuliah.sql.", lokasi: "Akademik → Daftar Mata Kuliah dan KRS & KHS" },
@@ -5133,6 +5194,7 @@ function PengaturanPage({ profile, onProfileUpdated, brand, onBrandUpdated, uiSi
 
       {profile.role === "admin" && <PanduanAdmin />}
       {profile.role === "admin" && <MenuKustomManager onChanged={onModulChanged} />}
+      {profile.role === "admin" && <AmalanKustomManager />}
       {profile.role === "admin" && <BackupDataCard />}
       {profile.role === "admin" && <WarnaGrafikCard brand={brand} onBrandUpdated={onBrandUpdated} />}
 
