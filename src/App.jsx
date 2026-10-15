@@ -60,6 +60,8 @@ function capaianTone(capaian) {
 const ROLE_LABEL = { admin: "Administrator", musyrif: "Musyrif", musyrifah: "Musyrifah", keuangan: "Bendahara", akademik: "Staf Akademik", pimpinan: "Pimpinan Pondok", santri: "Mahasantri / Wali" };
 const AVATAR_COLORS = ["#0B4D30","#AD7F2C","#8A4A3A","#3F6C8A","#5C4A8A","#2F6B5E"];
 const nowYear = new Date().getFullYear();
+const CATATAN_KRS_BAWAAN = "* Mata kuliah bertanda bintang (*) mengikuti ketentuan khusus yang ditetapkan oleh pondok.";
+const adaBintang = (rows) => (rows || []).some((r) => String(r.mata_kuliah || "").trim().endsWith("*"));
 const DEFAULT_TAGLINE = "Pondok Tahfidz Qur'an dan Entrepreneur Darul Hikmah";
 const DEFAULT_JABATAN_TTD = "Mudir\nPTQE Darul Hikmah";
 /* Gaya tulisan jabatan (Mudir ...). "ikut" = ikut blok; "tengah" = baris-baris jabatan
@@ -1252,7 +1254,7 @@ function AkademikStaffPage({ profile, tabAwal = "krs" }) {
           .krs-print { position: absolute; top: 0; left: 0; width: 100%; padding: 24px 32px; box-shadow: none !important; border: none !important; }
         }
       `}</style>
-      <div className="mb-4 max-w-xs">
+      <div className={`mb-4 max-w-xs ${dokType === "Transkrip" ? "hidden" : ""}`}>
         <Select value={pilihanAktif} onChange={(e) => setPilihan(e.target.value)}>
           {semesters.length === 0 && <option value="">Belum ada data</option>}
           {semesters.map((s) => { const [ta2, sem2] = s.split("|"); return <option key={s} value={s}>{ta2} · Semester {sem2}</option>; })}
@@ -1262,6 +1264,7 @@ function AkademikStaffPage({ profile, tabAwal = "krs" }) {
         <div className="inline-flex rounded-lg border border-stone-300 overflow-hidden">
           <button onClick={() => setDokType("KRS")} className={`px-4 py-1.5 text-xs font-bold ${dokType === "KRS" ? "bg-[#0B3B36] text-white" : "bg-white text-stone-500"}`}>KRS</button>
           <button onClick={() => setDokType("KHS")} className={`px-4 py-1.5 text-xs font-bold ${dokType === "KHS" ? "bg-[#0B3B36] text-white" : "bg-white text-stone-500"}`}>KHS</button>
+          <button onClick={() => setDokType("Transkrip")} className={`px-4 py-1.5 text-xs font-bold ${dokType === "Transkrip" ? "bg-[#0B3B36] text-white" : "bg-white text-stone-500"}`}>Transkrip</button>
         </div>
         <Btn tone="ghost" onClick={() => window.print()}>🖨️ Cetak {dokType}</Btn>
       </div>
@@ -1276,16 +1279,18 @@ function AkademikStaffPage({ profile, tabAwal = "krs" }) {
           </td>
         </tr></tbody></table>
 
-        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15 }}>{dokType === "KRS" ? "KARTU RENCANA STUDI (KRS)" : "KARTU HASIL STUDI (KHS)"}</div>
+        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15 }}>{dokType === "Transkrip" ? "TRANSKRIP NILAI" : dokType === "KRS" ? "KARTU RENCANA STUDI (KRS)" : "KARTU HASIL STUDI (KHS)"}</div>
         <div style={{ textAlign: "center", fontSize: 11, paddingBottom: 6, marginBottom: 16 }}>
-          Semester {semesterTerbaru?.semester || "-"} {semesterTerbaru?.tahun_ajaran || ""}
+          {dokType === "Transkrip" ? "Riwayat studi seluruh semester" : <>Semester {semesterTerbaru?.semester || "-"} {semesterTerbaru?.tahun_ajaran || ""}</>}
         </div>
 
         <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>Nama Mahasantri</span><span>: {santri?.nama}</span></div>
         <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>NIM</span><span>: {santri?.nim}</span></div>
-        <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Semester</span><span>: {semesterTerbaru?.semester || "-"} {semesterTerbaru?.tahun_ajaran || ""}</span></div>
+        {dokType === "Transkrip" ? <div style={{ marginBottom: 14 }} /> : <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Semester</span><span>: {semesterTerbaru?.semester || "-"} {semesterTerbaru?.tahun_ajaran || ""}</span></div>}
 
-        {dokType === "KRS" ? (
+        {dokType === "Transkrip" ? (
+        <TranskripNilai records={records} santri={santri} tahap={tahapT.rows.filter((t) => t.nim === nim)} />
+        ) : dokType === "KRS" ? (
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 8 }}>
           <thead><tr style={{ background: "#0B3B36", color: "#fff" }}>
             <th style={{ border: "1px solid #1F2937", padding: 5 }}>No</th>
@@ -1385,6 +1390,7 @@ function AkademikStaffPage({ profile, tabAwal = "krs" }) {
         </div>
         </>
         )}
+        {adaBintang(dokType === "Transkrip" ? records : recordsKRS) && <div style={{ fontSize: 9.5, fontStyle: "italic", color: "#44403C", marginTop: 6, lineHeight: 1.45 }}>{brand.catatan_krs || CATATAN_KRS_BAWAAN}</div>}
 
         <div style={{ fontSize: 10.5, ...ttdBlokStyle(brand, 24) }}>
           <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
@@ -1613,6 +1619,9 @@ function TugasAkhirPanel({ nim, profile, rows, reload }) {
   const staff = canEdit(profile.role, "tahapan_akhir");
   const quranT = useTable("quran_log");
   const [form, setForm] = useState(null);
+  const [lihatCetak, setLihatCetak] = useState(false);
+  const santriPanelT = useTable("santri");
+  const santriPanel = santriPanelT.rows.find((x) => x.nim === nim);
   const mine = rows.filter((r) => r.nim === nim);
   const lulus = jumlahTahapLulus(mine);
   const syahadah = quranT.rows.filter((l) => l.nim === nim && l.jenis === "Syahadah").length;
@@ -1655,7 +1664,7 @@ function TugasAkhirPanel({ nim, profile, rows, reload }) {
             <h3 className="font-serif-dh text-lg text-[#0B3B36] font-semibold">Perjalanan Tugas Akhir & Ujian</h3>
             <p className="text-xs text-stone-500 mt-1 leading-relaxed">KPM → Magang → Sidang Akhir Bisnis. Sidang Munaqasyah berjalan paralel (butuh Syahadah), lalu Syahadah Kubro dan Pengambilan Sanad setelah Munaqasyah lulus.</p>
           </div>
-          <div className="text-right"><div className="text-3xl font-extrabold text-[#0B3B36] leading-none">{lulus}<span className="text-base text-stone-400 font-bold">/{TAHAPAN_AKHIR.length}</span></div><div className="text-[0.6875rem] text-stone-400 mt-1 uppercase tracking-wider">tahap lulus</div></div>
+          <div className="text-right"><button type="button" onClick={() => setLihatCetak(!lihatCetak)} className="text-xs font-bold text-[#145048] underline mb-2 block ml-auto">{lihatCetak ? "Tutup Pratinjau Cetak" : "Pratinjau & Cetak Ringkasan"}</button><div className="text-3xl font-extrabold text-[#0B3B36] leading-none">{lulus}<span className="text-base text-stone-400 font-bold">/{TAHAPAN_AKHIR.length}</span></div><div className="text-[0.6875rem] text-stone-400 mt-1 uppercase tracking-wider">tahap lulus</div></div>
         </div>
         <div className="h-1.5 bg-stone-100 rounded-full mt-4 overflow-hidden"><div className="h-full bg-gradient-to-r from-[#2A9D8F] to-[#C9A227] transition-all" style={{ width: `${(lulus / TAHAPAN_AKHIR.length) * 100}%` }} /></div>
         {lulus === TAHAPAN_AKHIR.length && <div className="mt-3 text-sm font-bold text-[#0F4A44] bg-[#E9F1EE] rounded-xl px-3 py-2">✅ Seluruh tahapan sudah lulus — mahasantri layak diproses untuk kelulusan.</div>}
@@ -1679,7 +1688,7 @@ function TugasAkhirPanel({ nim, profile, rows, reload }) {
           return (
             <div key={cfg.kode} className="flex gap-4">
               <div className="flex flex-col items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-base font-bold shrink-0 ${bulat}`}>{selesai ? "✓" : terkunci ? "🔒" : cfg.ikon}</div>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-base font-bold shrink-0 ${bulat}`}>{selesai ? <IkonCentang /> : terkunci ? <IkonKunci /> : <IkonTahap kode={cfg.kode} />}</div>
                 {!terakhir && <div className={`w-px flex-1 my-1 ${selesai ? "bg-[#2A9D8F]" : "bg-stone-200"}`} />}
               </div>
               <div className={`flex-1 min-w-0 ${terakhir ? "" : "pb-5"}`}>
@@ -1778,6 +1787,19 @@ function TugasAkhirPanel({ nim, profile, rows, reload }) {
           );
         })}
       </div>
+      {lihatCetak && (
+        <div className="mt-6">
+          <style>{`
+            @media print {
+              body * { visibility: hidden; }
+              .krs-print, .krs-print * { visibility: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+              .krs-print { position: absolute; top: 0; left: 0; width: 100%; padding: 24px 32px; box-shadow: none !important; border: none !important; }
+            }
+          `}</style>
+          <div className="flex justify-end mb-2"><Btn tone="ghost" onClick={() => window.print()}>🖨️ Cetak Ringkasan</Btn></div>
+          <RingkasanTugasAkhirCetak santri={santriPanel} rows={mine} />
+        </div>
+      )}
       {!staff && <p className="text-xs text-stone-400 mt-4">Pengajuan dan berkas Anda akan diperiksa dan diproses oleh bagian Akademik. Hubungi Akademik bila ada kendala.</p>}
       {form && <TahapanForm cfg={form.cfg} initial={form.initial} nim={nim} terbatas={!staff} onCancel={() => setForm(null)} onSubmit={(f) => { if (staff && f.status === "Lulus" && form.cfg.fotoWajib && form.cfg.fotoWajib.some((x) => !(f.berkas || {})[x]) && !confirm("Foto karya wajib (" + form.cfg.fotoWajib.join(", ") + ") belum lengkap. Tetap luluskan?")) return; simpan(form.cfg, { ...f, status: staff ? f.status : "Diajukan" }, form.id); }} />}
     </div>
@@ -1964,7 +1986,7 @@ function TugasAkhirPantauPage({ profile }) {
         {ringkas.map(({ cfg, tindakan, berjalan, lulus }) => (
           <button key={cfg.kode} type="button" onClick={() => { setTahap(tahap === cfg.kode ? "Semua" : cfg.kode); setStatus("Semua"); }}
             className={`text-left rounded-2xl p-3.5 bg-white border transition ${tahap === cfg.kode ? "border-[#0B3B36] ring-1 ring-[#0B3B36]" : "border-stone-200 hover:border-stone-300"}`}>
-            <div className="text-lg">{cfg.ikon}</div>
+            <div className="text-[#0B3B36]"><IkonTahap kode={cfg.kode} /></div>
             <div className="text-xs font-bold text-[#0B3B36] mt-1 leading-tight">{cfg.nama}</div>
             <div className="mt-2 space-y-0.5 text-[0.6875rem]">
               <div className={tindakan ? "text-[#8A6A2A] font-bold" : "text-stone-400"}>● {tindakan} perlu tindakan</div>
@@ -2010,7 +2032,7 @@ function TugasAkhirPantauPage({ profile }) {
                   return (
                     <tr key={x.r.id} className="border-t border-stone-100">
                       <td className="p-3.5"><div className="flex items-center gap-3"><Avatar name={x.s.nama} size={30} /><div><div className="font-semibold text-[#0B3B36]">{x.s.nama}</div><div className="text-xs text-stone-400">{x.s.nim}{x.s.kelas ? " · " + x.s.kelas : ""}</div></div></div></td>
-                      <td className="p-3.5">{x.cfg.ikon} {x.cfg.nama}</td>
+                      <td className="p-3.5"><span className="inline-flex items-center gap-2"><span className="text-[#0B3B36]"><IkonTahap kode={x.cfg.kode} size={16} /></span>{x.cfg.nama}</span></td>
                       <td className="p-3.5"><Badge tone={STATUS_TAHAP_TONE[x.r.status] || "grey"}>{x.r.status}</Badge></td>
                       <td className="p-3.5 text-stone-600">{tglPendek(x.r.tanggal_pengajuan) || "—"}</td>
                       <td className="p-3.5 text-stone-600">{tglPendek(x.r.tanggal_pelaksanaan) || "—"}</td>
@@ -2155,7 +2177,13 @@ function MatkulImpor({ semester, onCancel, onDone }) {
   );
 }
 
-function DaftarMatkulPage({ profile }) {
+function DaftarMatkulPage({ profile, brand = {}, onBrandUpdated }) {
+  const [catatan, setCatatan] = useState(brand.catatan_krs ?? CATATAN_KRS_BAWAAN);
+  const [pesanCatatan, setPesanCatatan] = useState("");
+  async function simpanCatatan() {
+    const { error } = await supabase.from("pengaturan_pondok").update({ catatan_krs: catatan.trim() || null }).eq("id", 1);
+    if (error) setPesanCatatan("Gagal: " + error.message + " (jalankan file 23-catatan-krs.sql di Supabase)"); else { setPesanCatatan("Catatan KRS tersimpan."); if (onBrandUpdated) onBrandUpdated(); }
+  }
   const editable = canEdit(profile.role, "matkul");
   const masterT = useTable("mata_kuliah_master");
   const [semester, setSemester] = useState(1);
@@ -2177,6 +2205,18 @@ function DaftarMatkulPage({ profile }) {
   return (
     <div>
       <PageHeader title="Daftar Mata Kuliah" sub="Isi sekali per semester. Di KRS, mata kuliah tinggal dipilih dari daftar ini, jadi tidak ada yang terlewat." actions={editable && <div className="flex gap-2"><Btn tone="ghost" onClick={() => setImpor(true)}>Impor Cepat</Btn><Btn onClick={() => setForm({ initial: null })}>+ Tambah</Btn></div>} />
+      <Card className="mb-4">
+        <div className="text-xs font-bold text-[#0B3B36] uppercase tracking-wide mb-1">Tanda Bintang (*) di KRS dan KHS</div>
+        <p className="text-xs text-stone-500 mb-2">Tambahkan tanda <b>*</b> di akhir nama mata kuliah (contoh: <i>Bahasa Arab*</i>). Di KRS dan KHS cetak, catatan kecil di bawah ini otomatis muncul di bawah tabel.</p>
+        {profile.role === "admin" ? (
+          <>
+            <textarea className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm" rows={2} value={catatan} onChange={(e) => setCatatan(e.target.value)} />
+            <div className="flex items-center gap-3 mt-2"><Btn onClick={simpanCatatan}>Simpan Catatan</Btn>{pesanCatatan && <span className="text-xs text-stone-500">{pesanCatatan}</span>}</div>
+          </>
+        ) : (
+          <div className="text-sm italic text-stone-600">{brand.catatan_krs || CATATAN_KRS_BAWAAN}</div>
+        )}
+      </Card>
       <div className="flex gap-2 flex-wrap mb-4">
         {semuaSem.map((n) => {
           const jml = masterT.rows.filter((m) => Number(m.semester_ke) === n).length;
@@ -2557,6 +2597,175 @@ function PengampuInput({ value, onChange }) {
         ))}
       </div>
       <button type="button" onClick={() => onChange(daftar.join(" / ") + " / ")} className="mt-2 text-xs font-bold text-[#145048] underline">+ Tambah pengampu</button>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Transkrip Nilai — seluruh semester, IPK, dan ringkasan tugas akhir          */
+/* ---------------------------------------------------------------------- */
+function TranskripNilai({ records, santri, tahap = [] }) {
+  const sel = records.filter((r) => r.status === "selesai" && r.nilai_angka != null);
+  const terbaik = bestPerKode(sel);
+  const urutSem = (r) => `${r.tahun_ajaran || ""}|${r.semester === "Ganjil" ? 1 : 2}`;
+  const kunci = [...new Set(terbaik.map(urutSem))].sort();
+  const sks = (r) => Number(r.sks || 0);
+  const mutu = (r) => bobot(nilaiHuruf(r.nilai_angka)) * sks(r);
+  const totalSks = terbaik.reduce((a, r) => a + sks(r), 0);
+  const totalMutu = terbaik.reduce((a, r) => a + mutu(r), 0);
+  const ipk = totalSks ? (totalMutu / totalSks).toFixed(2) : "-";
+  const sel2 = { border: "1px solid #1F2937", padding: 5 };
+  const lulusTahap = TAHAPAN_AKHIR.map((t) => ({ t, r: tahap.filter((x) => x.jenis === t.kode && x.status === "Lulus").sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")))[0] })).filter((x) => x.r);
+  if (terbaik.length === 0) {
+    return <div style={{ fontSize: 11, textAlign: "center", color: "#78716C", padding: "24px 0" }}>Belum ada mata kuliah dengan nilai berstatus selesai untuk ditampilkan di transkrip.</div>;
+  }
+  let no = 0;
+  return (
+    <>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 8 }}>
+        <thead>
+          <tr style={{ background: "#0B3B36", color: "#fff" }}>
+            <th style={sel2}>No</th><th style={sel2}>Kode MK</th><th style={sel2}>Mata Kuliah</th><th style={sel2}>SKS</th>
+            <th style={sel2}>Nilai</th><th style={sel2}>Huruf</th><th style={sel2}>Bobot</th><th style={sel2}>SKS × Bobot</th>
+          </tr>
+        </thead>
+        <tbody>
+          {kunci.map((k) => {
+            const [ta, kode] = k.split("|");
+            const baris = terbaik.filter((r) => urutSem(r) === k).sort((a, b) => String(a.kode_mk || a.mata_kuliah).localeCompare(String(b.kode_mk || b.mata_kuliah), "id", { numeric: true }));
+            return [
+              <tr key={"h" + k} style={{ background: "#F3EEE1", fontWeight: 700 }}><td colSpan={8} style={sel2}>Tahun Ajaran {ta} — Semester {kode === "1" ? "Ganjil" : "Genap"}</td></tr>,
+              ...baris.map((r) => { no += 1; return (
+                <tr key={r.id}>
+                  <td style={{ ...sel2, textAlign: "center" }}>{no}</td>
+                  <td style={{ ...sel2, textAlign: "center" }}>{r.kode_mk || "-"}</td>
+                  <td style={sel2}>{r.mata_kuliah}</td>
+                  <td style={{ ...sel2, textAlign: "center" }}>{r.sks}</td>
+                  <td style={{ ...sel2, textAlign: "center" }}>{r.nilai_angka}</td>
+                  <td style={{ ...sel2, textAlign: "center" }}>{nilaiHuruf(r.nilai_angka)}</td>
+                  <td style={{ ...sel2, textAlign: "center" }}>{bobot(nilaiHuruf(r.nilai_angka)).toFixed(2)}</td>
+                  <td style={{ ...sel2, textAlign: "center" }}>{mutu(r).toFixed(2)}</td>
+                </tr>
+              ); }),
+            ];
+          })}
+          <tr style={{ background: "#F3EEE1", fontWeight: 700 }}>
+            <td colSpan={3} style={{ ...sel2, textAlign: "right", padding: "5px 10px 5px 5px" }}>JUMLAH</td>
+            <td style={{ ...sel2, textAlign: "center" }}>{totalSks}</td>
+            <td colSpan={3} style={sel2}></td>
+            <td style={{ ...sel2, textAlign: "center" }}>{totalMutu.toFixed(2)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <table style={{ width: "100%", fontSize: 10.5, marginTop: 6, marginBottom: 14 }}><tbody><tr>
+        <td style={{ verticalAlign: "top" }}>
+          <div>Total SKS Lulus : <b>{totalSks}</b></div>
+          <div>Indeks Prestasi Kumulatif (IPK) : <b>{ipk}</b></div>
+        </td>
+        <td style={{ textAlign: "right", verticalAlign: "top", fontSize: 9.5, color: "#44544D" }}>
+          Keterangan Bobot:<br />A = 4.00 &nbsp;&nbsp; B = 3.00<br />C = 2.00 &nbsp;&nbsp; D = 1.00<br />E = 0.00
+        </td>
+      </tr></tbody></table>
+      {lulusTahap.length > 0 && (
+        <div style={{ border: "1px solid #E7DFCB", background: "#FBF8F1", borderRadius: 6, padding: "10px 14px", marginBottom: 14 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#0B3B36", marginBottom: 4 }}>Tugas Akhir & Ujian</div>
+          <table style={{ width: "100%", fontSize: 10.5 }}><tbody>
+            {lulusTahap.map(({ t, r }) => (
+              <tr key={t.kode}>
+                <td style={{ padding: "1px 0" }}>{t.nama}</td>
+                <td style={{ padding: "1px 0", textAlign: "center" }}>{r.nilai_angka != null ? `${r.nilai_angka} (${nilaiHuruf(r.nilai_angka)})` : "Lulus"}</td>
+                <td style={{ padding: "1px 0", textAlign: "right" }}>{r.tanggal_pelaksanaan ? new Date(r.tanggal_pelaksanaan).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""}</td>
+              </tr>
+            ))}
+          </tbody></table>
+        </div>
+      )}
+      <div style={{ border: "1px solid #E7DFCB", background: "#FBF8F1", borderRadius: 6, padding: "10px 14px", marginBottom: 16 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 700, color: "#0B3B36", marginBottom: 4 }}>Rekapitulasi Capaian Al-Qur'an</div>
+        <div style={{ fontSize: 10.5 }}><b>Total Hafalan Dikuasai:</b> {santri?.juz_dikuasai?.length || 0} dari 30 Juz</div>
+      </div>
+    </>
+  );
+}
+
+/* Ikon garis seragam untuk tahap tugas akhir (lebih formal daripada emoji) */
+function IkonTahap({ kode, size = 20 }) {
+  const p = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true };
+  if (kode === "KPM") return <svg {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
+  if (kode === "Magang") return <svg {...p}><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>;
+  if (kode === "Sidang Akhir Bisnis") return <svg {...p}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>;
+  if (kode === "Sidang Munaqasyah") return <svg {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>;
+  if (kode === "Syahadah Kubro") return <svg {...p}><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" /></svg>;
+  return <svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>;
+}
+function IkonCentang({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>; }
+function IkonKunci({ size = 18 }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>; }
+
+/* Dokumen cetak: ringkasan tugas akhir & ujian per mahasantri */
+function RingkasanTugasAkhirCetak({ santri, rows }) {
+  const brand = useContext(BrandContext);
+  const mine = rows.filter((r) => r.nim === santri?.nim);
+  const lulus = jumlahTahapLulus(mine);
+  const sel = { border: "1px solid #1F2937", padding: 5 };
+  const tanggal = (r) => {
+    if (!r || !r.tanggal_pelaksanaan) return "-";
+    const a = tglPendek(r.tanggal_pelaksanaan);
+    return r.tanggal_selesai ? `${a} s.d. ${tglPendek(r.tanggal_selesai)}` : a;
+  };
+  const karya = tahapTerakhir(mine, "Sidang Akhir Bisnis")?.karya || {};
+  return (
+    <div className="krs-print bg-white rounded-2xl border border-stone-200 shadow-sm p-8 mb-6">
+      <table style={{ width: "100%", marginBottom: 14 }}><tbody><tr>
+        <td style={{ width: 90, verticalAlign: "middle" }}>{(brand.logo_dokumen_url || brand.logo_url) && <img src={brand.logo_dokumen_url || brand.logo_url} alt="logo" style={{ width: 80 }} />}</td>
+        <td style={{ verticalAlign: "middle" }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: "#0B3B36" }}>{brand.yayasan_nama}</div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: "#0B3B36" }}>PONDOK TAHFIDZ QURAN DAN ENTREPRENEUR {brand.nama_pondok?.toUpperCase()}</div>
+          <div style={{ fontSize: 10.5, color: "#44544D" }}>{brand.alamat_pondok}</div>
+          <div style={{ fontSize: 10.5, color: "#44544D", fontStyle: "italic" }}>Contact: {brand.kontak_pondok}</div>
+        </td>
+      </tr></tbody></table>
+      <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15 }}>RINGKASAN TUGAS AKHIR & UJIAN</div>
+      <div style={{ textAlign: "center", fontSize: 11, paddingBottom: 6, marginBottom: 16 }}>{lulus} dari {TAHAPAN_AKHIR.length} tahap dinyatakan lulus</div>
+      <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>Nama Mahasantri</span><span>: {santri?.nama}</span></div>
+      <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>NIM</span><span>: {santri?.nim}</span></div>
+      <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Angkatan</span><span>: {santri?.kelas || "-"}</span></div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 10 }}>
+        <thead><tr style={{ background: "#0B3B36", color: "#fff" }}>
+          <th style={sel}>No</th><th style={sel}>Tahap</th><th style={sel}>Status</th><th style={sel}>Pelaksanaan</th><th style={sel}>Pembimbing / Penguji</th><th style={sel}>Nilai</th>
+        </tr></thead>
+        <tbody>
+          {TAHAPAN_AKHIR.map((cfg, i) => {
+            const r = tahapLulus(mine, cfg.kode) ? mine.filter((x) => x.jenis === cfg.kode && x.status === "Lulus")[0] : tahapTerakhir(mine, cfg.kode);
+            return (
+              <tr key={cfg.kode}>
+                <td style={{ ...sel, textAlign: "center" }}>{i + 1}</td>
+                <td style={sel}>{cfg.nama}</td>
+                <td style={{ ...sel, textAlign: "center" }}>{r ? r.status : "Belum diajukan"}</td>
+                <td style={{ ...sel, textAlign: "center" }}>{tanggal(r)}</td>
+                <td style={sel}>{r ? [r.pembimbing, r.penguji].filter(Boolean).join(" / ") || "-" : "-"}</td>
+                <td style={{ ...sel, textAlign: "center" }}>{r && r.nilai_angka != null ? `${r.nilai_angka} (${nilaiHuruf(r.nilai_angka)})` : "-"}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {(karya.nama_brand || karya.bidang) && (
+        <div style={{ border: "1px solid #E7DFCB", background: "#FBF8F1", borderRadius: 6, padding: "10px 14px", marginBottom: 14, fontSize: 10.5 }}>
+          <div style={{ fontWeight: 700, color: "#0B3B36", marginBottom: 3 }}>Karya Bisnis (Sidang Akhir Bisnis)</div>
+          <div><b>Brand:</b> {karya.nama_brand || "-"}{karya.bidang ? ` — ${karya.bidang}` : ""}</div>
+          {karya.produk && <div><b>Produk / Layanan:</b> {karya.produk}</div>}
+        </div>
+      )}
+      <div style={{ fontSize: 10.5, ...ttdBlokStyle(brand, 24) }}>
+        <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
+        <div style={jabatanStyle(brand)}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
+        <div style={{ display: "flex", justifyContent: isiAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
+          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | Ringkasan Tugas Akhir | NIM ${santri?.nim} | ${lulus}/${TAHAPAN_AKHIR.length} lulus`)}`} alt="QR verifikasi" style={{ width: 56, height: 56 }} />
+        </div>
+        {brand.tanda_tangan_mudir_url ? <div><img src={brand.tanda_tangan_mudir_url} alt="Tanda tangan Mudir" style={{ height: 46, margin: isiAlign(brand).img }} /></div> : null}
+        <div style={{ borderTop: brand.tanda_tangan_mudir_url ? "1px solid #999" : "none", paddingTop: brand.tanda_tangan_mudir_url ? 2 : 0 }}><b>{brand.nama_mudir}</b></div>
+        <div>NIP. {brand.nip_mudir || "-"}</div>
+      </div>
     </div>
   );
 }
@@ -3250,7 +3459,7 @@ function AkademikSantriPage({ profile, tabAwal = "krs" }) {
       {tab === "akhir" && <TugasAkhirPanel nim={profile.nim} profile={profile} rows={tahapT.rows} reload={tahapT.reload} />}
       <div className={tab === "krs" ? "" : "hidden"}>
 
-      <div className="mb-5 max-w-xs">
+      <div className={`mb-5 max-w-xs ${dokType === "Transkrip" ? "hidden" : ""}`}>
         <Select value={pilihan} onChange={(e) => setPilihan(e.target.value)}>
           {semesters.length === 0 && <option value="">Belum ada data</option>}
           {semesters.map((s) => { const [ta2, sem2] = s.split("|"); return <option key={s} value={s}>{ta2} · Semester {sem2}</option>; })}
@@ -3268,6 +3477,7 @@ function AkademikSantriPage({ profile, tabAwal = "krs" }) {
         <div className="inline-flex rounded-lg border border-stone-300 overflow-hidden">
           <button onClick={() => setDokType("KRS")} className={`px-4 py-1.5 text-xs font-bold ${dokType === "KRS" ? "bg-[#0B3B36] text-white" : "bg-white text-stone-500"}`}>KRS</button>
           <button onClick={() => setDokType("KHS")} className={`px-4 py-1.5 text-xs font-bold ${dokType === "KHS" ? "bg-[#0B3B36] text-white" : "bg-white text-stone-500"}`}>KHS</button>
+          <button onClick={() => setDokType("Transkrip")} className={`px-4 py-1.5 text-xs font-bold ${dokType === "Transkrip" ? "bg-[#0B3B36] text-white" : "bg-white text-stone-500"}`}>Transkrip</button>
         </div>
         <Btn tone="ghost" onClick={() => window.print()}>🖨️ Cetak {dokType}</Btn>
       </div>
@@ -3283,16 +3493,18 @@ function AkademikSantriPage({ profile, tabAwal = "krs" }) {
           </td>
         </tr></tbody></table>
 
-        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15 }}>{dokType === "KRS" ? "KARTU RENCANA STUDI (KRS)" : "KARTU HASIL STUDI (KHS)"}</div>
+        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15 }}>{dokType === "Transkrip" ? "TRANSKRIP NILAI" : dokType === "KRS" ? "KARTU RENCANA STUDI (KRS)" : "KARTU HASIL STUDI (KHS)"}</div>
         <div style={{ textAlign: "center", fontSize: 11, paddingBottom: 6, marginBottom: 16 }}>
-          Semester {sem || "-"} {ta || ""}
+          {dokType === "Transkrip" ? "Riwayat studi seluruh semester" : <>Semester {sem || "-"} {ta || ""}</>}
         </div>
 
         <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>Nama Mahasantri</span><span>: {santri?.nama}</span></div>
         <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>NIM</span><span>: {santri?.nim}</span></div>
-        <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Semester</span><span>: {sem || "-"} {ta || ""}</span></div>
+        {dokType === "Transkrip" ? <div style={{ marginBottom: 14 }} /> : <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Semester</span><span>: {sem || "-"} {ta || ""}</span></div>}
 
-        {dokType === "KRS" ? (
+        {dokType === "Transkrip" ? (
+        <TranskripNilai records={akT.rows} santri={santri} tahap={tahapT.rows.filter((t) => t.nim === profile.nim)} />
+        ) : dokType === "KRS" ? (
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, marginBottom: 8 }}>
           <thead><tr style={{ background: "#0B3B36", color: "#fff" }}>
             <th style={{ border: "1px solid #1F2937", padding: 5 }}>No</th>
@@ -3388,6 +3600,7 @@ function AkademikSantriPage({ profile, tabAwal = "krs" }) {
         </div>
         </>
         )}
+        {adaBintang(dokType === "Transkrip" ? akT.rows : recordsSemester) && <div style={{ fontSize: 9.5, fontStyle: "italic", color: "#44403C", marginTop: 6, lineHeight: 1.45 }}>{brand.catatan_krs || CATATAN_KRS_BAWAAN}</div>}
 
         <div style={{ fontSize: 10.5, ...ttdBlokStyle(brand, 24) }}>
           <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
@@ -3832,18 +4045,36 @@ function SppPage({ profile }) {
   const sisaKoperasi = Math.max(0, tagihanKoperasi - totalCicilan);
 
   async function terimaGabungan(f) {
-    const target = rows.find((r) => String(r.id) === String(f.sppId));
-    if (!target) { alert("Pilih iuran SPP yang dibayar."); return; }
-    const total = Number(f.total), nominalSpp = Number(target.nominal || 0), untukKoperasi = total - nominalSpp;
+    const total = Number(f.total);
     if (!(total > 0)) { alert("Isi jumlah yang diterima."); return; }
-    if (untukKoperasi < 0) { alert(`Jumlah yang diterima kurang dari SPP (${formatRupiah(nominalSpp)}).`); return; }
-    if (untukKoperasi > 0 && tagihanKoperasi > 0 && untukKoperasi > sisaKoperasi && !confirm(`Cicilan koperasi ${formatRupiah(untukKoperasi)} melebihi sisa tagihan (${formatRupiah(sisaKoperasi)}). Tetap simpan?`)) return;
     const today = new Date().toISOString().slice(0, 10);
     const pencatat = profile.nama || profile.username;
-    const { error } = await supabase.from("spp").update({ status: "Lunas", metode_bayar: f.metode, tanggal_bayar: today, total_diterima: untukKoperasi > 0 ? total : null, dicatat_oleh: pencatat, dicatat_oleh_username: profile.username }).eq("id", target.id);
-    if (error) { alert(error.message); return; }
+    let target = rows.find((r) => String(r.id) === String(f.sppId));
+    let nominalSpp = target ? Number(target.nominal || 0) : 0;
+    let sppBaru = null;
+    if (f.sppId === "baru") {
+      nominalSpp = Number(f.nominalBaru);
+      if (!(nominalSpp > 0)) { alert("Isi nominal SPP bulan ini."); return; }
+      const ada = rows.find((r) => r.bulan === f.bulan && Number(r.tahun) === Number(f.tahun));
+      if (ada && ada.status === "Lunas") { alert(`Iuran ${f.bulan} ${f.tahun} untuk santri ini sudah lunas.`); return; }
+      if (ada) { target = ada; nominalSpp = Number(ada.nominal || nominalSpp); } else sppBaru = { bulan: f.bulan, tahun: Number(f.tahun), nominal: nominalSpp };
+    } else if (!target) { alert("Pilih iuran SPP yang dibayar."); return; }
+    const untukKoperasi = total - nominalSpp;
+    if (untukKoperasi < 0) { alert(`Jumlah yang diterima kurang dari SPP (${formatRupiah(nominalSpp)}).`); return; }
+    if (untukKoperasi > 0 && tagihanKoperasi > 0 && untukKoperasi > sisaKoperasi && !confirm(`Cicilan koperasi ${formatRupiah(untukKoperasi)} melebihi sisa tagihan (${formatRupiah(sisaKoperasi)}). Tetap simpan?`)) return;
+    const dataBayar = { status: "Lunas", metode_bayar: f.metode, tanggal_bayar: today, total_diterima: untukKoperasi > 0 ? total : null, dicatat_oleh: pencatat, dicatat_oleh_username: profile.username };
+    let sppId, bulanTahun;
+    if (sppBaru) {
+      const { data, error } = await supabase.from("spp").insert({ ...sppBaru, nim, ...dataBayar }).select().single();
+      if (error) { alert(error.message); return; }
+      sppId = data.id; bulanTahun = `${sppBaru.bulan} ${sppBaru.tahun}`;
+    } else {
+      const { error } = await supabase.from("spp").update(dataBayar).eq("id", target.id);
+      if (error) { alert(error.message); return; }
+      sppId = target.id; bulanTahun = `${target.bulan} ${target.tahun}`;
+    }
     if (untukKoperasi > 0) {
-      const { error: e2 } = await supabase.from("koperasi_cicilan").insert({ nim, jumlah: untukKoperasi, tanggal: today, metode_bayar: f.metode, spp_id: String(target.id), catatan: `Dari pembayaran gabungan ${formatRupiah(total)} (SPP ${target.bulan} ${target.tahun})`, dicatat_oleh: pencatat, dicatat_oleh_username: profile.username });
+      const { error: e2 } = await supabase.from("koperasi_cicilan").insert({ nim, jumlah: untukKoperasi, tanggal: today, metode_bayar: f.metode, spp_id: String(sppId), catatan: `Dari pembayaran gabungan ${formatRupiah(total)} (SPP ${bulanTahun})`, dicatat_oleh: pencatat, dicatat_oleh_username: profile.username });
       if (e2) alert("SPP tersimpan, tetapi cicilan koperasi gagal dicatat: " + e2.message);
     }
     setShowGabungan(false); sppT.reload(); koperasiT.reload();
@@ -4189,27 +4420,45 @@ function BuatIuranBulanan({ onCancel, onSubmit, jumlah }) {
 }
 function BayarGabunganForm({ rows, defaultNominal, sisaKoperasi, onCancel, onSubmit }) {
   const belum = rows.filter((r) => r.status !== "Lunas").sort((a, b) => a.tahun - b.tahun || BULAN.indexOf(a.bulan) - BULAN.indexOf(b.bulan));
-  const [f, setF] = useState({ sppId: belum[0]?.id ?? "", total: belum[0] ? Number(belum[0].nominal) : Number(defaultNominal) || "", metode: "Transfer Bank" });
+  const sekarang = new Date();
+  const [f, setF] = useState({
+    sppId: belum[0]?.id ?? "baru",
+    total: belum[0] ? Number(belum[0].nominal) : Number(defaultNominal) || "",
+    metode: "Transfer Bank",
+    bulan: BULAN[sekarang.getMonth()], tahun: sekarang.getFullYear(), nominalBaru: defaultNominal || "",
+  });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const baru = String(f.sppId) === "baru";
   const target = belum.find((r) => String(r.id) === String(f.sppId));
-  const untukSpp = target ? Number(target.nominal || 0) : 0;
+  const untukSpp = baru ? Number(f.nominalBaru || 0) : target ? Number(target.nominal || 0) : 0;
   const untukKop = Number(f.total || 0) - untukSpp;
   return (
     <Modal title="Terima Pembayaran" onClose={onCancel}>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}>
-        {belum.length === 0 ? <div className="text-sm text-stone-500 mb-3">Semua iuran SPP santri ini sudah lunas. Gunakan "+ Catat Cicilan" untuk cicilan koperasi saja.</div> : <>
-          <Field label="Iuran SPP yang dibayar"><Select value={f.sppId} onChange={set("sppId")}>{belum.map((r) => <option key={r.id} value={r.id}>{r.bulan} {r.tahun} — {formatRupiah(r.nominal)}</option>)}</Select></Field>
-          <Field label="Total uang yang diterima (Rp)"><Input type="number" value={f.total} onChange={set("total")} /></Field>
-          <Field label="Metode Pembayaran"><Select value={f.metode} onChange={set("metode")}><option>Transfer Bank</option><option>Tunai</option></Select></Field>
-          <div className="rounded-xl bg-[#E9F1EE] p-3 text-sm mb-1">
-            <div className="flex justify-between"><span>Untuk SPP</span><b>{formatRupiah(untukSpp)}</b></div>
-            <div className="flex justify-between"><span>Untuk cicilan koperasi</span><b className={untukKop < 0 ? "text-red-600" : ""}>{formatRupiah(untukKop)}</b></div>
-            {sisaKoperasi > 0 && <div className="text-xs text-stone-500 mt-1">Sisa tagihan koperasi saat ini {formatRupiah(sisaKoperasi)}</div>}
-            {untukKop < 0 && <div className="text-xs text-red-600 mt-1">Jumlah diterima kurang dari nominal SPP.</div>}
+        {belum.length === 0 && <div className="text-xs text-stone-500 mb-3">Belum ada tagihan SPP yang tertunda. Pilih bulan yang dibayar di bawah, tagihannya otomatis dibuat dan langsung ditandai Lunas.</div>}
+        <Field label="Iuran SPP yang dibayar">
+          <Select value={f.sppId} onChange={set("sppId")}>
+            {belum.map((r) => <option key={r.id} value={r.id}>{r.bulan} {r.tahun} — {formatRupiah(r.nominal)}</option>)}
+            <option value="baru">Bulan lain (belum ada tagihannya)</option>
+          </Select>
+        </Field>
+        {baru && (
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Bulan"><Select value={f.bulan} onChange={set("bulan")}>{BULAN.map((b) => <option key={b}>{b}</option>)}</Select></Field>
+            <Field label="Tahun"><Input type="number" value={f.tahun} onChange={set("tahun")} /></Field>
+            <Field label="Nominal SPP (Rp)"><Input type="number" value={f.nominalBaru} onChange={set("nominalBaru")} /></Field>
           </div>
-          <div className="text-xs text-stone-400">SPP otomatis ditandai Lunas; selisihnya dicatat sebagai cicilan koperasi.</div>
-        </>}
-        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn>{belum.length > 0 && <Btn type="submit">Simpan</Btn>}</div>
+        )}
+        <Field label="Total uang yang diterima (Rp)"><Input type="number" value={f.total} onChange={set("total")} /></Field>
+        <Field label="Metode Pembayaran"><Select value={f.metode} onChange={set("metode")}><option>Transfer Bank</option><option>Tunai</option></Select></Field>
+        <div className="rounded-xl bg-[#E9F1EE] p-3 text-sm mb-1">
+          <div className="flex justify-between"><span>Untuk SPP</span><b>{formatRupiah(untukSpp)}</b></div>
+          <div className="flex justify-between"><span>Untuk cicilan koperasi</span><b className={untukKop < 0 ? "text-red-600" : ""}>{formatRupiah(untukKop)}</b></div>
+          {sisaKoperasi > 0 && <div className="text-xs text-stone-500 mt-1">Sisa tagihan koperasi saat ini {formatRupiah(sisaKoperasi)}</div>}
+          {untukKop < 0 && <div className="text-xs text-red-600 mt-1">Jumlah diterima kurang dari nominal SPP.</div>}
+        </div>
+        <div className="text-xs text-stone-400">SPP otomatis ditandai Lunas; selisihnya dicatat sebagai cicilan koperasi.</div>
+        <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn type="submit">Simpan</Btn></div>
       </form>
     </Modal>
   );
@@ -4862,6 +5111,9 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Ringkasan Tugas Akhir & Ujian siap cetak, ikon formal", isi: "Di tab Tugas Akhir & Ujian mahasantri ada Pratinjau & Cetak Ringkasan: dokumen berkop pondok berisi enam tahap, status, tanggal, pembimbing/penguji, nilai, karya bisnis, tanda tangan, dan QR. Ikon emoji pada tiap tahap diganti ikon garis seragam agar tampil lebih formal.", lokasi: "Akademik → Tugas Akhir & Ujian" },
+  { tgl: "Okt 2026", judul: "Transkrip Nilai", isi: "Di KRS & KHS kini ada pilihan ketiga: Transkrip. Menampilkan seluruh mata kuliah berstatus selesai per semester, nilai, bobot, total SKS, IPK, ringkasan Tugas Akhir & Ujian yang sudah lulus, dan rekap hafalan, siap dicetak dengan tanda tangan dan QR.", lokasi: "Akademik → KRS & KHS → Transkrip" },
+  { tgl: "Okt 2026", judul: "Catatan bintang (*) di KRS dan KHS", isi: "Mata kuliah yang namanya diakhiri tanda * (mis. Bahasa Arab*) memunculkan catatan kaki kecil bercetak miring di bawah tabel KRS dan KHS. Teks catatan dapat diubah administrator di Akademik → Daftar Mata Kuliah. Butuh file SQL 23-catatan-krs.sql.", lokasi: "Akademik → Daftar Mata Kuliah dan KRS & KHS" },
   { tgl: "Okt 2026", judul: "Pengampu mata kuliah lebih dari satu", isi: "Pengampu di Daftar Mata Kuliah dan form KRS bisa diisi lebih dari satu orang (misalnya musyrif dan musyrifah) dengan tombol + Tambah pengampu. Nama musyrif/musyrifah muncul sebagai saran saat mengetik. Butuh file SQL 22-kolom-akademik.sql untuk melengkapi kolom tabel akademik.", lokasi: "Akademik → Daftar Mata Kuliah dan KRS" },
   { tgl: "Okt 2026", judul: "Tahajud + Witir dan amalan sunnah tambahan", isi: "Ibadah Tahajud kini bernama Tahajud + Witir. Administrator dapat menambah amalan sunnah baru (misalnya Puasa Senin-Kamis) di Pengaturan → Amalan Sunnah Tambahan; amalan aktif otomatis muncul di Catat Semua Ibadah dan masuk rekap. Butuh file SQL 21-amalan-tambahan.sql.", lokasi: "Pengaturan → Amalan Sunnah Tambahan" },
   { tgl: "Okt 2026", judul: "Catat Semua Ibadah sekaligus", isi: "Di halaman Ibadah per mahasantri, tombol Catat Semua Ibadah membuka satu form berisi shalat lima waktu, rawatib, dhuha, tahajud, Al-Ma'tsurat, Al-Kahfi, dan puasa sunnah. Pilih capaian tiap ibadah, lalu Simpan Semua sekali jalan. Ada tombol Semua dikerjakan, dan tanggal yang sudah pernah dicatat tampil kembali untuk diperbarui.", lokasi: "Ibadah → pilih mahasantri → Catat Semua Ibadah" },
@@ -5534,7 +5786,7 @@ export default function App() {
     if (view === "akhir" && ["admin","pimpinan","akademik"].includes(profile.role)) return <TugasAkhirPantauPage profile={profile} />;
     if (view === "akademik" || view === "akhir") return profile.role === "santri" ? <AkademikSantriPage key={view} profile={profile} tabAwal={view === "akhir" ? "akhir" : "krs"} /> : <AkademikStaffPage key={view} profile={profile} tabAwal={view === "akhir" ? "akhir" : "krs"} />;
     if (view === "pengumuman") return <PengumumanPage profile={profile} />;
-    if (view === "matkul") return <DaftarMatkulPage profile={profile} />;
+    if (view === "matkul") return <DaftarMatkulPage profile={profile} brand={brand} onBrandUpdated={reloadBrand} />;
     if (view === "kalender") return <KalenderPage profile={profile} />;
     if (view === "rekap") return <RekapPencapaianPage profile={profile} />;
     if (view === "kartu") return <KartuSantriPage profile={profile} />;
