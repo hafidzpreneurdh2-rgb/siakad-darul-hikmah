@@ -1475,6 +1475,7 @@ function AkademikStaffPage({ profile, tabAwal = "krs" }) {
   );
 }
 function AkademikForm({ initial, nim, onCancel, onSubmit }) {
+  const masterForm = useTable("mata_kuliah_master");
   const [f, setF] = useState(initial || { tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_kuliah: MATA_KULIAH[0], sks: 2, status: "aktif", pengajar: "", kode_mk: "", mengulang: false, bidang_bisnis: "", nama_brand: "", deskripsi_produk: "", logo_url: "", foto_produk_url: "" });
   const [uploading, setUploading] = useState("");
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -1502,7 +1503,7 @@ function AkademikForm({ initial, nim, onCancel, onSubmit }) {
           <Input list="mataKuliahSuggestions" value={f.mata_kuliah} onChange={set("mata_kuliah")} placeholder="Tulis nama mata kuliah" />
           <datalist id="mataKuliahSuggestions">{MATA_KULIAH.map((m) => <option key={m} value={m} />)}</datalist>
         </Field>
-        <Field label="Pengajar / Pengampu"><PengampuInput value={f.pengajar} onChange={(v) => setF({ ...f, pengajar: v })} /></Field>
+        <Field label="Pengajar / Pengampu"><PengampuInput value={f.pengajar} saranTambahan={String((masterForm.rows.find((m) => m.nama === f.mata_kuliah) || {}).pengajar || "").split("/").map((x) => x.trim()).filter(Boolean)} onChange={(v) => setF({ ...f, pengajar: v })} /></Field>
         <Field label="SKS"><Input type="number" value={f.sks} onChange={set("sks")} /></Field>
 
         {isSidangBisnis && (
@@ -1548,20 +1549,20 @@ function AkademikForm({ initial, nim, onCancel, onSubmit }) {
 const ALUR_PROGRAM = ["Diajukan", "Disetujui", "Berjalan", "Lulus"];
 const ALUR_SIDANG = ["Diajukan", "Disetujui", "Terjadwal", "Lulus"];
 const TAHAPAN_AKHIR = [
-  { kode: "KPM", nama: "KPM", lengkap: "Kuliah Pengabdian Masyarakat", ikon: "🤝", prasyarat: [], alur: ALUR_PROGRAM, lblSelesai: "Tanggal Selesai",
-    syarat: "Berstatus mahasantri aktif, sudah menempuh minimal 4 semester, dan mengikuti pembekalan KPM.",
-    langkah: "Mengajukan program dan lokasi → disetujui akademik → pelaksanaan di lapangan → laporan dan penilaian pembimbing.",
-    berkas: ["Proposal / Surat Pengajuan Program", "Laporan KPM", "Dokumentasi Kegiatan", "Lembar Penilaian Pembimbing Lapangan"],
-    komponen: [{ kode: "lapangan", label: "Kinerja di Lapangan", bobot: 40 }, { kode: "laporan", label: "Laporan KPM", bobot: 40 }, { kode: "sikap", label: "Sikap & Adab", bobot: 20 }],
-    lbl: { judul: "Tema / Program Pengabdian", pembimbing: "Pembimbing Lapangan", penguji: "Penilai", lokasi: "Lokasi / Mitra", tgl: "Tanggal Mulai" } },
-  { kode: "Magang", nama: "Magang", lengkap: "Magang Usaha / Profesi", ikon: "💼", prasyarat: ["KPM"], alur: ALUR_PROGRAM, lblSelesai: "Tanggal Selesai",
-    syarat: "KPM sudah dinyatakan lulus, serta ada surat penerimaan dari tempat magang.",
+  { kode: "Magang", nama: "Magang", lengkap: "Magang Usaha / Profesi", ikon: "💼", prasyarat: [], alur: ALUR_PROGRAM, lblSelesai: "Tanggal Selesai",
+    syarat: "Berstatus mahasantri aktif, sudah menempuh minimal 4 semester, dan ada surat penerimaan dari tempat magang.",
     langkah: "Mengajukan tempat dan rencana magang → disetujui akademik → pelaksanaan dan logbook → laporan, penilaian pembimbing dan mitra.",
     berkas: ["Surat Penerimaan dari Mitra", "Logbook Harian", "Laporan Magang", "Penilaian Pembimbing Mitra"],
     komponen: [{ kode: "mitra", label: "Penilaian Pembimbing Mitra", bobot: 40 }, { kode: "laporan", label: "Laporan Magang", bobot: 30 }, { kode: "pondok", label: "Penilaian Pembimbing Pondok", bobot: 30 }],
     lbl: { judul: "Bidang / Posisi Magang", pembimbing: "Pembimbing Pondok", penguji: "Pembimbing Mitra", lokasi: "Tempat Magang (Perusahaan / Mitra)", tgl: "Tanggal Mulai" } },
-  { kode: "Sidang Akhir Bisnis", nama: "Sidang Akhir Bisnis", lengkap: "Sidang Akhir Bisnis (Tugas Akhir Kewirausahaan)", ikon: "📈", prasyarat: ["Magang"], alur: ALUR_SIDANG,
-    syarat: "Magang sudah lulus, laporan bisnis disetujui pembimbing, dan nilai matakuliah kewirausahaan sudah lengkap.",
+  { kode: "KPM", nama: "KPM", lengkap: "Kuliah Pengabdian Masyarakat", ikon: "🤝", prasyarat: ["Magang"], alur: ALUR_PROGRAM, lblSelesai: "Tanggal Selesai",
+    syarat: "Magang sudah dinyatakan lulus dan mengikuti pembekalan KPM.",
+    langkah: "Mengajukan program dan lokasi → disetujui akademik → pelaksanaan di lapangan → laporan dan penilaian pembimbing.",
+    berkas: ["Proposal / Surat Pengajuan Program", "Laporan KPM", "Dokumentasi Kegiatan", "Lembar Penilaian Pembimbing Lapangan"],
+    komponen: [{ kode: "lapangan", label: "Kinerja di Lapangan", bobot: 40 }, { kode: "laporan", label: "Laporan KPM", bobot: 40 }, { kode: "sikap", label: "Sikap & Adab", bobot: 20 }],
+    lbl: { judul: "Tema / Program Pengabdian", pembimbing: "Pembimbing Lapangan", penguji: "Penilai", lokasi: "Lokasi / Mitra", tgl: "Tanggal Mulai" } },
+  { kode: "Sidang Akhir Bisnis", nama: "Sidang Akhir Bisnis", lengkap: "Sidang Akhir Bisnis (Tugas Akhir Kewirausahaan)", ikon: "📈", prasyarat: ["Magang", "KPM"], alur: ALUR_SIDANG,
+    syarat: "Magang dan KPM sudah lulus, laporan bisnis disetujui pembimbing, dan nilai matakuliah kewirausahaan sudah lengkap.",
     langkah: "Mengajukan sidang beserta laporan bisnis → persetujuan pembimbing → penjadwalan → presentasi dan tanya jawab → penilaian (lulus / revisi / mengulang).",
     berkas: ["Logo Brand", "Foto Produk 1", "Foto Produk 2", "Foto Produk 3", "Proposal / Rencana Bisnis", "Laporan Akhir Bisnis", "Slide Presentasi", "Berita Acara Sidang"],
     foto: ["Logo Brand", "Foto Produk 1", "Foto Produk 2", "Foto Produk 3"], fotoWajib: ["Logo Brand", "Foto Produk 1"],
@@ -1574,16 +1575,21 @@ const TAHAPAN_AKHIR = [
     berkas: ["Surat Rekomendasi Musyrif", "Berita Acara Munaqasyah"],
     komponen: [{ kode: "hafalan", label: "Kelancaran Hafalan", bobot: 50 }, { kode: "tajwid", label: "Tajwid & Makhraj", bobot: 30 }, { kode: "adab", label: "Adab & Sikap Ujian", bobot: 20 }],
     lbl: { judul: "Materi / Cakupan Ujian", pembimbing: "Musyrif Pembimbing", penguji: "Tim Penguji", lokasi: "Tempat Ujian", tgl: "Tanggal Ujian" } },
-  { kode: "Syahadah Kubro", nama: "Syahadah Kubro", lengkap: "Syahadah Kubro (Setoran 30 Juz Sekali Duduk)", ikon: "🏅", prasyarat: ["Sidang Munaqasyah"], alur: ALUR_SIDANG, duaHari: true, lblSelesai: "Tanggal Selesai (Hari ke-2)",
-    syarat: "Sidang Munaqasyah sudah lulus dan hafalan 30 juz siap disetorkan.",
+  { kode: "Syahadah Kubro", nama: "Syahadah Kubro", lengkap: "Syahadah Kubro (Setoran 30 Juz Sekali Duduk)", ikon: "🏅", prasyarat: [], alur: ALUR_SIDANG, duaHari: true, lblSelesai: "Tanggal Selesai (Hari ke-2)",
+    syarat: "Capaian Al-Qur'an: Ziyadah 30 juz sudah selesai dan sudah Tasmi'. Tahap ini tidak bergantung pada tahap tugas akhir lain.", syaratQuran: true,
     langkah: "Mengajukan Syahadah Kubro → verifikasi kesiapan oleh musyrif → penjadwalan 2 hari → setoran 30 juz sekali duduk (hari ke-1 dan hari ke-2) di hadapan tim penyimak → penilaian dan penyerahan syahadah.",
     berkas: ["Berita Acara Syahadah Kubro", "Dokumentasi Pelaksanaan", "Salinan Syahadah"],
     lbl: { judul: "Nomor Syahadah / Keterangan", pembimbing: "Musyrif Pembimbing", penguji: "Tim Penyimak / Penguji", lokasi: "Tempat Pelaksanaan", tgl: "Tanggal Mulai (Hari ke-1)" } },
-  { kode: "Pengambilan Sanad", nama: "Pengambilan Sanad", lengkap: "Pengambilan Sanad Al-Qur'an", ikon: "📜", prasyarat: ["Sidang Munaqasyah"], alur: ALUR_SIDANG,
-    syarat: "Sidang Munaqasyah sudah lulus dan mendapat izin dari guru pemberi sanad.",
+  { kode: "Pengambilan Sanad", nama: "Pengambilan Sanad", lengkap: "Pengambilan Sanad Al-Qur'an", ikon: "📜", prasyarat: ["Syahadah Kubro"], alur: ALUR_SIDANG,
+    syarat: "Syahadah Kubro sudah lulus dan mendapat izin dari guru pemberi sanad.",
     langkah: "Mengajukan pengambilan sanad → izin guru pemberi sanad → penjadwalan talaqqi → prosesi dan penyimakan → pencatatan sanad.",
     berkas: ["Surat Izin Guru Pemberi Sanad", "Salinan Sanad"],
     lbl: { judul: "Jalur / Riwayat Sanad", pembimbing: "Guru Pemberi Sanad", penguji: "Saksi / Penyimak", lokasi: "Tempat Pengambilan", tgl: "Tanggal Pengambilan" } },
+  { kode: "Wisuda", nama: "Wisuda", lengkap: "Pengajuan dan Pelaksanaan Wisuda", ikon: "🎓", prasyarat: ["Magang", "KPM", "Sidang Akhir Bisnis", "Sidang Munaqasyah", "Syahadah Kubro", "Pengambilan Sanad"], alur: ALUR_SIDANG, cekKeuangan: true,
+    syarat: "Seluruh tahap tugas akhir dan ujian sudah lulus, serta administrasi (SPP dan koperasi) sudah lunas.",
+    langkah: "Mengajukan wisuda → verifikasi kelengkapan oleh akademik → penetapan jadwal → pelaksanaan wisuda → pencatatan kelulusan.",
+    berkas: ["Formulir Pendaftaran Wisuda", "Pas Foto", "Bukti Pelunasan Administrasi", "Salinan Transkrip Nilai"],
+    lbl: { judul: "Nomor Ijazah / Keterangan", pembimbing: "Verifikator Akademik", penguji: "Pejabat Penandatangan", lokasi: "Tempat Wisuda", tgl: "Tanggal Wisuda" } },
 ];
 const STATUS_TAHAP_TONE = { Diajukan: "blue", Disetujui: "gold", Terjadwal: "gold", Berjalan: "gold", Revisi: "gold", Lulus: "green", "Tidak Lulus": "red", Ditolak: "red" };
 const STATUS_TAHAP_AKHIR = ["Lulus", "Tidak Lulus", "Ditolak"];
@@ -1620,6 +1626,8 @@ function TugasAkhirPanel({ nim, profile, rows, reload }) {
   const quranT = useTable("quran_log");
   const [form, setForm] = useState(null);
   const [lihatCetak, setLihatCetak] = useState(false);
+  const sppPanelT = useTable("spp");
+  const lihatKeuangan = ["admin", "pimpinan", "santri"].includes(profile.role);
   const santriPanelT = useTable("santri");
   const santriPanel = santriPanelT.rows.find((x) => x.nim === nim);
   const mine = rows.filter((r) => r.nim === nim);
@@ -1662,12 +1670,13 @@ function TugasAkhirPanel({ nim, profile, rows, reload }) {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="max-w-xl">
             <h3 className="font-serif-dh text-lg text-[#0B3B36] font-semibold">Perjalanan Tugas Akhir & Ujian</h3>
-            <p className="text-xs text-stone-500 mt-1 leading-relaxed">KPM → Magang → Sidang Akhir Bisnis. Sidang Munaqasyah berjalan paralel (butuh Syahadah), lalu Syahadah Kubro dan Pengambilan Sanad setelah Munaqasyah lulus.</p>
+            <p className="text-xs text-stone-500 mt-1 leading-relaxed">Magang → KPM → Sidang Akhir Bisnis. Sidang Munaqasyah dan Syahadah Kubro tidak bergantung pada tahap lain, tetapi Syahadah Kubro butuh Ziyadah 30 juz dan Tasmi' di Capaian Al-Qur'an. Pengambilan Sanad setelah Syahadah Kubro. Wisuda dapat diajukan setelah semua tahap lulus.</p>
           </div>
           <div className="text-right"><button type="button" onClick={() => setLihatCetak(!lihatCetak)} className="text-xs font-bold text-[#145048] underline mb-2 block ml-auto">{lihatCetak ? "Tutup Pratinjau Cetak" : "Pratinjau & Cetak Ringkasan"}</button><div className="text-3xl font-extrabold text-[#0B3B36] leading-none">{lulus}<span className="text-base text-stone-400 font-bold">/{TAHAPAN_AKHIR.length}</span></div><div className="text-[0.6875rem] text-stone-400 mt-1 uppercase tracking-wider">tahap lulus</div></div>
         </div>
         <div className="h-1.5 bg-stone-100 rounded-full mt-4 overflow-hidden"><div className="h-full bg-gradient-to-r from-[#2A9D8F] to-[#C9A227] transition-all" style={{ width: `${(lulus / TAHAPAN_AKHIR.length) * 100}%` }} /></div>
-        {lulus === TAHAPAN_AKHIR.length && <div className="mt-3 text-sm font-bold text-[#0F4A44] bg-[#E9F1EE] rounded-xl px-3 py-2">✅ Seluruh tahapan sudah lulus — mahasantri layak diproses untuk kelulusan.</div>}
+        {lulus === TAHAPAN_AKHIR.length - 1 && !tahapLulus(mine, "Wisuda") && <div className="mt-3 text-sm font-bold text-[#8A6A2A] bg-[#FBF3DC] rounded-xl px-3 py-2">Semua tahap sebelum wisuda sudah lulus — mahasantri layak mengajukan wisuda.</div>}
+        {lulus === TAHAPAN_AKHIR.length && <div className="mt-3 text-sm font-bold text-[#0F4A44] bg-[#E9F1EE] rounded-xl px-3 py-2">✅ Seluruh tahapan, termasuk wisuda, sudah dinyatakan lulus.</div>}
       </Card>
 
       <div>
@@ -1677,9 +1686,11 @@ function TugasAkhirPanel({ nim, profile, rows, reload }) {
           const belum = cfg.prasyarat.filter((k) => !tahapLulus(mine, k));
           const selesai = tahapLulus(mine, cfg.kode);
           const aktif = r && !STATUS_TAHAP_AKHIR.includes(r.status);
-          const bisaAjukan = !aktif && !selesai && belum.length === 0;
+          const bisaAjukan = !aktif && !selesai && belum.length === 0 && quranOk;
           const next = aktif ? langkahBerikut(cfg, r.status) : null;
-          const terkunci = !r && belum.length > 0;
+          const juzSelesai = (santriPanel?.juz_dikuasai || []).length;
+          const quranOk = !cfg.syaratQuran || (juzSelesai >= 30 && tasmi >= 1);
+          const terkunci = !r && (belum.length > 0 || !quranOk);
           const berkasR = (r && r.berkas) || {};
           const jmlBerkas = cfg.berkas.filter((b) => berkasR[b]).length;
           const kom = (r && r.komponen) || {};
@@ -1718,7 +1729,9 @@ function TugasAkhirPanel({ nim, profile, rows, reload }) {
                       <div><b>Proses:</b> {cfg.langkah}</div>
                     </div>
                   )}
-                  {terkunci && <div className="text-xs text-[#8A6A2A] mt-2">🔒 Menunggu tahap lulus: {belum.join(", ")}</div>}
+                  {terkunci && <div className="text-xs text-[#8A6A2A] mt-2">Menunggu: {[belum.length ? "tahap " + belum.join(", ") : "", !quranOk ? "Ziyadah 30 juz dan Tasmi'" : ""].filter(Boolean).join(" · ")}</div>}
+                  {cfg.syaratQuran && !selesai && <div className="text-xs mt-2 text-stone-500">Capaian Al-Qur'an: Ziyadah <b className={juzSelesai >= 30 ? "text-[#0F4A44]" : "text-red-600"}>{juzSelesai}/30 juz</b> · Tasmi' <b className={tasmi ? "text-[#0F4A44]" : "text-red-600"}>{tasmi}x</b></div>}
+                  {cfg.cekKeuangan && !selesai && lihatKeuangan && (() => { const tg = sppPanelT.rows.filter((x) => x.nim === nim && x.status !== "Lunas").reduce((a, x) => a + Number(x.nominal || 0), 0); return <div className="text-xs mt-2 text-stone-500">Administrasi SPP: {tg > 0 ? <b className="text-red-600">tertunggak {formatRupiah(tg)}</b> : <b className="text-[#0F4A44]">tidak ada tunggakan</b>}</div>; })()}
                   {cfg.cekQuran && !selesai && <div className="text-xs mt-2 text-stone-500">Capaian Al-Qur'an tercatat: Tasmi' <b className={tasmi ? "text-[#0F4A44]" : "text-red-600"}>{tasmi}x</b> · Syahadah <b className={syahadah ? "text-[#0F4A44]" : "text-red-600"}>{syahadah}x</b></div>}
 
                   {r && (
@@ -1908,6 +1921,7 @@ function TugasAkhirPantauPage({ profile }) {
   const staff = canEdit(profile.role, "tahapan_akhir");
   const santriT = useTable("santri");
   const tahapT = useTable("tahapan_akhir");
+  const quranPantauT = useTable("quran_log");
   const [mode, setMode] = useState("pengajuan");
   const [tahap, setTahap] = useState("Semua");
   const [status, setStatus] = useState("Perlu tindakan");
@@ -1944,7 +1958,8 @@ function TugasAkhirPantauPage({ profile }) {
         const mine = rowsNim(s.nim);
         const r = tahapTerakhir(mine, cfgSiap.kode);
         const aktifR = r && !STATUS_TAHAP_AKHIR.includes(r.status);
-        return !aktifR && !tahapLulus(mine, cfgSiap.kode) && cfgSiap.prasyarat.every((k) => tahapLulus(mine, k));
+        const quranOk = !cfgSiap.syaratQuran || (((s.juz_dikuasai || []).length >= 30) && quranPantauT.rows.some((l) => l.nim === s.nim && l.jenis === "Tasmi'"));
+        return !aktifR && !tahapLulus(mine, cfgSiap.kode) && cfgSiap.prasyarat.every((k) => tahapLulus(mine, k)) && quranOk;
       })
     : [];
 
@@ -1982,7 +1997,7 @@ function TugasAkhirPantauPage({ profile }) {
     <div>
       <PageHeader title="Monitoring Tugas Akhir & Ujian" sub={totalTindakan ? `${totalTindakan} pengajuan menunggu tindakan` : "Tidak ada pengajuan yang menunggu tindakan"} actions={mode === "pengajuan" ? <Btn tone="ghost" onClick={ekspor}>Unduh Excel</Btn> : null} />
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-5">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3 mb-5">
         {ringkas.map(({ cfg, tindakan, berjalan, lulus }) => (
           <button key={cfg.kode} type="button" onClick={() => { setTahap(tahap === cfg.kode ? "Semua" : cfg.kode); setStatus("Semua"); }}
             className={`text-left rounded-2xl p-3.5 bg-white border transition ${tahap === cfg.kode ? "border-[#0B3B36] ring-1 ring-[#0B3B36]" : "border-stone-200 hover:border-stone-300"}`}>
@@ -2051,7 +2066,7 @@ function TugasAkhirPantauPage({ profile }) {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <div className="px-4 py-3 text-xs text-stone-500 bg-stone-50 border-b border-stone-100">Mahasantri aktif yang sudah memenuhi prasyarat <b>{cfgSiap?.nama}</b> {cfgSiap && cfgSiap.prasyarat.length ? `(${cfgSiap.prasyarat.join(", ")} lulus)` : ""} tetapi belum mengajukan. Total: <b>{siap.length}</b>.</div>
+            <div className="px-4 py-3 text-xs text-stone-500 bg-stone-50 border-b border-stone-100">Mahasantri aktif yang sudah memenuhi prasyarat <b>{cfgSiap?.nama}</b> {cfgSiap && cfgSiap.prasyarat.length ? `(${cfgSiap.prasyarat.join(", ")} lulus)` : ""}{cfgSiap && cfgSiap.syaratQuran ? " (Ziyadah 30 juz dan Tasmi')" : ""} tetapi belum mengajukan. Total: <b>{siap.length}</b>.</div>
             <table className="w-full text-sm">
               <tbody>
                 {siap.map((s) => (
@@ -2256,6 +2271,12 @@ function AmbilMatkulModal({ santri, semuaSantri, akRows, onCancel, onDone }) {
   const [target, setTarget] = useState("satu");
   const [dipilih, setDipilih] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [pilihNama, setPilihNama] = useState({});
+  const [tambahan, setTambahan] = useState({});
+  const namaMaster = (m) => String(m.pengajar || "").split("/").map((x) => x.trim()).filter(Boolean);
+  const terpilih = (m) => pilihNama[m.id] ?? namaMaster(m);
+  const pengajarAkhir = (m) => [...terpilih(m), ...String(tambahan[m.id] || "").split("/").map((x) => x.trim()).filter(Boolean)].join(" / ");
+  const gantiNama = (m, n) => { const sekarang = terpilih(m); setPilihNama({ ...pilihNama, [m.id]: sekarang.includes(n) ? sekarang.filter((x) => x !== n) : [...sekarang, n] }); };
   const sem = semester || semuaSem[0] || 1;
   const jenis = semesterJenis(sem);
   const daftar = masterT.rows.filter((m) => Number(m.semester_ke) === Number(sem)).sort((a, b) => (a.urutan || 0) - (b.urutan || 0));
@@ -2264,7 +2285,7 @@ function AmbilMatkulModal({ santri, semuaSantri, akRows, onCancel, onDone }) {
   const sasaran = target === "angkatan" ? rekanAngkatan : [santri];
   const ada = (nim, m) => akRows.some((r) => r.nim === nim && r.tahun_ajaran === ta && r.semester === jenis && ((m.kode_mk && r.kode_mk === m.kode_mk) || r.mata_kuliah === m.nama));
   const baru = [];
-  sasaran.forEach((x) => daftar.filter((m) => aktifIds.includes(m.id)).forEach((m) => { if (!ada(x.nim, m)) baru.push({ nim: x.nim, tahun_ajaran: ta, semester: jenis, kode_mk: m.kode_mk || "", mata_kuliah: m.nama, sks: Number(m.sks), pengajar: m.pengajar || "", status: "aktif" }); }));
+  sasaran.forEach((x) => daftar.filter((m) => aktifIds.includes(m.id)).forEach((m) => { if (!ada(x.nim, m)) baru.push({ nim: x.nim, tahun_ajaran: ta, semester: jenis, kode_mk: m.kode_mk || "", mata_kuliah: m.nama, sks: Number(m.sks), pengajar: pengajarAkhir(m), status: "aktif" }); }));
   async function simpan() {
     setBusy(true);
     const { error } = await supabase.from("akademik").insert(baru);
@@ -2289,15 +2310,26 @@ function AmbilMatkulModal({ santri, semuaSantri, akRows, onCancel, onDone }) {
           </Field>
           <div className="border border-stone-200 rounded-xl divide-y divide-stone-100 max-h-64 overflow-y-auto">
             {daftar.map((m) => (
-              <label key={m.id} className="flex items-center gap-3 px-3 py-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={aktifIds.includes(m.id)} onChange={(e) => setDipilih(e.target.checked ? [...aktifIds, m.id] : aktifIds.filter((x) => x !== m.id))} />
-                <span className="flex-1">{m.nama}<span className="text-xs text-stone-400 ml-2">{m.kode_mk || ""}</span></span>
-                <span className="text-xs text-stone-500">{m.sks} SKS</span>
-              </label>
+              <div key={m.id} className="px-3 py-2">
+                <label className="flex items-center gap-3 text-sm cursor-pointer">
+                  <input type="checkbox" checked={aktifIds.includes(m.id)} onChange={(e) => setDipilih(e.target.checked ? [...aktifIds, m.id] : aktifIds.filter((x) => x !== m.id))} />
+                  <span className="flex-1">{m.nama}<span className="text-xs text-stone-400 ml-2">{m.kode_mk || ""}</span></span>
+                  <span className="text-xs text-stone-500">{m.sks} SKS</span>
+                </label>
+                {aktifIds.includes(m.id) && (
+                  <div className="ml-7 mt-1.5 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[0.6875rem] text-stone-400">Pengampu:</span>
+                    {namaMaster(m).map((n) => (
+                      <button key={n} type="button" onClick={() => gantiNama(m, n)} className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${terpilih(m).includes(n) ? "bg-[#0B3B36] text-white border-[#0B3B36]" : "bg-white text-stone-400 border-stone-200"}`}>{n}</button>
+                    ))}
+                    <input value={tambahan[m.id] || ""} onChange={(e) => setTambahan({ ...tambahan, [m.id]: e.target.value.replace(/\//g, " ") })} placeholder={namaMaster(m).length ? "+ pengampu lain" : "Nama pengampu"} className="px-2 py-0.5 border border-stone-200 rounded-full text-xs w-36" />
+                  </div>
+                )}
+              </div>
             ))}
             {daftar.length === 0 && <div className="p-4 text-sm text-stone-400">Belum ada mata kuliah di semester ini.</div>}
           </div>
-          <div className="text-xs text-stone-500 mt-2">Akan ditambahkan: <b>{baru.length}</b> baris KRS. Mata kuliah yang sudah ada di KRS tahun ajaran dan semester yang sama dilewati otomatis.</div>
+          <div className="text-xs text-stone-500 mt-2">Akan ditambahkan: <b>{baru.length}</b> baris KRS. Mata kuliah yang sudah ada di KRS tahun ajaran dan semester yang sama dilewati otomatis. Klik nama pengampu untuk mengaktifkan atau menonaktifkannya pada semester ini; pengampu hanya tersimpan di KRS semester ini, tidak mengubah daftar.</div>
           <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn onClick={simpan} disabled={busy || baru.length === 0}>Tambahkan ke KRS</Btn></div>
         </>
       )}
@@ -2578,9 +2610,9 @@ function AmalanKustomManager() {
 
 /* Pengampu bisa lebih dari satu (mis. musyrif dan musyrifah): disimpan dipisah " / " */
 function normalisasiPengampu(v) { return String(v || "").split("/").map((x) => x.trim()).filter(Boolean).join(" / "); }
-function PengampuInput({ value, onChange }) {
+function PengampuInput({ value, onChange, saranTambahan = [] }) {
   const profT = useTable("profiles");
-  const saran = [...new Set(profT.rows.filter((p) => ["musyrif", "musyrifah"].includes(p.role)).map((p) => p.nama).filter(Boolean))];
+  const saran = [...new Set([...saranTambahan, ...profT.rows.filter((p) => ["musyrif", "musyrifah"].includes(p.role)).map((p) => p.nama).filter(Boolean)])];
   const arr = String(value || "").split("/").map((x) => x.replace(/^\s+/, ""));
   const daftar = arr.length ? arr : [""];
   const ubah = (i, v) => onChange(daftar.map((x, j) => (j === i ? v : x)).join(" / "));
@@ -2696,6 +2728,7 @@ function IkonTahap({ kode, size = 20 }) {
   if (kode === "Sidang Akhir Bisnis") return <svg {...p}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>;
   if (kode === "Sidang Munaqasyah") return <svg {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>;
   if (kode === "Syahadah Kubro") return <svg {...p}><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" /></svg>;
+  if (kode === "Wisuda") return <svg {...p}><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>;
   return <svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>;
 }
 function IkonCentang({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>; }
@@ -5111,6 +5144,8 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Syarat Syahadah Kubro mengikuti Capaian Al-Qur'an", isi: "Syahadah Kubro terbuka hanya jika Ziyadah 30 juz sudah selesai (juz dikuasai 30) dan sudah ada catatan Tasmi'. Kartu tahap menampilkan juz dan Tasmi' saat ini, dan Monitoring → Siap Diajukan hanya menampilkan yang memenuhi syarat. Admin/Akademik tetap dapat Input Manual untuk data lama.", lokasi: "Akademik → Tugas Akhir & Ujian" },
+  { tgl: "Okt 2026", judul: "Urutan tugas akhir diperbarui, pengajuan Wisuda, pilihan pengampu per semester", isi: "Alur menjadi Magang lalu KPM lalu Sidang Akhir Bisnis; Sidang Munaqasyah dan Syahadah Kubro berdiri sendiri; Pengambilan Sanad setelah Syahadah Kubro; Wisuda sebagai tahap terakhir setelah semua tahap lulus (dengan penanda tunggakan SPP). Di Ambil dari Daftar, pengampu tiap mata kuliah dapat dipilih per semester tanpa input ganda.", lokasi: "Akademik → Tugas Akhir & Ujian dan KRS" },
   { tgl: "Okt 2026", judul: "Ringkasan Tugas Akhir & Ujian siap cetak, ikon formal", isi: "Di tab Tugas Akhir & Ujian mahasantri ada Pratinjau & Cetak Ringkasan: dokumen berkop pondok berisi enam tahap, status, tanggal, pembimbing/penguji, nilai, karya bisnis, tanda tangan, dan QR. Ikon emoji pada tiap tahap diganti ikon garis seragam agar tampil lebih formal.", lokasi: "Akademik → Tugas Akhir & Ujian" },
   { tgl: "Okt 2026", judul: "Transkrip Nilai", isi: "Di KRS & KHS kini ada pilihan ketiga: Transkrip. Menampilkan seluruh mata kuliah berstatus selesai per semester, nilai, bobot, total SKS, IPK, ringkasan Tugas Akhir & Ujian yang sudah lulus, dan rekap hafalan, siap dicetak dengan tanda tangan dan QR.", lokasi: "Akademik → KRS & KHS → Transkrip" },
   { tgl: "Okt 2026", judul: "Catatan bintang (*) di KRS dan KHS", isi: "Mata kuliah yang namanya diakhiri tanda * (mis. Bahasa Arab*) memunculkan catatan kaki kecil bercetak miring di bawah tabel KRS dan KHS. Teks catatan dapat diubah administrator di Akademik → Daftar Mata Kuliah. Butuh file SQL 23-catatan-krs.sql.", lokasi: "Akademik → Daftar Mata Kuliah dan KRS & KHS" },
