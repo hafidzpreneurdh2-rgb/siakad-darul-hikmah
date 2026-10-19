@@ -1286,7 +1286,7 @@ function AkademikStaffPage({ profile, tabAwal = "krs" }) {
 
         <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>Nama Mahasantri</span><span>: {santri?.nama}</span></div>
         <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>NIM</span><span>: {santri?.nim}</span></div>
-        {dokType === "Transkrip" ? <div style={{ marginBottom: 14 }} /> : <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Semester</span><span>: {semesterTerbaru?.semester || "-"} {semesterTerbaru?.tahun_ajaran || ""}</span></div>}
+        {dokType === "Transkrip" ? <div style={{ marginBottom: 14 }} /> : <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Semester</span><span>: {semesterKeDari(records, semesterTerbaru?.tahun_ajaran, semesterTerbaru?.semester)}</span></div>}
 
         {dokType === "Transkrip" ? (
         <TranskripNilai records={records} santri={santri} tahap={tahapT.rows.filter((t) => t.nim === nim)} />
@@ -1476,7 +1476,7 @@ function AkademikStaffPage({ profile, tabAwal = "krs" }) {
 }
 function AkademikForm({ initial, nim, onCancel, onSubmit }) {
   const masterForm = useTable("mata_kuliah_master");
-  const [f, setF] = useState(initial || { tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_kuliah: MATA_KULIAH[0], sks: 2, status: "aktif", pengajar: "", kode_mk: "", mengulang: false, bidang_bisnis: "", nama_brand: "", deskripsi_produk: "", logo_url: "", foto_produk_url: "" });
+  const [f, setF] = useState(initial || { tahun_ajaran: `${nowYear}/${nowYear + 1}`, semester: "Ganjil", mata_kuliah: MATA_KULIAH[0], sks: 2, status: "aktif", pengajar: "", kode_mk: "", mengulang: false, semester_ke: "", bidang_bisnis: "", nama_brand: "", deskripsi_produk: "", logo_url: "", foto_produk_url: "" });
   const [uploading, setUploading] = useState("");
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   function uploadFile(field) {
@@ -1495,9 +1495,10 @@ function AkademikForm({ initial, nim, onCancel, onSubmit }) {
   const isSidangBisnis = f.mata_kuliah === "Sidang Bisnis";
   return (
     <Modal title={initial ? "Edit Mata Kuliah" : "Tambah Mata Kuliah"} onClose={onCancel}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit({ ...f, pengajar: normalisasiPengampu(f.pengajar) }); }}>
+      <form onSubmit={(e) => { e.preventDefault(); const hasil = { ...f, pengajar: normalisasiPengampu(f.pengajar), semester_ke: f.semester_ke === "" || f.semester_ke == null ? null : Number(f.semester_ke) }; if (hasil.semester_ke == null) delete hasil.semester_ke; onSubmit(hasil); }}>
         <Field label="Tahun Ajaran"><Input value={f.tahun_ajaran} onChange={set("tahun_ajaran")} /></Field>
         <Field label="Semester"><Select value={f.semester} onChange={set("semester")}><option>Ganjil</option><option>Genap</option></Select></Field>
+        <Field label="Semester ke- (1, 2, 3 ... untuk dicetak di KRS)"><Input type="number" min={1} max={12} value={f.semester_ke ?? ""} onChange={set("semester_ke")} placeholder="cth. 2" /></Field>
         <Field label="Kode MK (opsional)"><Input value={f.kode_mk} onChange={set("kode_mk")} placeholder="cth. MKQ 1.1.1" /></Field>
         <Field label="Mata Kuliah">
           <Input list="mataKuliahSuggestions" value={f.mata_kuliah} onChange={set("mata_kuliah")} placeholder="Tulis nama mata kuliah" />
@@ -2274,7 +2275,7 @@ function AmbilMatkulModal({ santri, semuaSantri, akRows, onCancel, onDone }) {
   const [pilihNama, setPilihNama] = useState({});
   const [tambahan, setTambahan] = useState({});
   const namaMaster = (m) => String(m.pengajar || "").split("/").map((x) => x.trim()).filter(Boolean);
-  const terpilih = (m) => pilihNama[m.id] ?? namaMaster(m);
+  const terpilih = (m) => pilihNama[m.id] ?? (namaMaster(m).length === 1 ? namaMaster(m) : []);
   const pengajarAkhir = (m) => [...terpilih(m), ...String(tambahan[m.id] || "").split("/").map((x) => x.trim()).filter(Boolean)].join(" / ");
   const gantiNama = (m, n) => { const sekarang = terpilih(m); setPilihNama({ ...pilihNama, [m.id]: sekarang.includes(n) ? sekarang.filter((x) => x !== n) : [...sekarang, n] }); };
   const sem = semester || semuaSem[0] || 1;
@@ -2285,10 +2286,11 @@ function AmbilMatkulModal({ santri, semuaSantri, akRows, onCancel, onDone }) {
   const sasaran = target === "angkatan" ? rekanAngkatan : [santri];
   const ada = (nim, m) => akRows.some((r) => r.nim === nim && r.tahun_ajaran === ta && r.semester === jenis && ((m.kode_mk && r.kode_mk === m.kode_mk) || r.mata_kuliah === m.nama));
   const baru = [];
-  sasaran.forEach((x) => daftar.filter((m) => aktifIds.includes(m.id)).forEach((m) => { if (!ada(x.nim, m)) baru.push({ nim: x.nim, tahun_ajaran: ta, semester: jenis, kode_mk: m.kode_mk || "", mata_kuliah: m.nama, sks: Number(m.sks), pengajar: pengajarAkhir(m), status: "aktif" }); }));
+  sasaran.forEach((x) => daftar.filter((m) => aktifIds.includes(m.id)).forEach((m) => { if (!ada(x.nim, m)) baru.push({ nim: x.nim, tahun_ajaran: ta, semester: jenis, kode_mk: m.kode_mk || "", mata_kuliah: m.nama, sks: Number(m.sks), pengajar: pengajarAkhir(m), status: "aktif", semester_ke: Number(sem) }); }));
   async function simpan() {
     setBusy(true);
-    const { error } = await supabase.from("akademik").insert(baru);
+    let { error } = await supabase.from("akademik").insert(baru);
+    if (error && /semester_ke/.test(error.message)) ({ error } = await supabase.from("akademik").insert(baru.map(({ semester_ke, ...sisa }) => sisa)));
     setBusy(false);
     if (error) alert(error.message); else onDone(baru.length);
   }
@@ -2319,6 +2321,7 @@ function AmbilMatkulModal({ santri, semuaSantri, akRows, onCancel, onDone }) {
                 {aktifIds.includes(m.id) && (
                   <div className="ml-7 mt-1.5 flex items-center gap-1.5 flex-wrap">
                     <span className="text-[0.6875rem] text-stone-400">Pengampu:</span>
+                    {namaMaster(m).length > 1 && terpilih(m).length === 0 && <span className="text-[0.6875rem] text-[#8A6A2A]">pilih salah satu atau lebih →</span>}
                     {namaMaster(m).map((n) => (
                       <button key={n} type="button" onClick={() => gantiNama(m, n)} className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${terpilih(m).includes(n) ? "bg-[#0B3B36] text-white border-[#0B3B36]" : "bg-white text-stone-400 border-stone-200"}`}>{n}</button>
                     ))}
@@ -2329,7 +2332,7 @@ function AmbilMatkulModal({ santri, semuaSantri, akRows, onCancel, onDone }) {
             ))}
             {daftar.length === 0 && <div className="p-4 text-sm text-stone-400">Belum ada mata kuliah di semester ini.</div>}
           </div>
-          <div className="text-xs text-stone-500 mt-2">Akan ditambahkan: <b>{baru.length}</b> baris KRS. Mata kuliah yang sudah ada di KRS tahun ajaran dan semester yang sama dilewati otomatis. Klik nama pengampu untuk mengaktifkan atau menonaktifkannya pada semester ini; pengampu hanya tersimpan di KRS semester ini, tidak mengubah daftar.</div>
+          <div className="text-xs text-stone-500 mt-2">Akan ditambahkan: <b>{baru.length}</b> baris KRS. Mata kuliah yang sudah ada di KRS tahun ajaran dan semester yang sama dilewati otomatis. Pilih pengampu tiap mata kuliah dengan mengklik namanya (boleh lebih dari satu). Hanya nama yang dipilih yang tercetak di KRS dan hanya berlaku untuk semester ini; Daftar Mata Kuliah tidak berubah.</div>
           <div className="flex justify-end gap-2 mt-4"><Btn tone="ghost" onClick={onCancel}>Batal</Btn><Btn onClick={simpan} disabled={busy || baru.length === 0}>Tambahkan ke KRS</Btn></div>
         </>
       )}
@@ -2609,10 +2612,34 @@ function AmalanKustomManager() {
 }
 
 /* Pengampu bisa lebih dari satu (mis. musyrif dan musyrifah): disimpan dipisah " / " */
+function semesterKeDari(records, ta, sem) {
+  const eksplisit = (records || []).filter((r) => r.tahun_ajaran === ta && r.semester === sem && r.semester_ke).map((r) => Number(r.semester_ke));
+  if (eksplisit.length) { const hit = {}; eksplisit.forEach((x) => { hit[x] = (hit[x] || 0) + 1; }); return Object.keys(hit).sort((a, b) => hit[b] - hit[a])[0]; }
+  const kunci = [...new Set((records || []).map((r) => `${r.tahun_ajaran}|${r.semester === "Ganjil" ? 1 : 2}`))].sort();
+  const i = kunci.indexOf(`${ta}|${sem === "Ganjil" ? 1 : 2}`);
+  return i >= 0 ? String(i + 1) : "-";
+}
 function normalisasiPengampu(v) { return String(v || "").split("/").map((x) => x.trim()).filter(Boolean).join(" / "); }
 function PengampuInput({ value, onChange, saranTambahan = [] }) {
   const profT = useTable("profiles");
   const saran = [...new Set([...saranTambahan, ...profT.rows.filter((p) => ["musyrif", "musyrifah"].includes(p.role)).map((p) => p.nama).filter(Boolean)])];
+  const dipilih = String(value || "").split("/").map((x) => x.trim()).filter(Boolean);
+  const kolam = [...new Set(saranTambahan)];
+  if (kolam.length > 0) {
+    // Mode pilihan: klik nama pengampu yang mengajar; yang lain boleh diketik terpisah
+    const lain = dipilih.filter((n) => !kolam.includes(n));
+    const ubah = (daftar) => onChange(daftar.join(" / "));
+    const toggle = (n) => ubah(dipilih.includes(n) ? dipilih.filter((x) => x !== n) : [...dipilih.filter((x) => kolam.includes(x)), n, ...lain]);
+    return (
+      <div>
+        <datalist id="saranPengampu">{saran.map((n) => <option key={n} value={n} />)}</datalist>
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {kolam.map((n) => <button key={n} type="button" onClick={() => toggle(n)} className={`px-3 py-1 rounded-full text-xs font-semibold border ${dipilih.includes(n) ? "bg-[#0B3B36] text-white border-[#0B3B36]" : "bg-white text-stone-400 border-stone-200 hover:border-stone-300"}`}>{n}</button>)}
+        </div>
+        <Input list="saranPengampu" value={lain.join(" / ")} onChange={(e) => ubah([...dipilih.filter((x) => kolam.includes(x)), ...e.target.value.split("/").map((x) => x.replace(/^\s+/, ""))])} placeholder="Pengampu lain (opsional)" />
+      </div>
+    );
+  }
   const arr = String(value || "").split("/").map((x) => x.replace(/^\s+/, ""));
   const daftar = arr.length ? arr : [""];
   const ubah = (i, v) => onChange(daftar.map((x, j) => (j === i ? v : x)).join(" / "));
@@ -2799,6 +2826,50 @@ function RingkasanTugasAkhirCetak({ santri, rows }) {
         <div style={{ borderTop: brand.tanda_tangan_mudir_url ? "1px solid #999" : "none", paddingTop: brand.tanda_tangan_mudir_url ? 2 : 0 }}><b>{brand.nama_mudir}</b></div>
         <div>NIP. {brand.nip_mudir || "-"}</div>
       </div>
+    </div>
+  );
+}
+
+/* Rekap setoran per jenis (Ziyadah, Murajaah, Tasmi', Tilawah, Tahsin, Talaqqi, Syahadah) */
+const JENIS_REKAP = [["Ziyadah", "hlm"], ["Murajaah", "hlm"], ["Tasmi'", "kali"], ["Tilawah", "hlm"], ["Tahsin", "hlm"], ["Talaqqi", "hlm"], ["Syahadah", "kali"]];
+function hitungJenisSetoran(quranRows, nim, saring) {
+  const baris = quranRows.filter((l) => l.nim === nim && saring(l));
+  const o = {};
+  JENIS_REKAP.forEach(([j]) => { const x = baris.filter((l) => l.jenis === j); o[j] = { hlm: x.reduce((a, l) => a + halamanLog(l), 0), kali: x.length }; });
+  return o;
+}
+function TabelSetoranJenis({ data, judul, sub }) {
+  const nilai = (v, j, u) => (u === "hlm" ? v[j].hlm : v[j].kali);
+  const total = (j, u) => data.reduce((a, x) => a + nilai(x.v, j, u), 0);
+  return (
+    <div className="mt-6">
+      <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-1">{judul}</h3>
+      {sub && <div className="text-[0.6875rem] text-stone-500 mb-3">{sub}</div>}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-3">
+        {JENIS_REKAP.map(([j, u]) => (
+          <div key={j} className="rounded-xl border border-stone-200 bg-white px-3 py-2">
+            <div className="text-[0.625rem] uppercase tracking-wide text-stone-400 font-bold">{j}</div>
+            <div className="font-serif-dh text-lg font-semibold text-[#0B3B36]">{total(j, u).toLocaleString("id-ID")}<span className="text-xs text-stone-400 ml-1">{u === "hlm" ? "hlm" : "kali"}</span></div>
+          </div>
+        ))}
+      </div>
+      <Card className="p-0 overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead><tr className="bg-stone-50 text-[0.625rem] uppercase text-stone-500">
+            <th className="p-2 text-left">Mahasantri</th>
+            {JENIS_REKAP.map(([j, u]) => <th key={j} className="p-2">{j}<div className="normal-case text-stone-400 font-normal">{u === "hlm" ? "halaman" : "kali"}</div></th>)}
+          </tr></thead>
+          <tbody>
+            {data.map(({ b, v }) => (
+              <tr key={b.s.nim} className="border-t border-stone-100 text-center">
+                <td className="p-2 text-left"><div className="font-bold text-[0.8rem]">{b.s.nama}</div><div className="text-[0.625rem] text-stone-400">{b.s.nim}</div></td>
+                {JENIS_REKAP.map(([j, u]) => { const n = nilai(v, j, u); return <td key={j} className={`p-2 ${n ? "font-bold text-[#0B3B36]" : "text-stone-300"}`}>{n || "-"}</td>; })}
+              </tr>
+            ))}
+            {data.length === 0 && <tr><td colSpan={8}><Empty text="Belum ada mahasantri." /></td></tr>}
+          </tbody>
+        </table>
+      </Card>
     </div>
   );
 }
@@ -3039,28 +3110,32 @@ function RekapPencapaian({ santriList, quranRows, ibadahRows, brand, onBack }) {
   const nimSet = new Set(santriList.map((x) => x.nim));
   const trenHal = monthsBack(6).map((m) => ({ label: m.label, value: quranRows.filter((l) => nimSet.has(l.nim) && l.jenis === "Ziyadah" && l.tanggal?.slice(0, 7) === ymOf(m)).reduce((a, l) => a + halamanLog(l), 0) }));
   const trenIb = monthsBack(6).map((m) => { const it = ibadahRows.filter((l) => nimSet.has(l.nim) && l.tanggal?.slice(0, 7) === ymOf(m)); return { label: m.label, value: it.length ? Math.round((it.filter((l) => !CAPAIAN_NEGATIF.includes(l.capaian)).length / it.length) * 100) : 0 }; });
+  const jenisBulan = baris.map((b) => ({ b, v: hitungJenisSetoran(quranRows, b.s.nim, (l) => l.tanggal?.slice(0, 7) === periode) }));
+  const jenisPekan = baris.map((b) => ({ b, v: hitungJenisSetoran(quranRows, b.s.nim, (l) => l.tanggal?.slice(0, 7) === periode && pekanDari(l.tanggal) === pk) }));
   const sel = (ok) => (ok === true ? { color: wg.hafalan, fontWeight: 700 } : ok === false ? { color: wg.ibadah_kurang, fontWeight: 700 } : { color: "#A8A29E" });
   async function unduhExcel() {
     const XLSX = await muatXLSX();
     if (mode === "pekan") {
       const aoaP = [
         [`Rekap Pencapaian Seluruh Santri — Pekan ${pk + 1} (tgl ${pekan[pk].rentang}) ${bulan} ${tahun}`], [brand.nama_pondok || ""], [],
-        ["Total hafalan baru (halaman)", wkTotal], ["Santri memenuhi target hafalan", `${wkQN} dari ${wkQD}`], ["Santri memenuhi target ibadah", `${wkIN} dari ${wkID}`], ["Rata-rata ibadah terpenuhi (%)", wkRata ?? "-"], [],
-        ["Nama", "NIM", "Hafalan (hlm)", "Target hafalan", "Status hafalan", "Ibadah (%)", "Target ibadah (%)", "Status ibadah"],
+        ["Total Ziyadah (halaman)", wkTotal], ["Santri memenuhi target Ziyadah", `${wkQN} dari ${wkQD}`], ["Santri memenuhi target ibadah", `${wkIN} dari ${wkID}`], ["Rata-rata ibadah terpenuhi (%)", wkRata ?? "-"], [],
+        ["Nama", "NIM", "Ziyadah (hlm)", "Target Ziyadah", "Status Ziyadah", "Ibadah (%)", "Target ibadah (%)", "Status ibadah"],
         ...wkUrut.map(({ b, q, ib, qOk, iOk }) => [b.s.nama, b.s.nim, q, b.tq || "-", qOk === null ? "-" : qOk ? "Tercapai" : "Belum tercapai", ib == null ? "-" : ib, b.ti, iOk === null ? "-" : iOk ? "Tercapai" : "Belum tercapai"]),
       ];
       const wsP = XLSX.utils.aoa_to_sheet(aoaP); wsP["!cols"] = [{ wch: 28 }, { wch: 14 }, ...Array(6).fill({ wch: 16 })];
       const wbP = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wbP, wsP, `Pekan ${pk + 1} ${bulan} ${tahun}`.slice(0, 31));
+      XLSX.utils.book_append_sheet(wbP, XLSX.utils.aoa_to_sheet([["Nama", "NIM", ...JENIS_REKAP.map(([j, u]) => `${j} (${u})`)], ...jenisPekan.map(({ b, v }) => [b.s.nama, b.s.nim, ...JENIS_REKAP.map(([j, u]) => (u === "hlm" ? v[j].hlm : v[j].kali))])]), "Setoran per Jenis");
       XLSX.writeFile(wbP, `Rekap-Pencapaian-Pekan${pk + 1}-${bulan}-${tahun}.xlsx`); return;
     }
     const aoa = [
       [`Rekap Pencapaian Seluruh Santri — ${bulan} ${tahun}`], [brand.nama_pondok || ""], [],
-      ["Total hafalan baru (halaman)", totalHal], ["Santri memenuhi target hafalan", `${penuhQ} dari ${adaQ}`], ["Santri memenuhi target ibadah", `${penuhI} dari ${adaI}`], ["Rata-rata ibadah terpenuhi (%)", rataIb ?? "-"], [],
-      ["Nama", "NIM", "Target hlm/pekan", "Pekan 1 (hlm)", "Pekan 2 (hlm)", "Pekan 3 (hlm)", "Pekan 4 (hlm)", "Total hlm", "Pekan tercapai (hafalan)", "Target ibadah (%)", "Pekan 1 (%)", "Pekan 2 (%)", "Pekan 3 (%)", "Pekan 4 (%)", "Pekan tercapai (ibadah)"],
+      ["Total Ziyadah (halaman)", totalHal], ["Santri memenuhi target Ziyadah", `${penuhQ} dari ${adaQ}`], ["Santri memenuhi target ibadah", `${penuhI} dari ${adaI}`], ["Rata-rata ibadah terpenuhi (%)", rataIb ?? "-"], [],
+      ["Nama", "NIM", "Target hlm/pekan", "Pekan 1 (hlm)", "Pekan 2 (hlm)", "Pekan 3 (hlm)", "Pekan 4 (hlm)", "Total hlm", "Pekan tercapai (Ziyadah)", "Target ibadah (%)", "Pekan 1 (%)", "Pekan 2 (%)", "Pekan 3 (%)", "Pekan 4 (%)", "Pekan tercapai (ibadah)"],
       ...baris.map((b) => [b.s.nama, b.s.nim, b.tq || "-", ...b.q, b.totalQ, b.qD ? `${b.qN}/${b.qD}` : "-", b.ti, ...b.ib.map((x) => (x == null ? "-" : x)), b.iD ? `${b.iN}/${b.iD}` : "-"]),
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa); ws["!cols"] = [{ wch: 28 }, { wch: 14 }, ...Array(13).fill({ wch: 14 })];
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, `Rekap ${bulan} ${tahun}`.slice(0, 31));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Nama", "NIM", ...JENIS_REKAP.map(([j, u]) => `${j} (${u})`)], ...jenisBulan.map(({ b, v }) => [b.s.nama, b.s.nim, ...JENIS_REKAP.map(([j, u]) => (u === "hlm" ? v[j].hlm : v[j].kali))])]), "Setoran per Jenis");
     XLSX.writeFile(wb, `Rekap-Pencapaian-${bulan}-${tahun}.xlsx`);
   }
   return (
@@ -3088,23 +3163,23 @@ function RekapPencapaian({ santriList, quranRows, ibadahRows, brand, onBack }) {
         {mode === "bulan" ? (
           <>
         <div className="grid grid-cols-4 gap-3 mb-4">
-          <StatCard label="Total Hafalan Baru" value={`${totalHal.toLocaleString("id-ID")} hlm`} sub={`${baris.length} mahasantri`} />
-          <StatCard label="Memenuhi Target Hafalan" value={`${penuhQ} / ${adaQ}`} sub="semua pekan berjalan" />
+          <StatCard label="Total Ziyadah" value={`${totalHal.toLocaleString("id-ID")} hlm`} sub={`${baris.length} mahasantri`} />
+          <StatCard label="Memenuhi Target Ziyadah" value={`${penuhQ} / ${adaQ}`} sub="semua pekan berjalan" />
           <StatCard label="Memenuhi Target Ibadah" value={`${penuhI} / ${adaI}`} sub="semua pekan berjalan" />
           <StatCard label="Rata-rata Ibadah Terpenuhi" value={rataIb == null ? "-" : `${rataIb}%`} />
         </div>
         <div className="grid grid-cols-2 gap-4 mb-5">
-          <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-1">Santri yang Mencapai Target Hafalan</h3><GrafikBatangPekan data={agregat("qOk")} satuan="%" max={100} warnaOk={wg.hafalan} warnaGagal={wg.ibadah_kurang} ringkasan="Persentase santri yang mencapai target hafalan tiap pekan." /></Card>
+          <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-1">Santri yang Mencapai Target Ziyadah</h3><GrafikBatangPekan data={agregat("qOk")} satuan="%" max={100} warnaOk={wg.hafalan} warnaGagal={wg.ibadah_kurang} ringkasan="Persentase santri yang mencapai target hafalan tiap pekan." /></Card>
           <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-1">Santri yang Mencapai Target Ibadah</h3><GrafikBatangPekan data={agregat("iOk")} satuan="%" max={100} warnaOk={wg.ibadah_baik} warnaGagal={wg.ibadah_kurang} ringkasan="Persentase santri yang mencapai target ibadah tiap pekan." /></Card>
         </div>
         <div className="grid grid-cols-2 gap-4 mb-5">
-          <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Tren 6 Bulan — Hafalan Baru (halaman)</h3><VerticalBars data={trenHal} color={wg.hafalan} /></Card>
+          <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Tren 6 Bulan — Ziyadah (halaman)</h3><VerticalBars data={trenHal} color={wg.hafalan} /></Card>
           <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-3">Tren 6 Bulan — Ibadah Terpenuhi (%)</h3><VerticalBars data={trenIb} color={wg.ibadah_baik} /></Card>
         </div>
         <Card className="p-0 overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="bg-stone-50 text-[0.625rem] uppercase text-stone-500"><th className="p-2 text-left" rowSpan={2}>Mahasantri</th><th className="p-2 border-l border-stone-200" colSpan={7}>Hafalan baru (halaman)</th><th className="p-2 border-l border-stone-200" colSpan={6}>Ibadah terpenuhi (%)</th></tr>
+              <tr className="bg-stone-50 text-[0.625rem] uppercase text-stone-500"><th className="p-2 text-left" rowSpan={2}>Mahasantri</th><th className="p-2 border-l border-stone-200" colSpan={7}>Ziyadah (halaman)</th><th className="p-2 border-l border-stone-200" colSpan={6}>Ibadah terpenuhi (%)</th></tr>
               <tr className="bg-stone-50 text-[0.625rem] uppercase text-stone-500"><th className="p-2 border-l border-stone-200">Target</th><th className="p-2">P1</th><th className="p-2">P2</th><th className="p-2">P3</th><th className="p-2">P4</th><th className="p-2">Total</th><th className="p-2">Tercapai</th><th className="p-2 border-l border-stone-200">Target</th><th className="p-2">P1</th><th className="p-2">P2</th><th className="p-2">P3</th><th className="p-2">P4</th><th className="p-2">Tercapai</th></tr>
             </thead>
             <tbody>
@@ -3125,19 +3200,20 @@ function RekapPencapaian({ santriList, quranRows, ibadahRows, brand, onBack }) {
           </table>
         </Card>
         <div className="text-[0.6875rem] text-stone-500 mt-2">P1 = tgl 1–7, P2 = 8–14, P3 = 15–21, P4 = 22–akhir bulan. Hijau = target tercapai, merah = belum tercapai, "-" = belum ada data atau target belum diisi.</div>
+        <TabelSetoranJenis data={jenisBulan} judul={`Rekap Setoran per Jenis — ${bulan} ${tahun}`} sub="Jumlah halaman untuk Ziyadah, Murajaah, Tilawah, Tahsin, dan Talaqqi; jumlah kali untuk Tasmi' dan Syahadah." />
           </>
         ) : (
           <>
         <div className="grid grid-cols-4 gap-3 mb-4">
-          <StatCard label="Total Hafalan Baru" value={`${wkTotal.toLocaleString("id-ID")} hlm`} sub={`Pekan ${pk + 1}, tgl ${pekan[pk].rentang}`} />
-          <StatCard label="Memenuhi Target Hafalan" value={`${wkQN} / ${wkQD}`} sub="santri bertarget" />
+          <StatCard label="Total Ziyadah" value={`${wkTotal.toLocaleString("id-ID")} hlm`} sub={`Pekan ${pk + 1}, tgl ${pekan[pk].rentang}`} />
+          <StatCard label="Memenuhi Target Ziyadah" value={`${wkQN} / ${wkQD}`} sub="santri bertarget" />
           <StatCard label="Memenuhi Target Ibadah" value={`${wkIN} / ${wkID}`} sub="santri bercatatan" />
           <StatCard label="Rata-rata Ibadah Terpenuhi" value={wkRata == null ? "-" : `${wkRata}%`} />
         </div>
         {!pekan[pk].berjalan && <div className="text-sm text-stone-500 mb-3">Pekan ini belum berjalan, jadi belum ada penilaian.</div>}
         <Card className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
-            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3">Mahasantri</th><th className="p-3">Hafalan baru</th><th className="p-3">Ibadah terpenuhi</th></tr></thead>
+            <thead><tr className="bg-stone-50 text-left text-[0.6875rem] uppercase tracking-wide text-stone-500"><th className="p-3">Mahasantri</th><th className="p-3">Ziyadah</th><th className="p-3">Ibadah terpenuhi</th></tr></thead>
             <tbody>
               {wkUrut.map(({ b, q, ib, qOk, iOk }) => (
                 <tr key={b.s.nim} className="border-t border-stone-100">
@@ -3156,6 +3232,7 @@ function RekapPencapaian({ santriList, quranRows, ibadahRows, brand, onBack }) {
             </tbody>
           </table>
         </Card>
+        <TabelSetoranJenis data={jenisPekan} judul={`Rekap Setoran per Jenis — Pekan ${pk + 1} (tgl ${pekan[pk].rentang})`} sub="Jumlah halaman untuk Ziyadah, Murajaah, Tilawah, Tahsin, dan Talaqqi; jumlah kali untuk Tasmi' dan Syahadah." />
         <div className="text-[0.6875rem] text-stone-500 mt-2">Batang menunjukkan capaian terhadap target pekan itu (penuh = target tercapai). Santri yang belum mencapai target ditampilkan paling atas.</div>
           </>
         )}
@@ -3533,7 +3610,7 @@ function AkademikSantriPage({ profile, tabAwal = "krs" }) {
 
         <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>Nama Mahasantri</span><span>: {santri?.nama}</span></div>
         <div style={{ fontSize: 11, marginBottom: 3, display: "flex" }}><span style={{ width: 130 }}>NIM</span><span>: {santri?.nim}</span></div>
-        {dokType === "Transkrip" ? <div style={{ marginBottom: 14 }} /> : <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Semester</span><span>: {sem || "-"} {ta || ""}</span></div>}
+        {dokType === "Transkrip" ? <div style={{ marginBottom: 14 }} /> : <div style={{ fontSize: 11, marginBottom: 14, display: "flex" }}><span style={{ width: 130 }}>Semester</span><span>: {semesterKeDari(akT.rows, ta, sem)}</span></div>}
 
         {dokType === "Transkrip" ? (
         <TranskripNilai records={akT.rows} santri={santri} tahap={tahapT.rows.filter((t) => t.nim === profile.nim)} />
@@ -5144,6 +5221,7 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Nomor semester di KRS, pilihan pengampu, rekap per jenis setoran", isi: "KRS dan KHS mencetak Semester : 1, 2, 3 (bukan Ganjil/Genap). Pengampu dipilih dengan klik nama dari daftar, hanya yang dipilih yang tercetak. Rekap Pencapaian memakai istilah Ziyadah dan menambah rekap per jenis (Ziyadah, Murajaah, Tasmi', Tilawah, Tahsin, Talaqqi, Syahadah) per bulan dan per pekan, juga di Excel. Butuh file SQL 24-semester-ke.sql.", lokasi: "KRS & KHS, Rekap Pencapaian" },
   { tgl: "Okt 2026", judul: "Syarat Syahadah Kubro mengikuti Capaian Al-Qur'an", isi: "Syahadah Kubro terbuka hanya jika Ziyadah 30 juz sudah selesai (juz dikuasai 30) dan sudah ada catatan Tasmi'. Kartu tahap menampilkan juz dan Tasmi' saat ini, dan Monitoring → Siap Diajukan hanya menampilkan yang memenuhi syarat. Admin/Akademik tetap dapat Input Manual untuk data lama.", lokasi: "Akademik → Tugas Akhir & Ujian" },
   { tgl: "Okt 2026", judul: "Urutan tugas akhir diperbarui, pengajuan Wisuda, pilihan pengampu per semester", isi: "Alur menjadi Magang lalu KPM lalu Sidang Akhir Bisnis; Sidang Munaqasyah dan Syahadah Kubro berdiri sendiri; Pengambilan Sanad setelah Syahadah Kubro; Wisuda sebagai tahap terakhir setelah semua tahap lulus (dengan penanda tunggakan SPP). Di Ambil dari Daftar, pengampu tiap mata kuliah dapat dipilih per semester tanpa input ganda.", lokasi: "Akademik → Tugas Akhir & Ujian dan KRS" },
   { tgl: "Okt 2026", judul: "Ringkasan Tugas Akhir & Ujian siap cetak, ikon formal", isi: "Di tab Tugas Akhir & Ujian mahasantri ada Pratinjau & Cetak Ringkasan: dokumen berkop pondok berisi enam tahap, status, tanggal, pembimbing/penguji, nilai, karya bisnis, tanda tangan, dan QR. Ikon emoji pada tiap tahap diganti ikon garis seragam agar tampil lebih formal.", lokasi: "Akademik → Tugas Akhir & Ujian" },
