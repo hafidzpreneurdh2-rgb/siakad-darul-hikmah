@@ -2874,6 +2874,100 @@ function TabelSetoranJenis({ data, judul, sub }) {
   );
 }
 
+/* Ringkasan visual pencapaian: diagram lingkaran, siapa mencapai / belum, dan per angkatan */
+function RingkasanVisualRekap({ daftar, wg, judul }) {
+  const [fokus, setFokus] = useState("q");
+  const [semua, setSemua] = useState(false);
+  const STATUS = [
+    { k: "tercapai", label: "Tercapai", warna: wg.hafalan },
+    { k: "sebagian", label: "Sebagian pekan", warna: "#E9C46A" },
+    { k: "belum", label: "Belum tercapai", warna: wg.ibadah_kurang },
+    { k: "tanpa", label: "Tanpa target / data", warna: "#D6D3D1" },
+  ];
+  const rows = daftar.map((d) => ({ s: d.s, ...d[fokus] }));
+  const hitung = Object.fromEntries(STATUS.map((x) => [x.k, rows.filter((r) => r.status === x.k).length]));
+  const total = rows.length || 1;
+  const dinilai = rows.length - hitung.tanpa;
+  let kumulatif = 0;
+  const segmen = STATUS.map((x) => { const pct = (hitung[x.k] / total) * 100; const o = { ...x, pct, offset: 25 - kumulatif }; kumulatif += pct; return o; });
+  const tercapai = rows.filter((r) => r.status === "tercapai").sort((a, b) => a.s.nama.localeCompare(b.s.nama));
+  const belum = rows.filter((r) => r.status === "belum" || r.status === "sebagian").sort((a, b) => a.persen - b.persen || a.s.nama.localeCompare(b.s.nama));
+  const tanpa = rows.filter((r) => r.status === "tanpa");
+  const batas = semua ? 999 : 8;
+  const angkatan = {};
+  rows.forEach((r) => { const k = String(r.s.kelas || "").trim() || "Tanpa angkatan"; (angkatan[k] = angkatan[k] || []).push(r); });
+  const urutAng = Object.keys(angkatan).sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
+  const namaFokus = fokus === "q" ? "Ziyadah" : "Ibadah";
+  const Baris = ({ r, warna }) => (
+    <div className="py-2 border-t border-stone-100 first:border-t-0">
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="min-w-0"><span className="font-semibold text-[0.8rem] text-[#0B3B36]">{r.s.nama}</span><span className="text-[0.625rem] text-stone-400 ml-2">{r.s.nim}{r.s.kelas ? " · " + r.s.kelas : ""}</span></div>
+        <div className="text-[0.6875rem] font-bold shrink-0" style={{ color: warna }}>{r.persen}%</div>
+      </div>
+      <div className="h-1.5 bg-stone-100 rounded-full mt-1 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.min(100, r.persen)}%`, background: warna }} /></div>
+      <div className="text-[0.625rem] text-stone-500 mt-0.5">{r.info}</div>
+    </div>
+  );
+  return (
+    <div className="mb-5">
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+        <h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold">Gambaran Pencapaian Target — {judul}</h3>
+        <div className="inline-flex border border-stone-200 rounded-lg overflow-hidden print:hidden">
+          {[["q", "Ziyadah"], ["i", "Ibadah"]].map(([k, l]) => <button key={k} type="button" onClick={() => setFokus(k)} className={`px-4 py-1.5 text-xs font-bold ${fokus === k ? "bg-[#0B3B36] text-white" : "bg-white text-stone-500"}`}>{l}</button>)}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <Card>
+          <div className="flex items-center gap-4">
+            <svg viewBox="0 0 42 42" width="132" height="132" role="img" aria-label={`Diagram pencapaian target ${namaFokus}`}>
+              <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#F5F5F4" strokeWidth="6" />
+              {segmen.filter((x) => x.pct > 0).map((x) => <circle key={x.k} cx="21" cy="21" r="15.9155" fill="none" stroke={x.warna} strokeWidth="6" strokeDasharray={`${x.pct} ${100 - x.pct}`} strokeDashoffset={x.offset} />)}
+              <text x="21" y="20" textAnchor="middle" fontSize="7" fontWeight="700" fill="#0B3B36">{dinilai ? Math.round((hitung.tercapai / dinilai) * 100) : 0}%</text>
+              <text x="21" y="26" textAnchor="middle" fontSize="2.8" fill="#78716C">tercapai</text>
+            </svg>
+            <div className="space-y-1.5 text-xs">
+              {STATUS.map((x) => <div key={x.k} className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: x.warna }} /><span className="text-stone-600">{x.label}</span><b className="text-[#0B3B36]">{hitung[x.k]}</b></div>)}
+            </div>
+          </div>
+          <div className="text-[0.6875rem] text-stone-500 mt-3">Target {namaFokus}: <b>{hitung.tercapai}</b> dari <b>{dinilai}</b> mahasantri yang dinilai tercapai penuh.</div>
+        </Card>
+        <Card className="lg:col-span-2">
+          <div className="text-[0.6875rem] uppercase tracking-wider text-stone-400 font-bold mb-2">Pencapaian per angkatan ({namaFokus})</div>
+          <div className="space-y-2.5">
+            {urutAng.map((k) => {
+              const g = angkatan[k]; const den = g.filter((r) => r.status !== "tanpa").length; const ok = g.filter((r) => r.status === "tercapai").length;
+              const pct = den ? Math.round((ok / den) * 100) : 0;
+              return (
+                <div key={k}>
+                  <div className="flex justify-between text-xs"><span className="font-semibold text-[#0B3B36]">{/^\d+$/.test(k) ? "Angkatan " + k : k}</span><span className="text-stone-500">{den ? `${ok} dari ${den} tercapai (${pct}%)` : "belum ada data / target"}</span></div>
+                  <div className="h-2.5 bg-stone-100 rounded-full overflow-hidden mt-1"><div className="h-full rounded-full" style={{ width: `${pct}%`, background: wg.hafalan }} /></div>
+                </div>
+              );
+            })}
+            {urutAng.length === 0 && <Empty text="Belum ada data." />}
+          </div>
+        </Card>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <div className="flex items-center justify-between mb-1"><h4 className="font-bold text-sm" style={{ color: wg.hafalan }}>Mencapai target ({tercapai.length})</h4></div>
+          {tercapai.slice(0, batas).map((r) => <Baris key={r.s.nim} r={r} warna={wg.hafalan} />)}
+          {tercapai.length === 0 && <div className="text-xs text-stone-400 py-3">Belum ada mahasantri yang mencapai target.</div>}
+          {tercapai.length > batas && <div className="text-[0.6875rem] text-stone-400 pt-2">dan {tercapai.length - batas} lainnya</div>}
+        </Card>
+        <Card>
+          <div className="flex items-center justify-between mb-1"><h4 className="font-bold text-sm" style={{ color: wg.ibadah_kurang }}>Belum mencapai target ({belum.length})</h4><span className="text-[0.625rem] text-stone-400">yang paling rendah di atas</span></div>
+          {belum.slice(0, batas).map((r) => <Baris key={r.s.nim} r={r} warna={r.status === "sebagian" ? "#C9A227" : wg.ibadah_kurang} />)}
+          {belum.length === 0 && <div className="text-xs text-stone-400 py-3">Semua mahasantri yang dinilai sudah mencapai target.</div>}
+          {belum.length > batas && <div className="text-[0.6875rem] text-stone-400 pt-2">dan {belum.length - batas} lainnya</div>}
+        </Card>
+      </div>
+      {(tercapai.length > batas || belum.length > batas) && <button type="button" onClick={() => setSemua(!semua)} className="mt-2 text-xs font-bold text-[#145048] underline print:hidden">{semua ? "Ringkas daftar" : "Tampilkan semua nama"}</button>}
+      {tanpa.length > 0 && <div className="mt-3 text-[0.6875rem] text-stone-500"><b>Belum dinilai ({tanpa.length}):</b> {tanpa.map((r) => r.s.nama).join(", ")}. {fokus === "q" ? "Biasanya target halaman per pekan belum diisi di Data Mahasantri, atau pekan belum berjalan." : "Belum ada catatan ibadah pada periode ini."}</div>}
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------------------- */
 /* Pengumuman                                                               */
 /* ---------------------------------------------------------------------- */
@@ -3112,6 +3206,14 @@ function RekapPencapaian({ santriList, quranRows, ibadahRows, brand, onBack }) {
   const trenIb = monthsBack(6).map((m) => { const it = ibadahRows.filter((l) => nimSet.has(l.nim) && l.tanggal?.slice(0, 7) === ymOf(m)); return { label: m.label, value: it.length ? Math.round((it.filter((l) => !CAPAIAN_NEGATIF.includes(l.capaian)).length / it.length) * 100) : 0 }; });
   const jenisBulan = baris.map((b) => ({ b, v: hitungJenisSetoran(quranRows, b.s.nim, (l) => l.tanggal?.slice(0, 7) === periode) }));
   const jenisPekan = baris.map((b) => ({ b, v: hitungJenisSetoran(quranRows, b.s.nim, (l) => l.tanggal?.slice(0, 7) === periode && pekanDari(l.tanggal) === pk) }));
+  const statusBulan = (n, d) => (d === 0 ? "tanpa" : n === d ? "tercapai" : n > 0 ? "sebagian" : "belum");
+  const rataIbBaris = (b) => { const v = b.ib.filter((x) => x != null); return v.length ? Math.round(v.reduce((a, x) => a + x, 0) / v.length) : null; };
+  const daftarBulan = baris.map((b) => ({ s: b.s,
+    q: { status: statusBulan(b.qN, b.qD), persen: b.qD ? Math.round((b.qN / b.qD) * 100) : 0, info: b.qD ? `${b.qN} dari ${b.qD} pekan tercapai · ${b.totalQ} hlm (target ${b.tq} hlm/pekan)` : b.tq ? "belum ada pekan yang berjalan" : "target halaman belum diisi" },
+    i: { status: statusBulan(b.iN, b.iD), persen: b.iD ? Math.round((b.iN / b.iD) * 100) : 0, info: b.iD ? `${b.iN} dari ${b.iD} pekan tercapai · rata-rata ${rataIbBaris(b)}% (target ${b.ti}%)` : "belum ada catatan ibadah" } }));
+  const daftarPekan = wk.map((x) => ({ s: x.b.s,
+    q: { status: x.qOk === null ? "tanpa" : x.qOk ? "tercapai" : "belum", persen: x.b.tq ? Math.min(100, Math.round((x.q / x.b.tq) * 100)) : 0, info: x.b.tq ? `${x.q} hlm dari target ${x.b.tq} hlm` : "target halaman belum diisi" },
+    i: { status: x.iOk === null ? "tanpa" : x.iOk ? "tercapai" : "belum", persen: x.ib == null ? 0 : Math.min(100, Math.round((x.ib / x.b.ti) * 100)), info: x.ib == null ? "belum ada catatan ibadah" : `${x.ib}% dari target ${x.b.ti}%` } }));
   const sel = (ok) => (ok === true ? { color: wg.hafalan, fontWeight: 700 } : ok === false ? { color: wg.ibadah_kurang, fontWeight: 700 } : { color: "#A8A29E" });
   async function unduhExcel() {
     const XLSX = await muatXLSX();
@@ -3168,6 +3270,7 @@ function RekapPencapaian({ santriList, quranRows, ibadahRows, brand, onBack }) {
           <StatCard label="Memenuhi Target Ibadah" value={`${penuhI} / ${adaI}`} sub="semua pekan berjalan" />
           <StatCard label="Rata-rata Ibadah Terpenuhi" value={rataIb == null ? "-" : `${rataIb}%`} />
         </div>
+        <RingkasanVisualRekap daftar={daftarBulan} wg={wg} judul={`${bulan} ${tahun}`} />
         <div className="grid grid-cols-2 gap-4 mb-5">
           <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-1">Santri yang Mencapai Target Ziyadah</h3><GrafikBatangPekan data={agregat("qOk")} satuan="%" max={100} warnaOk={wg.hafalan} warnaGagal={wg.ibadah_kurang} ringkasan="Persentase santri yang mencapai target hafalan tiap pekan." /></Card>
           <Card><h3 className="font-serif-dh text-base text-[#0B3B36] font-semibold mb-1">Santri yang Mencapai Target Ibadah</h3><GrafikBatangPekan data={agregat("iOk")} satuan="%" max={100} warnaOk={wg.ibadah_baik} warnaGagal={wg.ibadah_kurang} ringkasan="Persentase santri yang mencapai target ibadah tiap pekan." /></Card>
@@ -3210,6 +3313,7 @@ function RekapPencapaian({ santriList, quranRows, ibadahRows, brand, onBack }) {
           <StatCard label="Memenuhi Target Ibadah" value={`${wkIN} / ${wkID}`} sub="santri bercatatan" />
           <StatCard label="Rata-rata Ibadah Terpenuhi" value={wkRata == null ? "-" : `${wkRata}%`} />
         </div>
+        <RingkasanVisualRekap daftar={daftarPekan} wg={wg} judul={`Pekan ${pk + 1} (tgl ${pekan[pk].rentang}) ${bulan} ${tahun}`} />
         {!pekan[pk].berjalan && <div className="text-sm text-stone-500 mb-3">Pekan ini belum berjalan, jadi belum ada penilaian.</div>}
         <Card className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
@@ -5221,6 +5325,7 @@ function BackupDataCard() {
 
 /* Riwayat pembaruan — TAMBAHKAN entri baru di paling atas setiap ada fitur baru */
 const RIWAYAT_PEMBARUAN = [
+  { tgl: "Okt 2026", judul: "Gambaran pencapaian target di Rekap Pencapaian", isi: "Bagian baru di atas rekap: diagram lingkaran status pencapaian (tercapai, sebagian pekan, belum tercapai, tanpa target/data) untuk Ziyadah dan Ibadah, grafik batang per angkatan, serta dua daftar nama berbar kemajuan: yang mencapai target dan yang belum (paling rendah di atas). Tersedia untuk tampilan Per Bulan dan Per Pekan, ikut tercetak.", lokasi: "Rekap Pencapaian" },
   { tgl: "Okt 2026", judul: "Nomor semester di KRS, pilihan pengampu, rekap per jenis setoran", isi: "KRS dan KHS mencetak Semester : 1, 2, 3 (bukan Ganjil/Genap). Pengampu dipilih dengan klik nama dari daftar, hanya yang dipilih yang tercetak. Rekap Pencapaian memakai istilah Ziyadah dan menambah rekap per jenis (Ziyadah, Murajaah, Tasmi', Tilawah, Tahsin, Talaqqi, Syahadah) per bulan dan per pekan, juga di Excel. Butuh file SQL 24-semester-ke.sql.", lokasi: "KRS & KHS, Rekap Pencapaian" },
   { tgl: "Okt 2026", judul: "Syarat Syahadah Kubro mengikuti Capaian Al-Qur'an", isi: "Syahadah Kubro terbuka hanya jika Ziyadah 30 juz sudah selesai (juz dikuasai 30) dan sudah ada catatan Tasmi'. Kartu tahap menampilkan juz dan Tasmi' saat ini, dan Monitoring → Siap Diajukan hanya menampilkan yang memenuhi syarat. Admin/Akademik tetap dapat Input Manual untuk data lama.", lokasi: "Akademik → Tugas Akhir & Ujian" },
   { tgl: "Okt 2026", judul: "Urutan tugas akhir diperbarui, pengajuan Wisuda, pilihan pengampu per semester", isi: "Alur menjadi Magang lalu KPM lalu Sidang Akhir Bisnis; Sidang Munaqasyah dan Syahadah Kubro berdiri sendiri; Pengambilan Sanad setelah Syahadah Kubro; Wisuda sebagai tahap terakhir setelah semua tahap lulus (dengan penanda tunggakan SPP). Di Ambil dari Daftar, pengampu tiap mata kuliah dapat dipilih per semester tanpa input ganda.", lokasi: "Akademik → Tugas Akhir & Ujian dan KRS" },
