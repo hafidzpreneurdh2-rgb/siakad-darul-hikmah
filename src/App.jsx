@@ -1393,7 +1393,7 @@ function AkademikStaffPage({ profile, tabAwal = "krs" }) {
         {adaBintang(dokType === "Transkrip" ? records : recordsKRS) && <div style={{ fontSize: 9.5, fontStyle: "italic", color: "#44403C", marginTop: 6, lineHeight: 1.45 }}>{brand.catatan_krs || CATATAN_KRS_BAWAAN}</div>}
 
         <div style={{ fontSize: 10.5, ...ttdBlokStyle(brand, 24) }}>
-          <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
+          <div>{brand.kota_pondok || "Aceh Besar"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
           <div style={jabatanStyle(brand)}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
           <div style={{ display: "flex", justifyContent: isiAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
             <img
@@ -2817,7 +2817,7 @@ function RingkasanTugasAkhirCetak({ santri, rows }) {
         </div>
       )}
       <div style={{ fontSize: 10.5, ...ttdBlokStyle(brand, 24) }}>
-        <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
+        <div>{brand.kota_pondok || "Aceh Besar"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
         <div style={jabatanStyle(brand)}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
         <div style={{ display: "flex", justifyContent: isiAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
           <img src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${brand.nama_pondok || "SIAKAD"} | Ringkasan Tugas Akhir | NIM ${santri?.nim} | ${lulus}/${TAHAPAN_AKHIR.length} lulus`)}`} alt="QR verifikasi" style={{ width: 56, height: 56 }} />
@@ -3713,7 +3713,7 @@ function AkademikSantriPage({ profile, tabAwal = "krs" }) {
         {adaBintang(dokType === "Transkrip" ? akT.rows : recordsSemester) && <div style={{ fontSize: 9.5, fontStyle: "italic", color: "#44403C", marginTop: 6, lineHeight: 1.45 }}>{brand.catatan_krs || CATATAN_KRS_BAWAAN}</div>}
 
         <div style={{ fontSize: 10.5, ...ttdBlokStyle(brand, 24) }}>
-          <div>{brand.kota_pondok || "Banda Aceh"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
+          <div>{brand.kota_pondok || "Aceh Besar"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
           <div style={jabatanStyle(brand)}>{brand.jabatan_ttd || DEFAULT_JABATAN_TTD}</div>
           <div style={{ display: "flex", justifyContent: isiAlign(brand).flex, marginTop: 10, marginBottom: 6 }}>
             <img
